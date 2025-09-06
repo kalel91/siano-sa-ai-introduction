@@ -1,0 +1,59 @@
+{
+  "config": {
+    "name": "Il Pirata",
+    "tagline": "Pizzeria • Braceria",
+    "address": "Via Roma 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
+    "hours": "Lun–Dom 12:00–15:00 • 19:00–23:00 (chiuso Mar)",
+    "phone": "+39 333 1234567",
+    "whatsapp": "+39 333 1234567",
+    "whatsDefaultMsg": "Ciao Il Pirata, vorrei info sul menu 🙂",
+    "heroImages": ["/ilpirata-6.jpg", "/ilpirata-7.jpg", "/ilpirata-8.jpg"],
+    "lastUpdated": "2025-09-05",
+    "theme": {
+      "accent": "#0f766e",
+      "accentText": "#ffffff",
+      "bgFrom": "#0b1321",
+      "bgTo": "#111827",
+      "radius": "14px",
+      "fontUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap",
+      "fontFamily": "'Montserrat', system-ui",
+      "cssUrl": ""
+    }
+  },
+  "menu": {
+    "specials": [
+      { "title": "Margherita XL + Bibita", "price": "6,50 €", "badge": "Oggi" }
+    ],
+    "categories": [
+      {
+        "name": "Pizze classiche",
+        "items": [
+          { "name": "Margherita", "desc": "Pomodoro, fior di latte, basilico", "price": 5.5, "tags": ["G","L"], "fav": true, "img": "/ilpirata-3.png" },
+          { "name": "Salsiccia & Friarielli", "desc": "Mozzarella, salsiccia, friarielli", "price": 8.5, "tags": ["G","L"], "img": "/ilpirata-4.png" },
+          { "name": "Bufalina", "desc": "Pomodoro, bufala DOP, basilico", "price": 8.0, "tags": ["G","L"], "img": "/ilpirata-1.png" }
+        ]
+      },
+      {
+        "name": "Primi",
+        "items": [
+          { "name": "Spaghetti alla Norma", "desc": "Pomodoro, melanzane, ricotta salata", "price": 8.0, "tags": ["G","L"], "img": "/ilpirata-5.png" }
+        ]
+      },
+      {
+        "name": "Fritti",
+        "items": [
+          { "name": "Crocchetta di patate (2)", "price": 2.0, "tags": ["G","U"], "img": "/ilpirata-2.png" },
+          { "name": "Arancino", "desc": "Ragù o prosciutto", "price": 2.5, "tags": ["G","L"], "img": "/ilpirata-2.png" }
+        ]
+      },
+      {
+        "name": "Bevande",
+        "items": [
+          { "name": "Acqua 0,5L", "price": 1.0 },
+          { "name": "Bibita lattina", "desc": "Cola, Aranciata, Limone", "price": 2.0 }
+        ]
+      }
+    ]
+  }
+}
