@@ -56,7 +56,8 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
     setLoading(true);
     try {
       // 1) server-side (Netlify)
-      const endpoint = "/api/ask";
+      const endpoint = import.meta.env.VITE_AI_ENDPOINT || "/.netlify/functions/ask";
+
       console.log("AI endpoint ->", endpoint);
 
       const resp = await fetch(endpoint, {
@@ -107,7 +108,8 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
 
       setLoading(true);
       try {
-        const endpoint = "/api/ask";
+        const endpoint = import.meta.env.VITE_AI_ENDPOINT || "/.netlify/functions/ask";
+
         const resp = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
