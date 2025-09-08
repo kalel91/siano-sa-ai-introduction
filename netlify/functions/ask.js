@@ -1,87 +1,56 @@
 // netlify/functions/ask.js
 export async function handler(event) {
   try {
-    const method = event.httpMethod || "GET";
-    if (method !== "POST") {
-      return { statusCode: 405, body: JSON.stringify({ error: "Use POST" }) };
-    }
+    const { question, data } = JSON.parse(event.body || "{}");
+    const HF_TOKEN = process.env.HF_TOKEN;
+    if (!HF_TOKEN) return { statusCode: 500, body: "HF_TOKEN missing" };
 
-    const { question, data, model = "HuggingFaceH4/zephyr-7b-beta" } =
-      JSON.parse(event.body || "{}");
-
-    if (!process.env.HF_TOKEN) {
-      return { statusCode: 500, body: "HF_TOKEN missing" };
-    }
-
-    const safe = (x) => (x == null ? "" : x);
-    const payload = {
-      name: safe(data?.config?.name),
-      hours: safe(data?.config?.hours),
-      address: safe(data?.config?.address),
-      specials: Array.isArray(data?.menu?.specials) ? data.menu.specials : [],
-      categories: Array.isArray(data?.menu?.categories)
-        ? data.menu.categories.map((c) => ({
-            name: safe(c?.name),
-            items: Array.isArray(c?.items)
-              ? c.items.map((i) => ({
-                  name: safe(i?.name),
-                  desc: safe(i?.desc),
-                  price: i?.price ?? null,
-                  tags: Array.isArray(i?.tags) ? i.tags : [],
-                  fav: !!i?.fav
-                }))
-              : []
-          }))
-        : []
-    };
-
-    const prompt =
-`Sei un assistente per il ristorante. Rispondi in italiano (max 90 parole).
-Usa SOLO questo JSON (menu, orari, indirizzo). Se manca qualcosa, di' "Non disponibile".
-Termina sempre suggerendo: [Chiama] [WhatsApp] [Indicazioni].
-
-JSON: ${JSON.stringify(payload)}
-Domanda: ${question || "(vuota)"}
-Risposta:`;
-
-    const url = `https://api-inference.huggingface.co/models/${model}`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.HF_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: { max_new_tokens: 180, temperature: 0.2 }
-      })
+    const context = JSON.stringify({
+      name: data?.config?.name,
+      hours: data?.config?.hours,
+      address: data?.config?.address,
+      specials: data?.menu?.specials || [],
+      categories: (data?.menu?.categories || []).map(c => ({
+        name: c.name,
+        items: (c.items || []).map(i => ({
+          name: i.name, desc: i.desc, price: i.price, tags: i.tags, fav: i.fav
+        }))
+      }))
     });
 
-    const bodyText = await r.text();
-    console.log("HF status:", r.status, "model:", model);
-    if (!r.ok) {
-      console.error("HF error body:", bodyText);
-      return {
-        statusCode: r.status,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "HF call failed", status: r.status, body: bodyText })
-      };
-    }
+    const system = [
+      "Sei un assistente per il ristorante.",
+      "Rispondi in italiano in max 90 parole.",
+      "Usa SOLO i dati JSON forniti (menu/orari/indirizzo).",
+      'Se manca qualcosa, rispondi: "Non disponibile".',
+      "Chiudi SEMPRE suggerendo: [Chiama] [WhatsApp] [Indicazioni].",
+      "JSON:\n" + context
+    ].join("\n");
 
-    let answer = "";
-    try {
-      const j = JSON.parse(bodyText);
-      answer = Array.isArray(j) ? j[0]?.generated_text || "" : (j.generated_text || "");
-    } catch {
-      answer = bodyText;
-    }
+    const body = {
+      model: "deepseek-ai/DeepSeek-V3.1",
+      provider: { order: ["Fireworks"] },           // assicurati che Fireworks sia ON nei Provider
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: String(question || "") }
+      ],
+      max_tokens: 300,
+      temperature: 0.2
+    };
 
-    if (answer.startsWith(prompt)) answer = answer.slice(prompt.length);
-    answer = (answer || "").trim() || "Non disponibile al momento.";
+    const r = await fetch("https://router.huggingface.co/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${HF_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
 
-    return { statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answer }) };
+    const text = await r.text();
+    if (!r.ok) return { statusCode: r.status, body: text };
+
+    const json = JSON.parse(text);
+    const answer = json?.choices?.[0]?.message?.content?.trim() || "Non disponibile al momento.";
+    return { statusCode: 200, body: JSON.stringify({ answer }) };
   } catch (e) {
-    console.error("ask.js fatal", e);
     return { statusCode: 500, body: String(e) };
   }
 }
