@@ -1,9 +1,12 @@
 import React from "react";
 import ChatWidget from "./ChatWidget";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, MessageCircle, MapPin, Clock, Search, Star, UtensilsCrossed } from "lucide-react";
+import { Phone, MessageCircle, MapPin, Clock, Search, Star, UtensilsCrossed, BookOpenText } from "lucide-react";
 
 /** Types */
+type CTAType = "call" | "directions" | "whatsapp" | "link";
+type CTA = { type: CTAType; label: string; url?: string };
+
 type Config = {
   name: string;
   tagline?: string;
@@ -13,15 +16,28 @@ type Config = {
   phone?: string;
   whatsapp?: string;
   whatsDefaultMsg?: string;
+  logoUrl?: string;
   heroImages?: string[];
   lastUpdated?: string;
   footerNote?: string;
-  assistantLabel?: string; // opzionale: se presente sovrascrive la label del bottone
+  assistantLabel?: string;
   theme?: {
-    accent?: string; accentText?: string; bgFrom?: string; bgTo?: string;
-    radius?: string; fontUrl?: string; fontFamily?: string; cssUrl?: string;
+    mode?: "light" | "dark";
+    accent?: string;
+    accentText?: string;
+    bgFrom?: string;
+    bgTo?: string;
+    radius?: string;
+    fontUrl?: string;
+    fontFamily?: string;
+    cssUrl?: string;
+  };
+  chat?: {
+    quickReplies?: string[];
+    ctas?: CTA[];
   };
 };
+
 type MenuItem = { name: string; desc?: string; price: number; tags?: string[]; img?: string; fav?: boolean };
 type Category = { name: string; items: MenuItem[] };
 type Menu = { specials?: { title: string; price: string; badge?: string }[]; categories: Category[] };
@@ -35,13 +51,51 @@ function getSlug(): string {
   const cleaned = raw.toLowerCase().match(/[a-z0-9-]+/g)?.join("-") || "il-pirata";
   return cleaned;
 }
+
+/** Favicon per-locale dal logo */
+function applyFavicon(url?: string){
+  if(!url) return;
+  const ensure = (rel: string) => {
+    let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+    if(!el){ el = document.createElement("link"); el.rel = rel; document.head.appendChild(el); }
+    return el;
+  };
+  const ico = ensure("icon");
+  ico.type = "image/png";
+  ico.href = url;
+  const apple = ensure("apple-touch-icon");
+  apple.href = url;
+}
+
+/** Tema → CSS vars */
 function applyTheme(t?: Config["theme"]){
+  const mode = t?.mode || "light";
   const root = document.documentElement.style;
   root.setProperty("--accent", t?.accent || "#0f766e");
   root.setProperty("--accentText", t?.accentText || "#ffffff");
-  root.setProperty("--bgFrom", t?.bgFrom || "#ecfeff");
-  root.setProperty("--bgTo", t?.bgTo || "#f0fdfa");
-  root.setProperty("--radius", t?.radius || "14px");
+  root.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0b1321" : "#f8fafc"));
+  root.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#111827" : "#ffffff"));
+  root.setProperty("--radius", t?.radius || "16px");
+  // tonalità derivate
+  root.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
+  root.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
+  root.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
+
+  if (mode === "dark") {
+    root.setProperty("--text", "#e5e7eb");
+    root.setProperty("--textSoft", "#cbd5e1");
+    root.setProperty("--card", "#0f172a");
+    root.setProperty("--muted", "#111827");
+    root.setProperty("--border", "rgba(255,255,255,0.12)");
+  } else {
+    root.setProperty("--text", "#0f172a");
+    root.setProperty("--textSoft", "#475569");
+    root.setProperty("--card", "#ffffff");
+    root.setProperty("--muted", "#f8fafc");
+    root.setProperty("--border", "#e5e7eb");
+  }
+  document.body.style.backgroundColor = "var(--bgTo)";
+
   if (t?.fontUrl){
     let link = document.getElementById("venue-font") as HTMLLinkElement | null;
     if(!link){ link=document.createElement("link"); link.id="venue-font"; link.rel="stylesheet"; document.head.appendChild(link); }
@@ -57,22 +111,20 @@ function applyTheme(t?: Config["theme"]){
   }
 }
 
-/** Articolo automatico per il bottone: "Chiedi al/allo/alla/all’/ai/agli/alle <nome>" oppure "Chiedi a <nome>" */
+/** Label “Chiedi al/allo/alla/all’/ai/ag…/alle …” */
 function makeAskLabel(venueName: string): string {
   const name = (venueName || "").trim();
   if (!name) return "Chiedi all’assistente AI";
-
   const lower = name.toLowerCase();
-  // supporta apostrofi tipografici e semplici
-  const lapost = /^l[’']/i.test(lower);
+  const lapost = /^l['\u2019]/i.test(lower);   // ' o ’
+
   if (lower.startsWith("il "))   return `Chiedi al ${name.slice(3).trim()}`;
   if (lower.startsWith("lo "))   return `Chiedi allo ${name.slice(3).trim()}`;
   if (lower.startsWith("la "))   return `Chiedi alla ${name.slice(3).trim()}`;
-  if (lapost)                    return `Chiedi all’${name.slice(2).trim()}`;
+  if (lapost)                    return `Chiedi all\u2019${name.slice(2).trim()}`;
   if (lower.startsWith("i "))    return `Chiedi ai ${name.slice(2).trim()}`;
   if (lower.startsWith("gli "))  return `Chiedi agli ${name.slice(4).trim()}`;
   if (lower.startsWith("le "))   return `Chiedi alle ${name.slice(3).trim()}`;
-  // niente articolo nel brand (es. "De Santis", "Zen Café") → "a <nome>"
   return `Chiedi a ${name}`;
 }
 
@@ -97,6 +149,7 @@ function useVenueData(){
         setMen(m);
         setStory((json.story as Story) ?? null);
         applyTheme(c.theme);
+        applyFavicon(c.logoUrl);
 
         document.title = `${c.name} — Menu online`;
       })
@@ -106,61 +159,106 @@ function useVenueData(){
   return {cfg,men,story,err};
 }
 
-/** UI blocks */
-const Pill: React.FC<{active?:boolean; onClick?:()=>void; children:React.ReactNode}> = ({active,onClick,children}) => (
-  <button onClick={onClick}
-    className={`px-3 py-1.5 rounded-full border text-sm transition ${active?"bg-[var(--accent)] text-[var(--accentText)] border-[var(--accent)]":"bg-white border-slate-200 hover:border-slate-300"}`}>
-    {children}
-  </button>
-);
+/** UI helpers */
+const glowShadow = "0 10px 30px 0 color-mix(in_oklab, var(--accent), transparent 80%)";
 
+/** ITEM CARD — outline gradiente + pill prezzo */
 function ItemCard({item}:{item:MenuItem}){
   return (
-    <motion.div initial={{opacity:0,y:10}} whileInView={{opacity:1,y:0}} viewport={{once:true}}
-      className="group overflow-hidden rounded-[var(--radius)] border border-slate-200 bg-white shadow-sm">
-      {item.img && (
-        <div className="h-40 w-full overflow-hidden">
-          <img src={item.img} alt={item.name} loading="lazy"
-            onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display="none";}}
-            className="h-full w-full object-cover transition group-hover:scale-105"/>
-        </div>
-      )}
-      <div className="p-4 flex items-start gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-slate-900">{item.name}</h3>
-            {item.fav && <span className="inline-flex items-center gap-1 text-amber-700 text-[11px] bg-amber-100 px-2 py-0.5 rounded-full"><Star className="w-3 h-3"/> Best seller</span>}
+    <motion.div
+      initial={{opacity:0, y:10}}
+      whileInView={{opacity:1, y:0}}
+      viewport={{once:true}}
+      whileHover={{y:-2, scale:1.01}}
+      transition={{type:"spring", stiffness:250, damping:22}}
+      className="relative rounded-[var(--radius)]"
+      style={{
+        padding: "1px",
+        background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))",
+        boxShadow: glowShadow
+      }}
+    >
+      <div className="group overflow-hidden rounded-[calc(var(--radius)-1px)] border bg-white"
+           style={{ borderColor:"var(--border)", background:"var(--card)" }}>
+        {item.img && (
+          <div className="h-44 w-full overflow-hidden">
+            <img
+              src={item.img}
+              alt={item.name}
+              loading="lazy"
+              onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display="none";}}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
           </div>
-          {item.desc && <p className="text-slate-600 text-sm mt-0.5">{item.desc}</p>}
-          {!!item.tags?.length && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {item.tags!.map((t,i)=><span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{t}</span>)}
-            </div>
-          )}
+        )}
+
+        {/* price pill */}
+        <div className="absolute right-3 top-3 rounded-full px-3 py-1 text-sm font-semibold shadow"
+             style={{ background:"var(--accent)", color:"var(--accentText)", boxShadow: glowShadow }}>
+          {item.price.toFixed(2).replace(".", ",")} €
         </div>
-        <div className="text-right min-w-[80px]">
-          <div className="font-bold text-slate-900">{item.price.toFixed(2).replace(".", ",")} €</div>
+
+        <div className="p-4 flex items-start gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold" style={{color:"var(--text)"}}>{item.name}</h3>
+              {item.fav && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
+                      style={{background:"var(--accent-10)", color:"var(--accent)"}}>
+                  <Star className="w-3 h-3"/> Best seller
+                </span>
+              )}
+            </div>
+            {item.desc && <p className="text-sm mt-1" style={{color:"var(--textSoft)"}}>{item.desc}</p>}
+            {!!item.tags?.length && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {item.tags!.map((t,i)=>
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{background:"var(--muted)", color:"var(--textSoft)", borderColor:"var(--border)"}}>
+                    {t}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }
 
+/** HERO */
 function Hero({images}:{images:string[]}) {
   const [idx,setIdx]=React.useState(0);
-  React.useEffect(()=>{ const id=setInterval(()=>setIdx(i=>(i+1)%images.length),4000); return ()=>clearInterval(id); },[images.length]);
+  React.useEffect(()=>{ const id=setInterval(()=>setIdx(i=>(i+1)%images.length),4500); return ()=>clearInterval(id); },[images.length]);
   if(!images.length) return null;
+
   return (
     <div className="mx-auto max-w-3xl px-4 pt-3">
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border border-slate-200 shadow-sm bg-slate-100">
+      <div
+        className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border shadow-sm"
+        style={{borderColor:"var(--border)", background:"var(--muted)"}}
+      >
         <AnimatePresence mode="wait">
-          <motion.img key={idx} src={images[idx]} alt="hero" loading="eager"
+          <motion.img
+            key={idx}
+            src={images[idx]}
+            alt="hero"
+            loading="eager"
             onError={(e)=>{(e.currentTarget as HTMLImageElement).style.opacity="0";}}
-            initial={{opacity:0,scale:1.02}} animate={{opacity:1,scale:1}} exit={{opacity:0}} transition={{duration:0.6}}
-            className="h-full w-full object-cover"/>
+            initial={{opacity:0, scale:1.02}}
+            animate={{opacity:1, scale:1}}
+            exit={{opacity:0}}
+            transition={{duration:0.6}}
+            className="h-full w-full object-cover"
+          />
         </AnimatePresence>
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          {images.map((_,i)=><button key={i} onClick={()=>setIdx(i)} aria-label={`slide ${i+1}`} className={`h-2.5 w-2.5 rounded-full transition ${i===idx?"bg-white":"bg-white/60"}`}/>)}
+          {images.map((_,i)=>
+            <button key={i} onClick={()=>setIdx(i)} aria-label={`slide ${i+1}`}
+              className={`h-2.5 w-2.5 rounded-full transition ${i===idx?"bg-white":"bg-white/70"}`}/>
+          )}
         </div>
       </div>
     </div>
@@ -189,51 +287,109 @@ export default function QRMenuPro(){
   })),[categories,query]);
 
   if (err) return <div className="p-6 text-red-600">{err}</div>;
-  if (!cfg || !men) return <div className="p-6 text-slate-500">Caricamento…</div>;
+  if (!cfg || !men) return <div className="p-6" style={{color:"var(--textSoft)"}}>Caricamento…</div>;
 
   const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
 
   return (
-    <div className="min-h-screen text-slate-900 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[var(--bgFrom)] via-[color-mix(in_oklab,var(--bgFrom),var(--bgTo)70%)] to-[var(--bgTo)]">
-      {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-white/70 backdrop-blur border-b border-slate-200/70">
+    <div
+      className="min-h-screen"
+      style={{
+        color:"var(--text)",
+        backgroundImage: `
+          radial-gradient(1200px 800px at 80% -10%, var(--bgFrom), var(--bgTo)),
+          radial-gradient(600px 400px at -10% 20%, var(--accent-05), transparent),
+          radial-gradient(700px 500px at 110% 80%, var(--accent-05), transparent)
+        `
+      }}
+    >
+      {/* HEADER GLASS */}
+      <div
+        className="sticky top-0 z-40 backdrop-blur border-b"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.55))",
+          borderColor: "var(--border)",
+          boxShadow: "0 10px 30px rgba(0,0,0,.05)"
+        }}
+      >
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-[var(--radius)] bg-[color-mix(in_oklab,var(--accent),white_75%)] flex items-center justify-center ring-1 ring-[color-mix(in_oklab,var(--accent),black_15%)]">
-            <UtensilsCrossed className="w-5 h-5" style={{color:"var(--accent)"}}/>
-          </div>
+          {cfg.logoUrl ? (
+            <div
+              className="w-11 h-11 rounded-[var(--radius)] overflow-hidden ring-1 bg-white"
+              style={{borderColor:"var(--border)", boxShadow:"0 4px 20px rgba(0,0,0,.06)"}}
+            >
+              <img
+                src={cfg.logoUrl}
+                alt={`${cfg.name} logo`}
+                className="w-full h-full object-cover"
+                onError={(e)=>{ (e.currentTarget as HTMLImageElement).style.display="none"; }}
+              />
+            </div>
+          ) : (
+            <div className="w-11 h-11 rounded-[var(--radius)] bg-[var(--muted)] flex items-center justify-center ring-1"
+                 style={{borderColor:"var(--border)"}}>
+              <UtensilsCrossed className="w-5 h-5" style={{color:"var(--textSoft)"}}/>
+            </div>
+          )}
+
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-semibold">{cfg.name}</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{background:"color-mix(in_oklab,var(--accent),white 85%)", color:"var(--accent)"}}>Menu online</span>
+              <h1 className="text-lg font-semibold" style={{color:"var(--text)"}}>{cfg.name}</h1>
+              <span className="text-[11px] px-2 py-0.5 rounded-full"
+                    style={{background:"var(--accent-10)", color:"var(--accent)"}}>Menu online</span>
             </div>
-            {cfg.tagline && <p className="text-slate-600 text-sm">{cfg.tagline}</p>}
+            {cfg.tagline && <p className="text-sm" style={{color:"var(--textSoft)"}}>{cfg.tagline}</p>}
           </div>
+
           <div className="hidden sm:flex gap-2">
-            <a href={telHref(cfg.phone)} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border border-slate-200 hover:bg-white"><Phone className="w-4 h-4"/> Chiama</a>
-            <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] text-[var(--accentText)]" style={{background:"var(--accent)"}}><MessageCircle className="w-4 h-4"/> WhatsApp</a>
+            <a href={telHref(cfg.phone)} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border hover:bg-white"
+               style={{borderColor:"var(--border)", color:"var(--text)"}}><Phone className="w-4 h-4"/> Chiama</a>
+            <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
+               className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] text-[var(--accentText)]"
+               style={{background:"var(--accent)", boxShadow: glowShadow}}><MessageCircle className="w-4 h-4"/> WhatsApp</a>
           </div>
         </div>
 
         {/* INFO ROW */}
-        <div className="mx-auto max-w-3xl px-4 -mt-2 pb-2 text-slate-600 text-sm flex flex-wrap items-center gap-4">
-          {cfg.address && <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4"/> <a href={cfg.mapUrl} target="_blank" className="underline decoration-dotted">{cfg.address}</a></span>}
+        <div className="mx-auto max-w-3xl px-4 -mt-2 pb-3 text-sm flex flex-wrap items-center gap-4" style={{color:"var(--textSoft)"}}>
+          {cfg.address && <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4"/><a href={cfg.mapUrl} target="_blank" className="underline decoration-dotted">{cfg.address}</a></span>}
           {cfg.hours && <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4"/> {cfg.hours}</span>}
         </div>
 
-        {/* SEARCH + TABS */}
-        <div className="mx-auto max-w-3xl px-4 pb-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-              <input value={query} onChange={(e)=>setQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-[var(--radius)] border border-slate-200 bg-white/70 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent),white_70%)]"
-                placeholder="Cerca piatto o ingrediente…"/>
-            </div>
+        {/* SEARCH + CATEGORIES */}
+        <div className="mx-auto max-w-3xl px-4 pb-4">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2" style={{color:"var(--textSoft)"}}/>
+            <input
+              value={query}
+              onChange={(e)=>setQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-[var(--radius)] border outline-none transition"
+              style={{
+                borderColor:"var(--border)",
+                background:"var(--card)",
+                color:"var(--text)",
+                boxShadow: "0 0 0 0 rgba(0,0,0,0)"
+              }}
+              onFocus={(e)=>{ e.currentTarget.style.boxShadow = `0 0 0 5px var(--accent-05)`; }}
+              onBlur ={(e)=>{ e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)"; }}
+              placeholder="Cerca piatto o ingrediente…"
+            />
           </div>
-          <div className="mt-2 overflow-x-auto no-scrollbar">
+
+          <div className="mt-3 overflow-x-auto no-scrollbar">
             <div className="flex gap-2 min-w-max">
               {categories.map((c)=>(
-                <Pill key={c.name} active={activeCat===c.name} onClick={()=>setActiveCat(c.name)}>{c.name}</Pill>
+                <button
+                  key={c.name}
+                  onClick={()=>setActiveCat(c.name)}
+                  className="px-3 py-1.5 rounded-full border text-sm transition active:scale-[.98]"
+                  style={ activeCat===c.name
+                    ? { background:"var(--accent)", color:"var(--accentText)", borderColor:"var(--accent)", boxShadow: glowShadow }
+                    : { background:"var(--muted)", color:"var(--text)", borderColor:"var(--border)" }
+                  }
+                >
+                  {c.name}
+                </button>
               ))}
             </div>
           </div>
@@ -243,17 +399,28 @@ export default function QRMenuPro(){
       {/* HERO */}
       <Hero images={cfg.heroImages || []}/>
 
-      {/* STORIA */}
+      {/* STORY — glass + gradient border */}
       {story && (
-        <div className="mx-auto max-w-3xl px-4 mt-4">
-          <div className="p-4 rounded-[var(--radius)] border border-amber-200 bg-amber-50/70">
-            <div className="flex items-start gap-3">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-amber-700" fill="currentColor" aria-hidden="true">
-                <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-5-7 5V4z"/>
-              </svg>
-              <div>
-                <div className="font-semibold text-amber-900">{story.title || "La nostra storia"}</div>
-                {story.text && <p className="text-amber-900/90 text-sm mt-1">{story.text}</p>}
+        <div className="mx-auto max-w-3xl px-4 mt-6">
+          <div
+            className="rounded-[var(--radius)] p-[1px]"
+            style={{ background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))", boxShadow: glowShadow }}
+          >
+            <div
+              className="rounded-[calc(var(--radius)-1px)] p-4 sm:p-5 border"
+              style={{ background:"linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.75))", borderColor:"var(--border)" }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 rounded-full p-2"
+                     style={{background:"var(--accent-10)", color:"var(--accent)"}}>
+                  <BookOpenText className="w-5 h-5"/>
+                </div>
+                <div>
+                  <div className="font-semibold" style={{color:"var(--text)"}}>
+                    {story.title || "La nostra storia"}
+                  </div>
+                  {story.text && <p className="text-sm mt-1" style={{color:"var(--textSoft)"}}>{story.text}</p>}
+                </div>
               </div>
             </div>
           </div>
@@ -265,19 +432,21 @@ export default function QRMenuPro(){
         {filtered.map((cat)=>(
           <section key={cat.name} className={`${activeCat===cat.name?"block":"hidden"} mb-8`}>
             <div className="flex items-baseline justify-between mb-3">
-              <h2 className="text-xl font-semibold">{cat.name}</h2>
-              <span className="text-xs text-slate-500">{cat.items.length} piatti</span>
+              <h2 className="text-xl font-semibold" style={{color:"var(--text)"}}>{cat.name}</h2>
+              <span className="text-xs" style={{color:"var(--textSoft)"}}>{cat.items.length} piatti</span>
             </div>
+
             {cat.items.length>0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {cat.items.map((it,i)=><ItemCard key={i} item={it}/>)}
               </div>
             ) : (
-              <div className="text-sm text-slate-500">Nessun elemento corrisponde alla ricerca.</div>
+              <div className="text-sm" style={{color:"var(--textSoft)"}}>Nessun elemento corrisponde alla ricerca.</div>
             )}
           </section>
         ))}
-        <footer className="mt-10 mb-24 text-xs text-slate-500 space-y-1">
+
+        <footer className="mt-12 mb-28 text-xs space-y-1" style={{color:"var(--textSoft)"}}>
           {cfg.footerNote && <div>{cfg.footerNote}</div>}
           <div>
             Aggiornato: {cfg.lastUpdated || ""} • Allergeni:
@@ -290,13 +459,14 @@ export default function QRMenuPro(){
 
       {/* STICKY CTA (mobile) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden p-3">
-        <div className="mx-auto max-w-md grid grid-cols-2 gap-2 bg-white/95 backdrop-blur border border-slate-200 rounded-[var(--radius)] shadow-lg">
+        <div className="mx-auto max-w-md grid grid-cols-2 gap-2 backdrop-blur border rounded-[var(--radius)] shadow-lg"
+             style={{background:"rgba(255,255,255,.9)", borderColor:"var(--border)"}}>
           <a href={telHref(cfg.phone)} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)]"><Phone className="w-5 h-5"/> Chiama</a>
-          <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]" style={{background:"var(--accent)"}}><MessageCircle className="w-5 h-5"/> WhatsApp</a>
+          <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]" style={{background:"var(--accent)", boxShadow: glowShadow}}><MessageCircle className="w-5 h-5"/> WhatsApp</a>
         </div>
       </div>
 
-      {/* CHAT */}
+      {/* CHAT — quick replies & CTA dal JSON */}
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}
@@ -304,6 +474,10 @@ export default function QRMenuPro(){
         venueName={cfg.name}
         buttonLabel={computedFab}
         panelTitle={`Assistente di ${cfg.name}`}
+        quickReplies={cfg.chat?.quickReplies}
+        ctas={cfg.chat?.ctas}
+        whatsapp={cfg.whatsapp}
+        whatsDefaultMsg={cfg.whatsDefaultMsg}
       />
     </div>
   );

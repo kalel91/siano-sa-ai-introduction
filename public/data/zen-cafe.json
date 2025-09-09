@@ -1,0 +1,76 @@
+{
+  "config": {
+    "name": "Zen Cafè",
+    "tagline": "Bar • Pizzeria",
+    "address": "Via Tranquilla 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Tranquilla+12+Siano",
+    "hours": "Tutti i giorni 07:00/14:30 • 18:00/23:30",
+    "phone": "+39 333 111 2222",
+    "whatsapp": "+39 333 111 2222",
+    "whatsDefaultMsg": "Ciao Zen Cafè, vorrei info su menu e aperitivi 🙂",
+    "logoUrl": "/zen_logo_transparent.svg",
+    "heroImages": ["/zen-1.jpg", "/zen-2.jpg", "/zen-3.jpg"],
+    "assistantLabel": "Chiedi allo Zen Cafè",
+    "footerNote": "Impasti leggeri 48h e caffetteria selezionata.",
+    "lastUpdated": "2025-09-05",
+    "theme": {
+      "mode": "light",
+      "accent": "#6d28d9",
+      "accentText": "#ffffff",
+      "bgFrom": "#f8fafc",
+      "bgTo": "#ffffff",
+      "radius": "16px",
+      "fontUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+      "fontFamily": "'Inter', system-ui",
+      "cssUrl": ""
+    },
+    "chat": {
+      "quickReplies": ["Aperitivo", "Pizze gourmet", "Opzioni vegetali", "Caffetteria", "Orari di apertura"],
+      "ctas": [
+        {"type":"call","label":"Chiama"},
+        {"type":"directions","label":"Indicazioni"},
+        {"type":"whatsapp","label":"WhatsApp"}
+      ]
+    }
+  },
+  "story": {
+    "title": "Relax & buon gusto",
+    "text": "Dalla colazione all’aperitivo: Zen Cafè unisce caffetteria artigianale e pizze leggere a lunga lievitazione."
+  },
+  "menu": {
+    "specials": [
+      { "title": "Aperitivo Zen (tagliere + 2 drink)", "price": "12,00 €", "badge": "Happy Hour" }
+    ],
+    "categories": [
+      {
+        "name": "Pizze gourmet",
+        "items": [
+          { "name": "Morta & Pistacchio", "desc": "Fior di latte, mortadella, granella di pistacchio", "price": 9.5, "tags": ["G","L"], "fav": true, "img": "/zen-3.jpg" },
+          { "name": "Ortolana", "desc": "Verdure grigliate, fior di latte", "price": 8.0, "tags": ["G","L","VEG"], "img": "/zen-4.jpg" }
+        ]
+      },
+      {
+        "name": "Caffetteria",
+        "items": [
+          { "name": "Espresso", "price": 1.2, "img": "/zen-5.jpg" },
+          { "name": "Cappuccino", "price": 1.8, "tags": ["L"] },
+          { "name": "Cappuccino di soia", "price": 2.0, "tags": ["SENZA LATTOSIO"] }
+        ]
+      },
+      {
+        "name": "Aperitivi",
+        "items": [
+          { "name": "Spritz", "price": 4.5, "img": "/zen-6.jpg" },
+          { "name": "Analcolico agrumi", "price": 3.5 }
+        ]
+      },
+      {
+        "name": "Bevande",
+        "items": [
+          { "name": "Acqua 0,5L", "price": 1.0 },
+          { "name": "Bibita lattina", "price": 2.0 }
+        ]
+      }
+    ]
+  }
+}

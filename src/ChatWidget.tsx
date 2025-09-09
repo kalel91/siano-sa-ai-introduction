@@ -10,6 +10,10 @@ type MenuJson = {
   story?: { title?: string; text?: string } | null;
 };
 
+/** CTA supportate */
+type CTAType = "call" | "directions" | "whatsapp" | "link";
+type CTA = { type: CTAType; label: string; url?: string };
+
 /** Props */
 type Props = {
   slug: string;
@@ -18,7 +22,13 @@ type Props = {
   venueName?: string;
   buttonLabel?: string;
   panelTitle?: string;
-  /** legacy (ancora supportati ma non necessari) */
+  /** per-locale dal JSON */
+  quickReplies?: string[];
+  ctas?: CTA[];
+  whatsapp?: string;
+  whatsDefaultMsg?: string;
+
+  /** legacy (compat) */
   assistantLabel?: string;
   assistantTitle?: string;
 };
@@ -26,7 +36,7 @@ type Props = {
 type Msg = { role: "user" | "assistant"; text: string };
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Helpers: intent & fallback engine
+   Helpers: intent & fallback engine (tieni il tuo “smart” migliorato)
    ──────────────────────────────────────────────────────────────────────────── */
 
 // “Dimmi altre opzioni”: riconosce varie forme brevi colloquiali
@@ -60,11 +70,11 @@ function buildCandidates(data: MenuJson, f: Filters, exclude: Set<string>): Menu
   // escludi già suggeriti
   const fresh = all.filter((it) => !exclude.has(it.name));
 
-  // se non ci sono filtri → dai priorità ai best seller, poi alfabetico
+  // se non ci sono filtri → priorità ai best seller, poi alfabetico
   if (!f.veg && !f.nolactose && !f.spicy) {
     return fresh.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || a.name.localeCompare(b.name));
   }
-  // con filtri → ordina alfabetico e prezzo se presente
+  // con filtri → alfabetico e poi prezzo se presente
   return fresh.sort((a, b) => a.name.localeCompare(b.name) || (a.price ?? 0) - (b.price ?? 0));
 }
 
@@ -103,9 +113,8 @@ function offlineAnswer(q: string, data: MenuJson, cursor: number, already: Set<s
     }
   }
 
-  // elenco suggerimenti
+  // elenco suggerimenti (2 alla volta, rotazione)
   if (pool.length) {
-    // prendi 2 a partire dal cursore
     const first = pool[cursor % pool.length];
     const second = pool.length > 1 ? pool[(cursor + 1) % pool.length] : undefined;
     const items = [first, second].filter(Boolean) as MenuItem[];
@@ -113,7 +122,7 @@ function offlineAnswer(q: string, data: MenuJson, cursor: number, already: Set<s
     return { text, used: items.map((x) => x.name), exhausted: false };
   }
 
-  // niente da proporre con questi vincoli → guida l’utente
+  // niente con questi vincoli → guida l’utente
   return {
     text: "Con questi criteri non ho altre proposte. Prova a dirmi un ingrediente (es. 'pomodoro', 'salsiccia') oppure usa un filtro come 'vegetariano', 'senza lattosio' o 'piccante'.",
     used: [],
@@ -122,9 +131,14 @@ function offlineAnswer(q: string, data: MenuJson, cursor: number, already: Set<s
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
+   Util per CTA/WhatsApp
+   ──────────────────────────────────────────────────────────────────────────── */
+function telHref(t?: string){ return t ? `tel:${String(t).replace(/\s|\+/g, "")}` : "#"; }
+function waHref(t?: string,msg=""){ if(!t) return "#"; const p=String(t).replace(/\D/g,""); return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`; }
+
+/* ──────────────────────────────────────────────────────────────────────────────
    Component
    ──────────────────────────────────────────────────────────────────────────── */
-
 export default function ChatWidget({
   slug,
   phone,
@@ -132,6 +146,11 @@ export default function ChatWidget({
   venueName,
   buttonLabel,
   panelTitle,
+  quickReplies,
+  ctas,
+  whatsapp,
+  whatsDefaultMsg,
+  // legacy
   assistantLabel,
   assistantTitle,
 }: Props) {
@@ -139,7 +158,7 @@ export default function ChatWidget({
   const [loading, setLoading] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [history, setHistory] = React.useState<Msg[]>([
-    { role: "assistant", text: "Ciao! Posso aiutarti a scegliere dal menu: dimmi cosa ti va (es. 'piccante', 'senza lattosio', 'vegetariano', o un ingrediente)." },
+    { role: "assistant", text: `Ciao! Posso aiutarti a scegliere dal menu${venueName ? ` di ${venueName}`:""}: dimmi cosa ti va (es. "piccante", "senza lattosio", "vegetariano", o un ingrediente).` },
   ]);
 
   // Stato per il fallback “smart”
@@ -165,15 +184,21 @@ export default function ChatWidget({
       .catch(() => { /* useremo fallback */ });
   }, [slug]);
 
+  // Endpoint dinamico: se hai VITE_AI_ENDPOINT lo usiamo; altrimenti Netlify function
+  function getAIEndpoint(): string {
+    const env = (import.meta as any)?.env;
+    return (env && env.VITE_AI_ENDPOINT) ? env.VITE_AI_ENDPOINT : "/.netlify/functions/ask";
+  }
+
   async function onSend() {
     const q = input.trim();
-    if (!q) return;
+    if (!q || loading) return;
 
     setInput("");
     setHistory((h) => [...h, { role: "user", text: q }]);
 
     const data = dataRef.current;
-    // Se non abbiamo i dati → fallback subito (con rotazione)
+    // se non abbiamo i dati → fallback subito (con rotazione)
     if (!data) {
       const more = MORE_RE.test(q);
       const ans = offlineAnswer(q, { menu: { categories: [] } }, cursor + (more ? 2 : 0), suggested);
@@ -185,11 +210,13 @@ export default function ChatWidget({
 
     setLoading(true);
     try {
-      const endpoint = (import.meta as any).env?.VITE_AI_ENDPOINT ?? "/api/ask";
+      const endpoint = getAIEndpoint();
+      const isNetlify = endpoint.includes("/.netlify/functions/");
+      const payload = isNetlify ? { slug, question: q } : { question: q, data };
       const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, data }),
+        body: JSON.stringify(payload),
       });
 
       if (!resp.ok) {
@@ -223,13 +250,17 @@ export default function ChatWidget({
     }
   }
 
-  const quickPrompts = [
-    "Consigli piccanti",
-    "Senza lattosio",
-    "Vegetariano",
-    "Promo del giorno",
-    "Orari di apertura",
-  ];
+  // quick replies da JSON oppure default
+  const chips = (quickReplies && quickReplies.length
+    ? quickReplies
+    : ["Consigli piccanti", "Senza lattosio", "Vegetariano", "Promo del giorno", "Orari di apertura"]
+  );
+
+  // CTA da JSON oppure default
+  const actions: CTA[] = (ctas && ctas.length
+    ? ctas
+    : [{ type: "call", label: "Chiama" }, { type: "directions", label: "Indicazioni" }]
+  );
 
   return (
     <>
@@ -259,7 +290,7 @@ export default function ChatWidget({
 
             {/* Quick prompts */}
             <div className="px-4 pt-3 flex flex-wrap gap-2">
-              {quickPrompts.map((p) => (
+              {chips.map((p) => (
                 <button
                   key={p}
                   className="px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-sm hover:bg-slate-100"
@@ -284,45 +315,61 @@ export default function ChatWidget({
                   {m.text}
                 </div>
               ))}
+              {loading && <div className="text-sm text-slate-500">Sto pensando…</div>}
             </div>
 
-            {/* Actions (fix layout) */}
-            <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
-              <div className="flex gap-2 shrink-0">
-                {phone && (
-                  <a href={`tel:${String(phone).replace(/\s|\+/g, "")}`} className="inline-flex items-center gap-1 px-2 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm">
-                    <Phone className="w-3 h-3" /> Chiama
+            {/* CTA row (config da JSON) */}
+            <div className="px-4 pb-2 flex gap-2 flex-wrap">
+              {actions.map((a, i) => {
+                if (a.type === "call") {
+                  return (
+                    <a key={i} href={telHref(phone)} className="inline-flex items-center gap-2 px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 text-sm">
+                      <Phone className="w-4 h-4" /> {a.label}
+                    </a>
+                  );
+                }
+                if (a.type === "directions") {
+                  return (
+                    <a key={i} href={mapsUrl || "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 text-sm">
+                      <MapPin className="w-4 h-4" /> {a.label}
+                    </a>
+                  );
+                }
+                if (a.type === "whatsapp") {
+                  return (
+                    <a key={i} href={waHref(whatsapp, whatsDefaultMsg || "")} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 text-sm">
+                      <MessageCircle className="w-4 h-4" /> {a.label}
+                    </a>
+                  );
+                }
+                // generic external link
+                return (
+                  <a key={i} href={a.url || "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded border border-slate-200 hover:bg-slate-50 text-sm">
+                    {a.label}
                   </a>
-                )}
-                {mapsUrl && (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm">
-                    <MapPin className="w-3 h-3" /> Indicazioni
-                  </a>
-                )}
-              </div>
+                );
+              })}
+            </div>
 
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
-                  }}
-                  placeholder="Scrivi una domanda…"
-                  className="flex-1 min-w-0 border border-slate-200 rounded-xl px-3 h-11 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent),white_70%)]"
-                />
-                <button
-                  onClick={onSend}
-                  disabled={loading}
-                  className="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-1 px-3 h-11 rounded-xl text-[var(--accentText)]"
-                  style={{ background: "var(--accent)" }}
-                  aria-label="Invia messaggio"
-                >
-                  <SendHorizonal className="w-4 h-4" />
-                  <span className="hidden xs:inline">Invia</span>
-                  <span className="xs:hidden">Invia</span>
-                </button>
-              </div>
+            {/* Input + send (allineamento fix) */}
+            <div className="px-4 pb-4 flex items-center gap-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+                placeholder="Scrivi una domanda…"
+                className="flex-1 min-w-0 border border-slate-200 rounded-xl px-3 h-11 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent),white_70%)]"
+              />
+              <button
+                onClick={onSend}
+                disabled={loading || !input.trim()}
+                className="shrink-0 inline-flex items-center justify-center gap-1 px-3 h-11 rounded-xl text-[var(--accentText)] disabled:opacity-60"
+                style={{ background: "var(--accent)" }}
+                aria-label="Invia messaggio"
+              >
+                <SendHorizonal className="w-4 h-4" />
+                <span>Invia</span>
+              </button>
             </div>
           </div>
         </div>

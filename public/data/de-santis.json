@@ -1,0 +1,69 @@
+{
+  "config": {
+    "name": "De Santis",
+    "tagline": "Pasticceria artigianale",
+    "address": "Piazza Centrale 5, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Piazza+Centrale+5+Siano",
+    "hours": "Lun/Sab 07:00/20:00 • Dom 07:00/13:00",
+    "phone": "+39 333 444 5555",
+    "whatsapp": "+39 333 444 5555",
+    "whatsDefaultMsg": "Ciao De Santis, vorrei info su dolci e torte 🙂",
+    "logoUrl": "/desantis_favicon.svg",
+    "heroImages": ["/de-santis-1.jpg", "/de-santis-2.jpg"],
+    "assistantLabel": "Chiedi a De Santis",
+    "footerNote": "Pasticceria fresca ogni giorno. Ordini personalizzati per eventi.",
+    "lastUpdated": "2025-09-05",
+    "theme": {
+      "mode": "light",
+      "accent": "#be123c",
+      "accentText": "#ffffff",
+      "bgFrom": "#f8fafc",
+      "bgTo": "#ffffff",
+      "radius": "20px",
+      "fontUrl": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
+      "fontFamily": "'Poppins', system-ui",
+      "cssUrl": ""
+    },
+    "chat": {
+      "quickReplies": ["Colazione", "Mignon", "Torte su ordinazione", "Senza lattosio", "Orari"],
+      "ctas": [
+        {"type":"call","label":"Chiama"},
+        {"type":"directions","label":"Indicazioni"},
+        {"type":"whatsapp","label":"WhatsApp"}
+      ]
+    }
+  },
+  "story": {
+    "title": "Dolci di famiglia",
+    "text": "Ricette tramandate e materie prime selezionate. Dalla colazione alla pasticceria moderna, ogni dolce è fatto a mano."
+  },
+  "menu": {
+    "specials": [
+      { "title": "Mignon misti (al kg)", "price": "24,00 €", "badge": "Best seller" }
+    ],
+    "categories": [
+      {
+        "name": "Cornetti",
+        "items": [
+          { "name": "Cornetto vuoto", "price": 1.2, "tags": ["G","U","L"], "img": "/de-santis-3.jpg"  },
+          { "name": "Cornetto crema", "price": 1.5, "tags": ["G","U","L"] },
+          { "name": "Cornetto marmellata", "price": 1.5, "tags": ["G","U","L"] }
+        ]
+      },
+      {
+        "name": "Torte",
+        "items": [
+          { "name": "Cheesecake ai frutti di bosco (fetta)", "price": 3.5, "tags": ["L","G"] },
+          { "name": "Delizia al limone (monoporzione)", "price": 3.0, "tags": ["L","U","G"], "fav": true }
+        ]
+      },
+      {
+        "name": "Caffetteria",
+        "items": [
+          { "name": "Espresso", "price": 1.2 },
+          { "name": "Cappuccino", "price": 1.8, "tags": ["L"] }
+        ]
+      }
+    ]
+  }
+}

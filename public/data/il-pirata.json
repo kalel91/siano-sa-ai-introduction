@@ -8,22 +8,32 @@
     "phone": "+39 333 1234567",
     "whatsapp": "+39 333 1234567",
     "whatsDefaultMsg": "Ciao Il Pirata, vorrei info sul menu 🙂",
+    "logoUrl": "/pirate_logo_colored.png",
     "heroImages": ["/ilpirata-6.jpg", "/ilpirata-7.jpg", "/ilpirata-8.jpg"],
-    "assistantLabel": "Chiedi al Pirata",          
+    "assistantLabel": "Chiedi al Pirata",
     "footerNote": "Dal 1998 sforniamo pizze a lenta lievitazione. Farine selezionate e ingredienti locali.",
     "lastUpdated": "2025-09-05",
     "theme": {
+      "mode": "light",
       "accent": "#0f766e",
       "accentText": "#ffffff",
-      "bgFrom": "#0b1321",
-      "bgTo": "#111827",
-      "radius": "14px",
+      "bgFrom": "#f8fafc",
+      "bgTo": "#ffffff",
+      "radius": "16px",
       "fontUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap",
       "fontFamily": "'Montserrat', system-ui",
       "cssUrl": ""
+    },
+    "chat": {
+      "quickReplies": ["Consigli piccanti", "Senza lattosio", "Vegetariano", "Promo del giorno", "Orari di apertura"],
+      "ctas": [
+        {"type":"call","label":"Chiama"},
+        {"type":"directions","label":"Indicazioni"},
+        {"type":"whatsapp","label":"WhatsApp"}
+      ]
     }
   },
-  "story": {                                     
+  "story": {
     "title": "La storia del Pirata",
     "text": "Nato come piccola pizzeria di quartiere, Il Pirata è cresciuto unendo impasti a lunga maturazione e ingredienti campani DOP. La nostra brace è accesa ogni sera: scegli tagli selezionati e contorni di stagione."
   },

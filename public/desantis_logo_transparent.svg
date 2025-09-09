@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+      
+      
+      <g>
+        <path d="M 233.5 798.7 Q 299.0 798.7 231.3 818.4 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 221.4 843.8 Q 278.2 876.5 209.7 859.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 188.4 876.8 Q 221.2 933.5 170.3 884.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 143.4 888.8 Q 143.4 954.4 123.7 886.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 98.3 876.8 Q 65.5 933.5 82.4 865.0 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 65.3 843.8 Q 8.6 876.5 57.4 825.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 53.2 798.7 Q -12.3 798.7 55.4 779.1 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 65.3 753.7 Q 8.6 720.9 77.0 737.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 98.3 720.7 Q 65.5 663.9 116.4 712.7 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 143.4 708.6 Q 143.4 643.1 163.0 710.8 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 188.4 720.7 Q 221.2 663.9 204.4 732.4 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/><path d="M 221.4 753.7 Q 278.2 720.9 229.4 771.8 Z" fill="#f59e0b" stroke="#b45309" stroke-width="5.12"/>
+        <circle cx="143.36" cy="798.72" r="73.72800000000001" fill="#f59e0b" stroke="#b45309" stroke-width="6.144"/>
+        <g fill="#b45309">
+          <rect x="94.2" y="749.6" width="14.7" height="14.7" rx="3.3" /><rect x="118.8" y="749.6" width="14.7" height="14.7" rx="3.3" /><rect x="143.4" y="749.6" width="14.7" height="14.7" rx="3.3" /><rect x="167.9" y="749.6" width="14.7" height="14.7" rx="3.3" /><rect x="94.2" y="774.1" width="14.7" height="14.7" rx="3.3" /><rect x="118.8" y="774.1" width="14.7" height="14.7" rx="3.3" /><rect x="143.4" y="774.1" width="14.7" height="14.7" rx="3.3" /><rect x="167.9" y="774.1" width="14.7" height="14.7" rx="3.3" /><rect x="94.2" y="798.7" width="14.7" height="14.7" rx="3.3" /><rect x="118.8" y="798.7" width="14.7" height="14.7" rx="3.3" /><rect x="143.4" y="798.7" width="14.7" height="14.7" rx="3.3" /><rect x="167.9" y="798.7" width="14.7" height="14.7" rx="3.3" /><rect x="94.2" y="823.3" width="14.7" height="14.7" rx="3.3" /><rect x="118.8" y="823.3" width="14.7" height="14.7" rx="3.3" /><rect x="143.4" y="823.3" width="14.7" height="14.7" rx="3.3" /><rect x="167.9" y="823.3" width="14.7" height="14.7" rx="3.3" />
+        </g>
+      </g>
+    
+      
+          <text x="204.8" y="430.08" fill="#5b3a29" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="225.28">De</text>
+          <text x="368.64" y="593.92" fill="#5b3a29" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="266.24">Santis</text>
+        
+      
+          <text x="573.44" y="307.2" fill="#5b3a29" font-family="Georgia, 'Times New Roman', serif" font-weight="600" font-size="61.44" letter-spacing="2.048">PASTICCERIA • CAFFÈ • GELATERIA</text>
+          <text x="368.64" y="716.8" fill="#5b3a29" font-family="Georgia, 'Times New Roman', serif" font-weight="600" font-size="56.32" letter-spacing="1.536">MAESTRI PASTICCERI</text>
+        
+      <path d="M 204.8 880.64 C 460.8 942.08, 737.28 921.6, 901.12 839.68" fill="none" stroke="#5b3a29" stroke-width="12.288" stroke-linecap="round"/>
+    </svg>

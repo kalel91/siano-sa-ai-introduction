@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+      
+      
+    <defs>
+      <filter id="ink" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="3" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+    
+      
+      <circle cx="348.16" cy="532.48" r="276.48"
+              fill="none" stroke="#e11d48" stroke-width="81.92" stroke-linecap="round"
+              filter="url(#ink)"/>
+      <path d="M 133.12 532.48 A 276.48 276.48 0 0 0 460.8 532.48"
+            fill="none" stroke="#e11d48" stroke-width="81.92" stroke-linecap="round"
+            stroke-dasharray="0 245.76" filter="url(#ink)"/>
+    
+      
+      <path d="M 481.28 184.32
+               Q 583.68 163.84, 614.4 194.56
+               L 337.92 675.84
+               Q 563.2 624.64, 757.76 645.12"
+            fill="none" stroke="#ffffff" stroke-width="61.44" stroke-linecap="round" stroke-linejoin="round"
+            filter="url(#ink)"/>
+      <path d="M 563.2 512.0
+               q 102.4 -71.68 163.84 -10.24
+               q 61.44 71.68 -102.4 102.4
+               q -163.84 61.44 -225.28 10.24"
+            fill="none" stroke="#ffffff" stroke-width="56.32" stroke-linecap="round"
+            filter="url(#ink)"/>
+      <path d="M 716.8 471.04
+               q 10.24 143.36 0.0 163.84
+               q 81.92 -102.4 174.08 -71.68
+               q 51.2 20.48 51.2 81.92"
+            fill="none" stroke="#ffffff" stroke-width="56.32" stroke-linecap="round"
+            filter="url(#ink)"/>
+      <path d="M 245.76 655.36 Q 573.44 788.48 870.4 727.04"
+            fill="none" stroke="#ffffff" stroke-width="51.2" stroke-linecap="round"
+            filter="url(#ink)"/>
+    
+    </svg>
