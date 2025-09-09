@@ -4,11 +4,13 @@
     "tagline": "Pizzeria • Braceria",
     "address": "Via Roma 12, Siano (SA)",
     "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
-    "hours": "Lun–Dom 12:00–15:00 • 19:00–23:00 (chiuso Mar)",
+    "hours": "Lun/Dom 12:00/15:00 • 19:00/23:00 (chiuso Mar)",
     "phone": "+39 333 1234567",
     "whatsapp": "+39 333 1234567",
     "whatsDefaultMsg": "Ciao Il Pirata, vorrei info sul menu 🙂",
     "heroImages": ["/ilpirata-6.jpg", "/ilpirata-7.jpg", "/ilpirata-8.jpg"],
+    "assistantLabel": "Chiedi al Pirata",          
+    "footerNote": "Dal 1998 sforniamo pizze a lenta lievitazione. Farine selezionate e ingredienti locali.",
     "lastUpdated": "2025-09-05",
     "theme": {
       "accent": "#0f766e",
@@ -20,6 +22,10 @@
       "fontFamily": "'Montserrat', system-ui",
       "cssUrl": ""
     }
+  },
+  "story": {                                     
+    "title": "La storia del Pirata",
+    "text": "Nato come piccola pizzeria di quartiere, Il Pirata è cresciuto unendo impasti a lunga maturazione e ingredienti campani DOP. La nostra brace è accesa ogni sera: scegli tagli selezionati e contorni di stagione."
   },
   "menu": {
     "specials": [

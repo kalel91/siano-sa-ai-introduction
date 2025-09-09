@@ -3,9 +3,16 @@ import React from "react";
 import { MessageCircle, X, SendHorizonal, Phone, MapPin } from "lucide-react";
 import type { MenuJson } from "./ai/ask";
 
-type Props = { slug: string; phone?: string; mapsUrl?: string };
+/** Props */
+type Props = {
+  slug: string;
+  phone?: string;
+  mapsUrl?: string;
+  /** Testo del bottone e del titolo, es. "Chiedi al Pirata" */
+  assistantLabel?: string;
+};
 
-export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
+export default function ChatWidget({ slug, phone, mapsUrl, assistantLabel = "Chiedi al menu" }: Props) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [input, setInput] = React.useState("");
@@ -33,7 +40,7 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
       });
   }, [slug]);
 
-  // --- INVIO DOMANDA: server first (Netlify), fallback locale ---
+  // --- INVIO DOMANDA: server first (Router HF / api/ask), fallback locale ---
   async function onSend() {
     const q = input.trim();
     if (!q) return;
@@ -55,11 +62,7 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
 
     setLoading(true);
     try {
-      // 1) server-side (Netlify)
       const endpoint = import.meta.env.VITE_AI_ENDPOINT ?? "/api/ask";
-
-      console.log("AI endpoint ->", endpoint);
-
       const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,14 +72,9 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
       if (!resp.ok) throw new Error("AI endpoint error " + resp.status);
       const { answer } = await resp.json();
 
-      setHistory((h) => [
-        ...h,
-        { role: "assistant", text: answer + "\n\n(AI Hugging Face)" },
-      ]);
+      setHistory((h) => [...h, { role: "assistant", text: answer }]);
     } catch (e) {
-      console.warn("AI server fallback to local:", e);
-
-      // 2) fallback gratuito locale
+      // fallback gratuito locale
       const { askMenu } = await import("./ai/ask");
       const res = await askMenu(q, data);
       setHistory((h) => [
@@ -88,7 +86,7 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
     }
   }
 
-  // Handler per i quick actions (wrappato per evitare warning)
+  // quick actions
   const handleQuick = React.useCallback(
     async (label: string) => {
       setInput(label);
@@ -109,7 +107,6 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
       setLoading(true);
       try {
         const endpoint = import.meta.env.VITE_AI_ENDPOINT ?? "/api/ask";
-
         const resp = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -117,10 +114,7 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
         });
         if (!resp.ok) throw new Error("AI endpoint error " + resp.status);
         const { answer } = await resp.json();
-        setHistory((h) => [
-          ...h,
-          { role: "assistant", text: answer + "\n\n(AI Hugging Face)" },
-        ]);
+        setHistory((h) => [...h, { role: "assistant", text: answer }]);
       } catch {
         const { askMenu } = await import("./ai/ask");
         const res = await askMenu(label, data as MenuJson);
@@ -138,10 +132,7 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
   function Quick({ label }: { label: string }) {
     return (
       <button
-        onClick={() => {
-          // evita warning: ignoriamo la Promise
-          void handleQuick(label);
-        }}
+        onClick={() => { void handleQuick(label); }}
         className="text-xs px-2 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-white"
       >
         {label}
@@ -149,26 +140,32 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
     );
   }
 
+  // Titolo del pannello: se la label inizia con “Chiedi …” → “Assistente …”
+  const panelTitle =
+    assistantLabel.toLowerCase().startsWith("chiedi")
+      ? "Assistente " + assistantLabel.slice(6).trim()
+      : assistantLabel;
+
   return (
     <>
-      {/* FAB */}
+      {/* FAB – alzato su mobile per non sovrapporsi alla barra CTA */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg px-4 py-3 text-white"
+          className="fixed right-4 z-50 rounded-full shadow-lg px-4 py-3 text-white sm:bottom-4 bottom-24"
           style={{ background: "var(--accent, #10b981)" }}
-          aria-label="Apri chat"
+          aria-label={assistantLabel}
         >
           <MessageCircle className="inline w-5 h-5 mr-2" />
-          Chiedi al menu
+          {assistantLabel}
         </button>
       )}
 
-      {/* Panel */}
+      {/* Panel – alzato su mobile */}
       {open && (
-        <div className="fixed bottom-4 right-4 z-50 w-[min(420px,90vw)] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+        <div className="fixed right-4 z-50 w-[min(420px,90vw)] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden sm:bottom-4 bottom-24">
           <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-            <div className="font-semibold">Assistente menu</div>
+            <div className="font-semibold">{panelTitle}</div>
             <button
               className="p-1 rounded hover:bg-slate-100"
               onClick={() => setOpen(false)}
@@ -188,25 +185,12 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
 
           <div className="px-4 h-64 overflow-y-auto space-y-3">
             {history.map((m, i) => (
-              <div
-                key={i}
-                className={`text-sm ${
-                  m.role === "assistant" ? "text-slate-800" : "text-slate-900"
-                }`}
-              >
-                {m.role === "user" ? (
-                  <div className="font-semibold">Tu:</div>
-                ) : (
-                  <div className="text-slate-500">Assistente:</div>
-                )}
-                <pre className="whitespace-pre-wrap leading-relaxed">
-                  {m.text}
-                </pre>
+              <div key={i} className={`text-sm ${m.role === "assistant" ? "text-slate-800" : "text-slate-900"}`}>
+                {m.role === "user" ? <div className="font-semibold">Tu:</div> : <div className="text-slate-500">Assistente:</div>}
+                <pre className="whitespace-pre-wrap leading-relaxed">{m.text}</pre>
               </div>
             ))}
-            {loading && (
-              <div className="text-sm text-slate-500">Sto pensando…</div>
-            )}
+            {loading && <div className="text-sm text-slate-500">Sto pensando…</div>}
           </div>
 
           <div className="px-4 pt-2 pb-3 border-t border-slate-200 space-y-2">
@@ -216,18 +200,9 @@ export default function ChatWidget({ slug, phone, mapsUrl }: Props) {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Scrivi una domanda…"
                 className="flex-1 px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    void onSend(); // ignora la Promise: niente warning
-                  }
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter") void onSend(); }}
               />
-              <button
-                onClick={() => {
-                  void onSend();
-                }}
-                className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-              >
+              <button onClick={() => { void onSend(); }} className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
                 <SendHorizonal className="w-4 h-4" />
               </button>
             </div>

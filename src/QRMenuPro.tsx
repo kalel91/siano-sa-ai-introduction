@@ -15,6 +15,7 @@ type Config = {
   whatsDefaultMsg?: string;
   heroImages?: string[];
   lastUpdated?: string;
+  footerNote?: string;  
   theme?: {
     accent?: string; accentText?: string; bgFrom?: string; bgTo?: string;
     radius?: string; fontUrl?: string; fontFamily?: string; cssUrl?: string;
@@ -23,6 +24,7 @@ type Config = {
 type MenuItem = { name: string; desc?: string; price: number; tags?: string[]; img?: string; fav?: boolean };
 type Category = { name: string; items: MenuItem[] };
 type Menu = { specials?: { title: string; price: string; badge?: string }[]; categories: Category[] };
+type Story = { title?: string; text?: string } | null;
 
 /** Utils */
 function telHref(t?: string){ return t ? `tel:${t.replace(/\s|\+/g,"").trim()}` : "#"; }
@@ -58,6 +60,7 @@ function applyTheme(t?: Config["theme"]){
 function useVenueData(){
   const [cfg,setCfg]=React.useState<Config|null>(null);
   const [men,setMen]=React.useState<Menu|null>(null);
+  const [story,setStory]=React.useState<Story>(null);
   const [err,setErr]=React.useState<string|null>(null);
 
   React.useEffect(()=>{
@@ -69,12 +72,19 @@ function useVenueData(){
         const m = (json.menu||{}) as Menu;
         m.categories = Array.isArray(m.categories) ? m.categories : [];
         m.categories = m.categories.map((x)=>({ name:x.name, items:Array.isArray(x.items)?x.items:[] }));
-        setCfg(c); setMen(m); applyTheme(c.theme);
+
+        setCfg(c);
+        setMen(m);
+        setStory((json.story as Story) ?? null);   // ← storia a livello root del JSON
+        applyTheme(c.theme);
+
+        // titolo tab
+        document.title = `${c.name} — Menu online`;
       })
       .catch(e=>{ console.error(e); setErr(`Locale non trovato o JSON non valido (${slug})`); });
   },[]);
 
-  return {cfg,men,err};
+  return {cfg,men,story,err};
 }
 
 /** UI blocks */
@@ -139,7 +149,7 @@ function Hero({images}:{images:string[]}) {
 }
 
 export default function QRMenuPro(){
-  const {cfg,men,err} = useVenueData();
+  const {cfg,men,story,err} = useVenueData();
 
   // hook SEMPRE chiamati
   const [query,setQuery] = React.useState("");
@@ -168,6 +178,10 @@ export default function QRMenuPro(){
   // RENDER
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men) return <div className="p-6 text-slate-500">Caricamento…</div>;
+
+  // etichetta personalizzata per l’assistente
+  const slug = getSlug();
+  const assistantLabel = slug === "il-pirata" ? "Chiedi al Pirata" : "Chiedi al menu";
 
   return (
     <div className="min-h-screen text-slate-900 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[var(--bgFrom)] via-[color-mix(in_oklab,var(--bgFrom),var(--bgTo)70%)] to-[var(--bgTo)]">
@@ -219,18 +233,18 @@ export default function QRMenuPro(){
       {/* HERO */}
       <Hero images={cfg.heroImages || []}/>
 
-      {/* SPECIALS */}
-      {men.specials && men.specials.length>0 && (
+      {/* STORIA DEL LOCALE (sostituisce la promo del giorno) */}
+      {story && (
         <div className="mx-auto max-w-3xl px-4 mt-4">
-          <div className="p-4 rounded-[var(--radius)] border border-amber-200 bg-amber-50/70 flex items-center gap-3">
-            <Star className="w-5 h-5 text-amber-600"/>
-            <div className="flex gap-4 flex-wrap">
-              {men.specials.map((s,i)=>(
-                <span key={i} className="text-sm text-amber-900">
-                  <span className="font-semibold">{s.title}</span> — {s.price}{" "}
-                  {s.badge && <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full text-xs">{s.badge}</span>}
-                </span>
-              ))}
+          <div className="p-4 rounded-[var(--radius)] border border-amber-200 bg-amber-50/70">
+            <div className="flex items-start gap-3">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-amber-700" fill="currentColor" aria-hidden="true">
+                <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-5-7 5V4z"/>
+              </svg>
+              <div>
+                <div className="font-semibold text-amber-900">{story.title || "La nostra storia"}</div>
+                {story.text && <p className="text-amber-900/90 text-sm mt-1">{story.text}</p>}
+              </div>
             </div>
           </div>
         </div>
@@ -253,8 +267,14 @@ export default function QRMenuPro(){
             )}
           </section>
         ))}
-        <footer className="mt-10 mb-24 text-xs text-slate-500">
-          Aggiornato: {cfg.lastUpdated || ""} • Allergeni: G(Glutine), L(Latte), U(Uova), N(Noci), P(Pesce), C(Crostacei), M(Molluschi), S(Soia), Se(Sesamo), Sd(Sedano), Sn(Senape), Lu(Lupini), A(Arachidi), As(Anidride solforosa)
+        <footer className="mt-10 mb-24 text-xs text-slate-500 space-y-1">
+          {cfg.footerNote && <div>{cfg.footerNote}</div>}
+          <div>
+            Aggiornato: {cfg.lastUpdated || ""} • Allergeni:
+            {" "}G(Glutine), L(Latte), U(Uova), N(Noci), P(Pesce), C(Crostacei),
+            M(Molluschi), S(Soia), Se(Sesamo), Sd(Sedano), Sn(Senape), Lu(Lupini),
+            A(Arachidi), As(Anidride solforosa)
+          </div>
         </footer>
       </main>
 
@@ -265,13 +285,13 @@ export default function QRMenuPro(){
           <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]" style={{background:"var(--accent)"}}><MessageCircle className="w-5 h-5"/> WhatsApp</a>
         </div>
       </div>
+
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}
         mapsUrl={cfg.mapUrl}
+        assistantLabel={assistantLabel}
       />
     </div>
   );
 }
-
-
