@@ -15,7 +15,8 @@ type Config = {
   whatsDefaultMsg?: string;
   heroImages?: string[];
   lastUpdated?: string;
-  footerNote?: string;  
+  footerNote?: string;
+  assistantLabel?: string; // opzionale: se presente sovrascrive la label del bottone
   theme?: {
     accent?: string; accentText?: string; bgFrom?: string; bgTo?: string;
     radius?: string; fontUrl?: string; fontFamily?: string; cssUrl?: string;
@@ -36,9 +37,9 @@ function getSlug(): string {
 }
 function applyTheme(t?: Config["theme"]){
   const root = document.documentElement.style;
-  root.setProperty("--accent", t?.accent || "#059669");
+  root.setProperty("--accent", t?.accent || "#0f766e");
   root.setProperty("--accentText", t?.accentText || "#ffffff");
-  root.setProperty("--bgFrom", t?.bgFrom || "#ecfdf5");
+  root.setProperty("--bgFrom", t?.bgFrom || "#ecfeff");
   root.setProperty("--bgTo", t?.bgTo || "#f0fdfa");
   root.setProperty("--radius", t?.radius || "14px");
   if (t?.fontUrl){
@@ -54,6 +55,25 @@ function applyTheme(t?: Config["theme"]){
     if(!link2){ link2=document.createElement("link"); link2.id="venue-css"; link2.rel="stylesheet"; document.head.appendChild(link2); }
     link2.href=t.cssUrl;
   }
+}
+
+/** Articolo automatico per il bottone: "Chiedi al/allo/alla/all’/ai/agli/alle <nome>" oppure "Chiedi a <nome>" */
+function makeAskLabel(venueName: string): string {
+  const name = (venueName || "").trim();
+  if (!name) return "Chiedi all’assistente AI";
+
+  const lower = name.toLowerCase();
+  // supporta apostrofi tipografici e semplici
+  const lapost = /^l[’']/i.test(lower);
+  if (lower.startsWith("il "))   return `Chiedi al ${name.slice(3).trim()}`;
+  if (lower.startsWith("lo "))   return `Chiedi allo ${name.slice(3).trim()}`;
+  if (lower.startsWith("la "))   return `Chiedi alla ${name.slice(3).trim()}`;
+  if (lapost)                    return `Chiedi all’${name.slice(2).trim()}`;
+  if (lower.startsWith("i "))    return `Chiedi ai ${name.slice(2).trim()}`;
+  if (lower.startsWith("gli "))  return `Chiedi agli ${name.slice(4).trim()}`;
+  if (lower.startsWith("le "))   return `Chiedi alle ${name.slice(3).trim()}`;
+  // niente articolo nel brand (es. "De Santis", "Zen Café") → "a <nome>"
+  return `Chiedi a ${name}`;
 }
 
 /** Data loader */
@@ -75,10 +95,9 @@ function useVenueData(){
 
         setCfg(c);
         setMen(m);
-        setStory((json.story as Story) ?? null);   // ← storia a livello root del JSON
+        setStory((json.story as Story) ?? null);
         applyTheme(c.theme);
 
-        // titolo tab
         document.title = `${c.name} — Menu online`;
       })
       .catch(e=>{ console.error(e); setErr(`Locale non trovato o JSON non valido (${slug})`); });
@@ -151,22 +170,16 @@ function Hero({images}:{images:string[]}) {
 export default function QRMenuPro(){
   const {cfg,men,story,err} = useVenueData();
 
-  // hook SEMPRE chiamati
   const [query,setQuery] = React.useState("");
-
-  // derivazioni robuste (anche quando men==null)
   const categories: Category[] = React.useMemo(()=> men?.categories ?? [], [men]);
   const catNames = React.useMemo(()=> categories.map(c=>c.name), [categories]);
-
   const [activeCat,setActiveCat] = React.useState<string>("");
 
-  // riallineo categoria quando arrivano i dati
   React.useEffect(()=>{
     if(!activeCat && catNames.length) setActiveCat(catNames[0]);
     if(activeCat && !catNames.includes(activeCat) && catNames.length) setActiveCat(catNames[0]);
   },[catNames,activeCat]);
 
-  // filtro ricerca
   const filtered = React.useMemo(()=> categories.map(c=>({
     ...c,
     items: c.items.filter(it=>{
@@ -175,13 +188,10 @@ export default function QRMenuPro(){
     })
   })),[categories,query]);
 
-  // RENDER
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men) return <div className="p-6 text-slate-500">Caricamento…</div>;
 
-  // etichetta personalizzata per l’assistente
-  const slug = getSlug();
-  const assistantLabel = slug === "il-pirata" ? "Chiedi al Pirata" : "Chiedi al menu";
+  const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
 
   return (
     <div className="min-h-screen text-slate-900 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[var(--bgFrom)] via-[color-mix(in_oklab,var(--bgFrom),var(--bgTo)70%)] to-[var(--bgTo)]">
@@ -233,7 +243,7 @@ export default function QRMenuPro(){
       {/* HERO */}
       <Hero images={cfg.heroImages || []}/>
 
-      {/* STORIA DEL LOCALE (sostituisce la promo del giorno) */}
+      {/* STORIA */}
       {story && (
         <div className="mx-auto max-w-3xl px-4 mt-4">
           <div className="p-4 rounded-[var(--radius)] border border-amber-200 bg-amber-50/70">
@@ -286,11 +296,14 @@ export default function QRMenuPro(){
         </div>
       </div>
 
+      {/* CHAT */}
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}
         mapsUrl={cfg.mapUrl}
-        assistantLabel={assistantLabel}
+        venueName={cfg.name}
+        buttonLabel={computedFab}
+        panelTitle={`Assistente di ${cfg.name}`}
       />
     </div>
   );

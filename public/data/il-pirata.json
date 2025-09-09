@@ -50,7 +50,7 @@
         "name": "Fritti",
         "items": [
           { "name": "Crocchetta di patate (2)", "price": 2.0, "tags": ["G","U"], "img": "/ilpirata-2.png" },
-          { "name": "Arancino", "desc": "Ragù o prosciutto", "price": 2.5, "tags": ["G","L"], "img": "/ilpirata-2.png" }
+          { "name": "Arancino", "desc": "Ragù o prosciutto", "price": 2.5, "tags": ["G","L"], "img": "/ilpirata-8.jpg" }
         ]
       },
       {

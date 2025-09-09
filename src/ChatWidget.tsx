@@ -1,46 +1,170 @@
-// src/ChatWidget.tsx
 import React from "react";
 import { MessageCircle, X, SendHorizonal, Phone, MapPin } from "lucide-react";
-import type { MenuJson } from "./ai/ask";
+
+/** Minimal menu JSON types expected by the widget */
+type MenuItem = { name: string; desc?: string; price?: number; tags?: string[]; fav?: boolean };
+type Category = { name: string; items: MenuItem[] };
+type MenuJson = {
+  config?: { name?: string; phone?: string; whatsapp?: string; hours?: string; address?: string; assistantLabel?: string };
+  menu?: { specials?: { title: string; price?: string }[]; categories?: Category[] };
+  story?: { title?: string; text?: string } | null;
+};
 
 /** Props */
 type Props = {
   slug: string;
   phone?: string;
   mapsUrl?: string;
-  /** Testo del bottone e del titolo, es. "Chiedi al Pirata" */
+  venueName?: string;
+  buttonLabel?: string;
+  panelTitle?: string;
+  /** legacy (ancora supportati ma non necessari) */
   assistantLabel?: string;
+  assistantTitle?: string;
 };
 
-export default function ChatWidget({ slug, phone, mapsUrl, assistantLabel = "Chiedi al menu" }: Props) {
+type Msg = { role: "user" | "assistant"; text: string };
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Helpers: intent & fallback engine
+   ──────────────────────────────────────────────────────────────────────────── */
+
+// “Dimmi altre opzioni”: riconosce varie forme brevi colloquiali
+const MORE_RE = /^(si|sì|ok|va bene|quali|quale|altri|altre|altro|ancora|poi|dimmi|cos'?altro)\b/i;
+
+type Filters = { veg?: boolean; nolactose?: boolean; spicy?: boolean };
+
+function parseFilters(q: string): Filters {
+  const t = q.toLowerCase();
+  return {
+    veg: /veg(etar(i|)ano)?|senza carne/.test(t),
+    nolactose: /senza lattos|lattosio/.test(t),
+    spicy: /piccant|diavol/.test(t),
+  };
+}
+
+function itemMatchesFilters(item: MenuItem, f: Filters): boolean {
+  if (!f.veg && !f.nolactose && !f.spicy) return true;
+  const tags = (item.tags || []).map((s) => s.toLowerCase()).join(" ");
+  if (f.veg && !/veg/.test(tags)) return false;
+  if (f.nolactose && !/senza\s*lattos/.test(tags)) return false;
+  if (f.spicy && !/(piccante|diavola|spicy)/.test(tags)) return false;
+  return true;
+}
+
+function buildCandidates(data: MenuJson, f: Filters, exclude: Set<string>): MenuItem[] {
+  const cats = data?.menu?.categories || [];
+  const all: MenuItem[] = [];
+  for (const c of cats) for (const it of c.items) if (itemMatchesFilters(it, f)) all.push(it);
+
+  // escludi già suggeriti
+  const fresh = all.filter((it) => !exclude.has(it.name));
+
+  // se non ci sono filtri → dai priorità ai best seller, poi alfabetico
+  if (!f.veg && !f.nolactose && !f.spicy) {
+    return fresh.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || a.name.localeCompare(b.name));
+  }
+  // con filtri → ordina alfabetico e prezzo se presente
+  return fresh.sort((a, b) => a.name.localeCompare(b.name) || (a.price ?? 0) - (b.price ?? 0));
+}
+
+function formatItem(i: MenuItem): string {
+  return i.price != null ? `${i.name} — ${i.price!.toFixed(2)} €` : i.name;
+}
+
+/** Ritorna testo + nomi usati + se abbiamo esaurito le opzioni */
+function offlineAnswer(q: string, data: MenuJson, cursor: number, already: Set<string>) {
+  const t = q.toLowerCase();
+  const cfg = data?.config || {};
+
+  // Orari / indirizzo
+  if (/orari|apertur|chiusur/.test(t))
+    return { text: cfg.hours ? `Siamo aperti: ${cfg.hours}. Vuoi un consiglio dal menu?` : "Gli orari non sono indicati nel menu.", used: [] as string[], exhausted: false };
+
+  if (/dove|indirizz|come (si )?arriv|indicazioni/.test(t))
+    return { text: cfg.address ? `Ci trovi in ${cfg.address}. Se vuoi, premi Indicazioni qui sotto.` : "L'indirizzo non è indicato nel menu.", used: [] as string[], exhausted: false };
+
+  const filters = parseFilters(t);
+  const pool = buildCandidates(data, filters, already);
+
+  // ricerca diretta per nome / descrizione
+  if (!pool.length) {
+    for (const c of data.menu?.categories || []) {
+      const hit = c.items.find((i) => i.name.toLowerCase().includes(t) || (i.desc || "").toLowerCase().includes(t));
+      if (hit) {
+        return {
+          text: hit.price != null
+            ? `${hit.name}: ${(hit.desc || "nessuna descrizione")}. Prezzo ${hit.price.toFixed(2)} €.`
+            : `${hit.name}: ${(hit.desc || "nessuna descrizione")}.`,
+          used: [hit.name],
+          exhausted: false,
+        };
+      }
+    }
+  }
+
+  // elenco suggerimenti
+  if (pool.length) {
+    // prendi 2 a partire dal cursore
+    const first = pool[cursor % pool.length];
+    const second = pool.length > 1 ? pool[(cursor + 1) % pool.length] : undefined;
+    const items = [first, second].filter(Boolean) as MenuItem[];
+    const text = `Potrebbero piacerti: ${items.map(formatItem).join(" • ")}. Vuoi altre opzioni?`;
+    return { text, used: items.map((x) => x.name), exhausted: false };
+  }
+
+  // niente da proporre con questi vincoli → guida l’utente
+  return {
+    text: "Con questi criteri non ho altre proposte. Prova a dirmi un ingrediente (es. 'pomodoro', 'salsiccia') oppure usa un filtro come 'vegetariano', 'senza lattosio' o 'piccante'.",
+    used: [],
+    exhausted: true,
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Component
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export default function ChatWidget({
+  slug,
+  phone,
+  mapsUrl,
+  venueName,
+  buttonLabel,
+  panelTitle,
+  assistantLabel,
+  assistantTitle,
+}: Props) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [input, setInput] = React.useState("");
-  const [history, setHistory] = React.useState<
-    { role: "user" | "assistant"; text: string }[]
-  >([
-    {
-      role: "assistant",
-      text:
-        "Ciao! Posso aiutarti a scegliere dal menu: dimmi cosa ti va (es. 'piccante', 'senza lattosio', 'con salsiccia').",
-    },
+  const [history, setHistory] = React.useState<Msg[]>([
+    { role: "assistant", text: "Ciao! Posso aiutarti a scegliere dal menu: dimmi cosa ti va (es. 'piccante', 'senza lattosio', 'vegetariano', o un ingrediente)." },
   ]);
 
-  const dataRef = React.useRef<MenuJson | null>(null);
+  // Stato per il fallback “smart”
+  const [cursor, setCursor] = React.useState(0);                // ruota i suggerimenti
+  const [suggested, setSuggested] = React.useState<Set<string>>(new Set()); // evita ripetizioni
 
-  // Carica il JSON del locale
+  // Label UI
+  const resolvedButtonLabel =
+    (buttonLabel && buttonLabel.trim()) ||
+    (assistantLabel && assistantLabel.trim()) ||
+    "Chiedi all’assistente AI";
+  const resolvedPanelTitle =
+    (panelTitle && panelTitle.trim()) ||
+    (assistantTitle && assistantTitle.trim()) ||
+    (venueName ? `Assistente di ${venueName}` : "Assistente AI");
+
+  // carica JSON del locale per l'AI e per il fallback
+  const dataRef = React.useRef<MenuJson | undefined>(undefined);
   React.useEffect(() => {
     fetch(`/data/${slug}.json?ts=${Date.now()}`)
-      .then((r) => r.json())
-      .then((json) => {
-        dataRef.current = json as MenuJson;
-      })
-      .catch(() => {
-        /* segnaleremo l'errore al primo invio */
-      });
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => { dataRef.current = j as MenuJson; })
+      .catch(() => { /* useremo fallback */ });
   }, [slug]);
 
-  // --- INVIO DOMANDA: server first (Router HF / api/ask), fallback locale ---
   async function onSend() {
     const q = input.trim();
     if (!q) return;
@@ -49,182 +173,156 @@ export default function ChatWidget({ slug, phone, mapsUrl, assistantLabel = "Chi
     setHistory((h) => [...h, { role: "user", text: q }]);
 
     const data = dataRef.current;
+    // Se non abbiamo i dati → fallback subito (con rotazione)
     if (!data) {
-      setHistory((h) => [
-        ...h,
-        {
-          role: "assistant",
-          text: "Non riesco a leggere il menu in questo momento. Riprova tra poco.",
-        },
-      ]);
+      const more = MORE_RE.test(q);
+      const ans = offlineAnswer(q, { menu: { categories: [] } }, cursor + (more ? 2 : 0), suggested);
+      setCursor((v) => v + (more ? 2 : 1));
+      if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
+      setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
       return;
     }
 
     setLoading(true);
     try {
-      const endpoint = import.meta.env.VITE_AI_ENDPOINT ?? "/api/ask";
+      const endpoint = (import.meta as any).env?.VITE_AI_ENDPOINT ?? "/api/ask";
       const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, data }),
       });
 
-      if (!resp.ok) throw new Error("AI endpoint error " + resp.status);
-      const { answer } = await resp.json();
-
-      setHistory((h) => [...h, { role: "assistant", text: answer }]);
-    } catch (e) {
-      // fallback gratuito locale
-      const { askMenu } = await import("./ai/ask");
-      const res = await askMenu(q, data);
-      setHistory((h) => [
-        ...h,
-        { role: "assistant", text: res.answer + "\n\n(Modalità gratuita)" },
-      ]);
+      if (!resp.ok) {
+        // FALLBACK “SMART”
+        const more = MORE_RE.test(q);
+        const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested);
+        setCursor((v) => v + (more ? 2 : 1));
+        if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
+        setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+      } else {
+        const j = await resp.json();
+        const text: string | undefined = j?.answer;
+        if (text && text.trim()) {
+          setHistory((h) => [...h, { role: "assistant", text }]);
+        } else {
+          const more = MORE_RE.test(q);
+          const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested);
+          setCursor((v) => v + (more ? 2 : 1));
+          if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
+          setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+        }
+      }
+    } catch {
+      const more = MORE_RE.test(q);
+      const ans = offlineAnswer(q, data!, cursor + (more ? 2 : 0), suggested);
+      setCursor((v) => v + (more ? 2 : 1));
+      if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
+      setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
     } finally {
       setLoading(false);
     }
   }
 
-  // quick actions
-  const handleQuick = React.useCallback(
-    async (label: string) => {
-      setInput(label);
-      setHistory((h) => [...h, { role: "user", text: label }]);
-
-      const data = dataRef.current;
-      if (!data) {
-        setHistory((h) => [
-          ...h,
-          {
-            role: "assistant",
-            text: "Non riesco a leggere il menu in questo momento. Riprova tra poco.",
-          },
-        ]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const endpoint = import.meta.env.VITE_AI_ENDPOINT ?? "/api/ask";
-        const resp = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: label, data }),
-        });
-        if (!resp.ok) throw new Error("AI endpoint error " + resp.status);
-        const { answer } = await resp.json();
-        setHistory((h) => [...h, { role: "assistant", text: answer }]);
-      } catch {
-        const { askMenu } = await import("./ai/ask");
-        const res = await askMenu(label, data as MenuJson);
-        setHistory((h) => [
-          ...h,
-          { role: "assistant", text: res.answer + "\n\n(Modalità gratuita)" },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  function Quick({ label }: { label: string }) {
-    return (
-      <button
-        onClick={() => { void handleQuick(label); }}
-        className="text-xs px-2 py-1 rounded-full bg-slate-100 border border-slate-200 hover:bg-white"
-      >
-        {label}
-      </button>
-    );
-  }
-
-  // Titolo del pannello: se la label inizia con “Chiedi …” → “Assistente …”
-  const panelTitle =
-    assistantLabel.toLowerCase().startsWith("chiedi")
-      ? "Assistente " + assistantLabel.slice(6).trim()
-      : assistantLabel;
+  const quickPrompts = [
+    "Consigli piccanti",
+    "Senza lattosio",
+    "Vegetariano",
+    "Promo del giorno",
+    "Orari di apertura",
+  ];
 
   return (
     <>
-      {/* FAB – alzato su mobile per non sovrapporsi alla barra CTA */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed right-4 z-50 rounded-full shadow-lg px-4 py-3 text-white sm:bottom-4 bottom-24"
-          style={{ background: "var(--accent, #10b981)" }}
-          aria-label={assistantLabel}
-        >
-          <MessageCircle className="inline w-5 h-5 mr-2" />
-          {assistantLabel}
-        </button>
-      )}
+      {/* FAB */}
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed right-4 bottom-4 z-[60] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border border-slate-200"
+        style={{ background: "var(--accent)", color: "var(--accentText)" }}
+        aria-label={resolvedButtonLabel}
+      >
+        <MessageCircle className="inline w-5 h-5" />
+        {resolvedButtonLabel}
+      </button>
 
-      {/* Panel – alzato su mobile */}
+      {/* PANEL */}
       {open && (
-        <div className="fixed right-4 z-50 w-[min(420px,90vw)] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden sm:bottom-4 bottom-24">
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-            <div className="font-semibold">{panelTitle}</div>
-            <button
-              className="p-1 rounded hover:bg-slate-100"
-              onClick={() => setOpen(false)}
-              aria-label="Chiudi"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2">
-            <Quick label="Consigli piccanti" />
-            <Quick label="Senza lattosio" />
-            <Quick label="Vegetariano" />
-            <Quick label="Promo del giorno" />
-            <Quick label="Orari di apertura" />
-          </div>
-
-          <div className="px-4 h-64 overflow-y-auto space-y-3">
-            {history.map((m, i) => (
-              <div key={i} className={`text-sm ${m.role === "assistant" ? "text-slate-800" : "text-slate-900"}`}>
-                {m.role === "user" ? <div className="font-semibold">Tu:</div> : <div className="text-slate-500">Assistente:</div>}
-                <pre className="whitespace-pre-wrap leading-relaxed">{m.text}</pre>
-              </div>
-            ))}
-            {loading && <div className="text-sm text-slate-500">Sto pensando…</div>}
-          </div>
-
-          <div className="px-4 pt-2 pb-3 border-t border-slate-200 space-y-2">
-            <div className="flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Scrivi una domanda…"
-                className="flex-1 px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                onKeyDown={(e) => { if (e.key === "Enter") void onSend(); }}
-              />
-              <button onClick={() => { void onSend(); }} className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
-                <SendHorizonal className="w-4 h-4" />
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-end">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="relative m-3 w-[min(680px,100%)] sm:w-[520px] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-200 bg-white/70 backdrop-blur flex items-center justify-between">
+              <div className="font-semibold">{resolvedPanelTitle}</div>
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50" aria-label="Chiudi">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex gap-2 text-xs">
-              {phone && (
-                <a
-                  href={`tel:${phone.replace(/\s|\+/g, "")}`}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50"
+
+            {/* Quick prompts */}
+            <div className="px-4 pt-3 flex flex-wrap gap-2">
+              {quickPrompts.map((p) => (
+                <button
+                  key={p}
+                  className="px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-sm hover:bg-slate-100"
+                  onClick={() => { setInput(p); setTimeout(onSend, 0); }}
                 >
-                  <Phone className="w-3 h-3" /> Chiama
-                </a>
-              )}
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50"
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Messages */}
+            <div className="px-4 py-3 h-72 overflow-y-auto space-y-2">
+              {history.map((m, i) => (
+                <div
+                  key={i}
+                  className={
+                    m.role === "user"
+                      ? "ml-auto max-w-[80%] rounded-2xl px-3 py-2 bg-[var(--accent)] text-[var(--accentText)]"
+                      : "mr-auto max-w-[85%] rounded-2xl px-3 py-2 bg-slate-100"
+                  }
                 >
-                  <MapPin className="w-3 h-3" /> Indicazioni
-                </a>
-              )}
+                  {m.text}
+                </div>
+              ))}
+            </div>
+
+            {/* Actions (fix layout) */}
+            <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
+              <div className="flex gap-2 shrink-0">
+                {phone && (
+                  <a href={`tel:${String(phone).replace(/\s|\+/g, "")}`} className="inline-flex items-center gap-1 px-2 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm">
+                    <Phone className="w-3 h-3" /> Chiama
+                  </a>
+                )}
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 h-11 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm">
+                    <MapPin className="w-3 h-3" /> Indicazioni
+                  </a>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
+                  }}
+                  placeholder="Scrivi una domanda…"
+                  className="flex-1 min-w-0 border border-slate-200 rounded-xl px-3 h-11 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent),white_70%)]"
+                />
+                <button
+                  onClick={onSend}
+                  disabled={loading}
+                  className="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-1 px-3 h-11 rounded-xl text-[var(--accentText)]"
+                  style={{ background: "var(--accent)" }}
+                  aria-label="Invia messaggio"
+                >
+                  <SendHorizonal className="w-4 h-4" />
+                  <span className="hidden xs:inline">Invia</span>
+                  <span className="xs:hidden">Invia</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
