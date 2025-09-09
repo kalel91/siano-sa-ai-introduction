@@ -2,15 +2,44 @@
 // Runtime: Node 18+ (fetch già disponibile)
 export async function handler(event) {
   try {
-    const { question, data, model = "deepseek-ai/DeepSeek-V3.1" } = JSON.parse(event.body || "{}");
-    if (!question || !data) return { statusCode: 400, body: "Bad request" };
+    if (event.httpMethod !== "POST") {
+      return { statusCode: 405, body: "Method Not Allowed" };
+    }
+
+    const payload = JSON.parse(event.body || "{}");
+    const question = String(payload.question || "").trim();
+    const model = String(payload.model || "deepseek-ai/DeepSeek-V3.1");
+
+    if (!question) return { statusCode: 400, body: "Bad request: missing question" };
     if (!process.env.HF_TOKEN) return { statusCode: 500, body: "HF_TOKEN missing" };
+
+    // 1) DATI: passati inline...
+    let data = payload.data;
+
+    // ...oppure caricati dal sito tramite slug
+    if (!data) {
+      const slug = String(payload.slug || "").trim();
+      if (!slug) return { statusCode: 400, body: "Bad request: missing data or slug" };
+
+      // Costruisci l'origine assoluta del sito (funziona in prod e in preview)
+      const host = event.headers?.host || "";
+      const proto = (event.headers?.["x-forwarded-proto"] || "https").split(",")[0].trim();
+      const origin =
+        process.env.URL ||
+        process.env.DEPLOY_PRIME_URL ||
+        (host ? `${proto}://${host}` : "");
+
+      const jsonUrl = `${origin}/data/${slug}.json`;
+      const r = await fetch(jsonUrl, { headers: { "Cache-Control": "no-cache" } });
+      if (!r.ok) return { statusCode: 404, body: `Menu JSON not found for slug '${slug}'` };
+      data = await r.json();
+    }
 
     // Etichette dal JSON
     const brand = data?.config?.name || "Il locale";
     const assistantTitle = `Assistente di ${brand}`;
 
-    // Compatta il contesto menu in modo sicuro
+    // Compatta il contesto (evita gonfiaggi di token)
     const context = {
       brand,
       hours: data?.config?.hours,
@@ -18,9 +47,11 @@ export async function handler(event) {
       phone: data?.config?.phone,
       whatsapp: data?.config?.whatsapp,
       specials: data?.menu?.specials || [],
-      categories: (data?.menu?.categories || []).map(c => ({
-        name: c.name,
-        items: (c.items || []).map(i => ({ name: i.name, desc: i.desc, price: i.price, tags: i.tags, fav: i.fav }))
+      categories: (Array.isArray(data?.menu?.categories) ? data.menu.categories : []).map(c => ({
+        name: c?.name,
+        items: (Array.isArray(c?.items) ? c.items : []).map(i => ({
+          name: i?.name, desc: i?.desc, price: i?.price, tags: i?.tags, fav: i?.fav
+        }))
       }))
     };
 
@@ -53,12 +84,23 @@ export async function handler(event) {
     });
 
     const text = await r.text();
-    if (!r.ok) return { statusCode: r.status, body: text };
+    if (!r.ok) {
+      // utile in debug: log server-side e bubble up all client
+      console.error("HF error:", r.status, text);
+      return { statusCode: r.status, body: text };
+    }
 
-    const j = JSON.parse(text);
-    const answer = j?.choices?.[0]?.message?.content?.trim() || "Non disponibile al momento.";
+    let answer = "Non disponibile al momento.";
+    try {
+      const j = JSON.parse(text);
+      answer = j?.choices?.[0]?.message?.content?.trim() || answer;
+    } catch (e) {
+      console.error("Parse error:", e);
+    }
+
     return { statusCode: 200, body: JSON.stringify({ answer }) };
   } catch (e) {
+    console.error(e);
     return { statusCode: 500, body: String(e) };
   }
 }
