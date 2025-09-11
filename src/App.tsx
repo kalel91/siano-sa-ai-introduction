@@ -1,5 +1,5 @@
-import QRMenuPro from "./QRMenuPro";
+import SianoVenue from "./SianoVenue";
 
 export default function App() {
-  return <QRMenuPro />;
+  return <SianoVenue />;
 }
