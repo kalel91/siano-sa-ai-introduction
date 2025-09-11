@@ -8,8 +8,8 @@
     "phone": "+39 333 1234567",
     "whatsapp": "+39 333 1234567",
     "whatsDefaultMsg": "Ciao Il Pirata, vorrei info sul menu 🙂",
-    "logoUrl": "/pirate_logo_colored.png",
-    "heroImages": ["/ilpirata-6.jpg", "/ilpirata-7.jpg", "/ilpirata-8.jpg"],
+    "logoUrl": "/pirata/pirate_logo_colored.png",
+    "heroImages": ["/pirata/ilpirata-6.jpg", "/pirata/ilpirata-7.jpg", "/pirata/ilpirata-8.jpg"],
     "assistantLabel": "Chiedi al Pirata",
     "footerNote": "Dal 1998 sforniamo pizze a lenta lievitazione. Farine selezionate e ingredienti locali.",
     "lastUpdated": "2025-09-05",
@@ -45,22 +45,22 @@
       {
         "name": "Pizze classiche",
         "items": [
-          { "name": "Margherita", "desc": "Pomodoro, fior di latte, basilico", "price": 5.5, "tags": ["G","L"], "fav": true, "img": "/ilpirata-3.png" },
-          { "name": "Salsiccia & Friarielli", "desc": "Mozzarella, salsiccia, friarielli", "price": 8.5, "tags": ["G","L"], "img": "/ilpirata-4.png" },
-          { "name": "Bufalina", "desc": "Pomodoro, bufala DOP, basilico", "price": 8.0, "tags": ["G","L"], "img": "/ilpirata-1.png" }
+          { "name": "Margherita", "desc": "Pomodoro, fior di latte, basilico", "price": 5.5, "tags": ["G","L"], "fav": true, "img": "/pirata/ilpirata-3.png" },
+          { "name": "Salsiccia & Friarielli", "desc": "Mozzarella, salsiccia, friarielli", "price": 8.5, "tags": ["G","L"], "img": "/pirata/ilpirata-4.png" },
+          { "name": "Bufalina", "desc": "Pomodoro, bufala DOP, basilico", "price": 8.0, "tags": ["G","L"], "img": "/pirata/ilpirata-1.png" }
         ]
       },
       {
         "name": "Primi",
         "items": [
-          { "name": "Spaghetti alla Norma", "desc": "Pomodoro, melanzane, ricotta salata", "price": 8.0, "tags": ["G","L"], "img": "/ilpirata-5.png" }
+          { "name": "Spaghetti alla Norma", "desc": "Pomodoro, melanzane, ricotta salata", "price": 8.0, "tags": ["G","L"], "img": "/pirata/ilpirata-5.png" }
         ]
       },
       {
         "name": "Fritti",
         "items": [
-          { "name": "Crocchetta di patate (2)", "price": 2.0, "tags": ["G","U"], "img": "/ilpirata-2.png" },
-          { "name": "Arancino", "desc": "Ragù o prosciutto", "price": 2.5, "tags": ["G","L"], "img": "/ilpirata-8.jpg" }
+          { "name": "Crocchetta di patate (2)", "price": 2.0, "tags": ["G","U"], "img": "/pirata/ilpirata-2.png" },
+          { "name": "Arancino", "desc": "Ragù o prosciutto", "price": 2.5, "tags": ["G","L"], "img": "/pirata/ilpirata-8.jpg" }
         ]
       },
       {

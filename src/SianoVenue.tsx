@@ -265,7 +265,7 @@ function Hero({images}:{images:string[]}) {
   );
 }
 
-export default function QRMenuPro(){
+export default function SianoVenue(){
   const {cfg,men,story,err} = useVenueData();
 
   const [query,setQuery] = React.useState("");

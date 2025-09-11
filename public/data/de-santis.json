@@ -8,8 +8,8 @@
     "phone": "+39 333 444 5555",
     "whatsapp": "+39 333 444 5555",
     "whatsDefaultMsg": "Ciao De Santis, vorrei info su dolci e torte 🙂",
-    "logoUrl": "/desantis_favicon.svg",
-    "heroImages": ["/de-santis-1.jpg", "/de-santis-2.jpg"],
+    "logoUrl": "/desantis/desantis_favicon.svg",
+    "heroImages": ["/desantis/de-santis-1.jpg", "/desantis/de-santis-2.jpg"],
     "assistantLabel": "Chiedi a De Santis",
     "footerNote": "Pasticceria fresca ogni giorno. Ordini personalizzati per eventi.",
     "lastUpdated": "2025-09-05",
@@ -45,7 +45,7 @@
       {
         "name": "Cornetti",
         "items": [
-          { "name": "Cornetto vuoto", "price": 1.2, "tags": ["G","U","L"], "img": "/de-santis-3.jpg"  },
+          { "name": "Cornetto vuoto", "price": 1.2, "tags": ["G","U","L"], "img": "/desantis/de-santis-3.jpg"  },
           { "name": "Cornetto crema", "price": 1.5, "tags": ["G","U","L"] },
           { "name": "Cornetto marmellata", "price": 1.5, "tags": ["G","U","L"] }
         ]
