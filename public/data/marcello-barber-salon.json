@@ -14,7 +14,7 @@
     "searchPlaceholder": "Cerca taglio, barba o prodotto…",
     "allergenNotice": {             
       "enabled": false,
-      "text": "Allergeni: G(Glutine), L(Latte), U(Uova), N(Noci), P(Pesce), C(Crostacei), M(Molluschi), S(Soia), Se(Sesamo), Sd(Sedano), Sn(Senape), Lu(Lupini), A(Arachidi), As(Anidride solforosa)"
+      "text": ""
     },
     "assistantLabel": "Chiedi al Barber",
     "footerNote": "Grooming di qualità, prodotti professionali e stile su misura. Prenota il tuo momento.",
@@ -38,6 +38,7 @@
         "Prodotti consigliati",
         "Orari e contatti"
       ],
+      "initialMessage": "Ciao! Sono l’assistente del salone. Posso aiutarti con prezzi, trattamenti, orari ed altro. Chiedi pure!",
       "ctas": [
         { "type": "call", "label": "Chiama" },
         { "type": "directions", "label": "Indicazioni" },

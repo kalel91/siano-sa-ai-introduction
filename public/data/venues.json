@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Il Pirata",
+    "slug": "il-pirata",
+    "category": "Pizzeria • Braceria",
+    "logoUrl": "/pirata/pirate_logo_colored.png",
+    "address": "Via Roma 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
+    "accent": "#b91c1c"
+  },
+  {
+    "name": "De Santis",
+    "slug": "de-santis",
+    "category": "Pasticceria artigianale",
+    "logoUrl": "/desantis/desantis_favicon.svg",
+    "address": "Piazza Centrale 5, Siano (SA)"
+  },
+  {
+    "name": "Marcello Barber Salon",
+    "slug": "marcello-barber-salon",
+    "category": "Barber • Grooming",
+    "logoUrl": "/marcello/logo_1.png",
+    "address": "Corso Garibaldi 21, Siano (SA)"
+  },
+  {
+    "name": "Zen Cefè",
+    "slug": "zen-cafe",
+    "category": "Bar • Pizzeria",
+    "logoUrl": "/zen/zen_favicon.svg",
+    "address": "Via Tranquilla 12, Siano (SA)"
+  }
+]

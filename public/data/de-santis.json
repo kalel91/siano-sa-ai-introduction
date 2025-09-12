@@ -32,6 +32,7 @@
     },
     "chat": {
       "quickReplies": ["Colazione", "Mignon", "Torte su ordinazione", "Senza lattosio", "Orari"],
+      "initialMessage": "Ciao! Sono l’assistente di De Santis. Posso aiutarti con menu, prezzi ed orari.",
       "ctas": [
         {"type":"call","label":"Chiama"},
         {"type":"directions","label":"Indicazioni"},

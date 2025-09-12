@@ -1,12 +1,18 @@
 import React from "react";
-import { MessageCircle, X, SendHorizonal, Phone, MapPin } from "lucide-react";
+import { MessageCircle, X, SendHorizonal, Phone, MapPin, AlertTriangle } from "lucide-react";
 
+/** -------- Types (extended) -------- */
 type MenuItem = { name: string; desc?: string; price?: number; tags?: string[]; fav?: boolean };
 type Category = { name: string; items: MenuItem[] };
 type MenuJson = {
   config?: { name?: string; phone?: string; whatsapp?: string; hours?: string; address?: string; assistantLabel?: string };
   menu?: { specials?: { title: string; price?: string }[]; categories?: Category[] };
   story?: { title?: string; text?: string } | null;
+  chat?: {
+    quickReplies?: string[];
+    /** NEW: per-locale, mappa “topic” -> risposta testuale (markdown semplice) */
+    faq?: Record<string, string>;
+  };
 };
 
 type CTAType = "call" | "directions" | "whatsapp" | "link";
@@ -25,13 +31,19 @@ type Props = {
   whatsDefaultMsg?: string;
   assistantLabel?: string;
   assistantTitle?: string;
+
+  /** Messaggio iniziale personalizzabile */
+  initialMessage?: string;
 };
 
 type Msg = { role: "user" | "assistant"; text: string };
 
 const MORE_RE = /^(si|sì|ok|va bene|quali|quale|altri|altre|altro|ancora|poi|dimmi|cos'?altro)\b/i;
 
+/** -------- Small helpers -------- */
 type Filters = { veg?: boolean; nolactose?: boolean; spicy?: boolean };
+const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "").trim();
+
 function parseFilters(q: string): Filters {
   const t = q.toLowerCase();
   return { veg: /veg(etar(i|)ano)?|senza carne/.test(t), nolactose: /senza lattos|lattosio/.test(t), spicy: /piccant|diavol/.test(t) };
@@ -47,57 +59,133 @@ function itemMatchesFilters(item: MenuItem, f: Filters): boolean {
 function buildCandidates(data: MenuJson, f: Filters, exclude: Set<string>): MenuItem[] {
   const cats = data?.menu?.categories || [];
   const all: MenuItem[] = [];
-  for (const c of cats) for (const it of c.items) if (itemMatchesFilters(it, f)) all.push(it);
+  for (const c of cats) for (const it of (c.items || [])) if (itemMatchesFilters(it, f)) all.push(it);
   const fresh = all.filter((it) => !exclude.has(it.name));
   if (!f.veg && !f.nolactose && !f.spicy) return fresh.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || a.name.localeCompare(b.name));
   return fresh.sort((a, b) => a.name.localeCompare(b.name) || (a.price ?? 0) - (b.price ?? 0));
 }
 function formatItem(i: MenuItem){ return i.price!=null ? `${i.name} — ${i.price!.toFixed(2)} €` : i.name; }
 
-function offlineAnswer(q: string, data: MenuJson, cursor: number, already: Set<string>) {
+function telHref(t?: string){ return t ? `tel:${String(t).replace(/\s|\+/g, "")}` : "#"; }
+function waHref(t?: string,msg=""){ if(!t) return "#"; const p=String(t).replace(/\D/g,""); return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`; }
+
+/** -------- Topic engine (coherent replies when user picks a chip) -------- */
+function topicAnswer(topicRaw: string, data: MenuJson): string | null {
+  const topic = norm(topicRaw);
+
+  // 1) FAQ dal JSON (massima priorità)
+  const faq = data.chat?.faq || {};
+  for (const k of Object.keys(faq)) {
+    if (norm(k) === topic) return faq[k];
+  }
+
+  // 2) Heuristics su topic comuni (orari/indirizzo/contatti/storia/servizi/prodotti)
+  const cfg = data.config || {};
+  if (/orari|apertur|chiusur/.test(topic)) {
+    return cfg.hours ? `Orari: ${cfg.hours}` : "Gli orari non sono indicati.";
+  }
+  if (/indirizz|dove|come si arriv|indicaz/.test(topic)) {
+    return cfg.address ? `Indirizzo: ${cfg.address}. Per le indicazioni usa il pulsante qui sotto.` : "L'indirizzo non è indicato.";
+  }
+  if (/contatt|telefono|chiama|whatsapp/.test(topic)) {
+    const p = cfg.phone ? `Telefono: ${cfg.phone}` : "Telefono non indicato.";
+    const w = (cfg as any).whatsapp ? ` WhatsApp: ${(cfg as any).whatsapp}` : "";
+    return p + w;
+  }
+  if (/storia|chi siamo|about/.test(topic)) {
+    const s = data.story?.text?.trim();
+    return s || "Al momento non è stata inserita una descrizione.";
+  }
+  if (/serviz|prodott|catalogo|listino|menu/.test(topic)) {
+    const cats = data.menu?.categories || [];
+    if (!cats.length) return "Non ho un elenco di servizi/prodotti pubblicato.";
+    const names = cats.map(c=>c.name).slice(0,5).join(" • ");
+    return `Posso mostrarti alcune categorie: ${names}. Scrivi una parola chiave oppure apri una categoria.`;
+  }
+
+  return null;
+}
+
+/** -------- Offline fallback (neutral copy; guided by chips) -------- */
+function offlineAnswer(
+  q: string,
+  data: MenuJson,
+  cursor: number,
+  already: Set<string>,
+  hints: string[] = []
+) {
   const t = q.toLowerCase();
   const cfg = data?.config || {};
-  if (/orari|apertur|chiusur/.test(t))
-    return { text: cfg.hours ? `Siamo aperti: ${cfg.hours}. Vuoi un consiglio dal menu?` : "Gli orari non sono indicati nel menu.", used: [] as string[], exhausted: false };
-  if (/dove|indirizz|come (si )?arriv|indicazioni/.test(t))
-    return { text: cfg.address ? `Ci trovi in ${cfg.address}. Se vuoi, premi Indicazioni qui sotto.` : "L'indirizzo non è indicato nel menu.", used: [] as string[], exhausted: false };
+
+  // Se l'utente sta chiedendo un "topic" (coerenza coi chip)
+  const tAns = topicAnswer(q, data);
+  if (tAns) return { text: tAns, used: [], exhausted: false };
+
+  if (/orari|apertur|chiusur/.test(t)) {
+    const base = cfg.hours ? `Siamo aperti: ${cfg.hours}.` : "Gli orari non sono indicati.";
+    const suffix = hints.length ? ` Prova uno dei tasti rapidi: ${hints.slice(0,3).join(" • ")}.` : "";
+    return { text: base + suffix, used: [] as string[], exhausted: false };
+  }
+  if (/dove|indirizz|come (si )?arriv|indicazioni/.test(t)) {
+    const base = cfg.address ? `Ci trovi in ${cfg.address}.` : "L'indirizzo non è indicato.";
+    const suffix = hints.length ? ` Vuoi altro? ${hints.slice(0,3).join(" • ")}.` : "";
+    return { text: base + suffix, used: [] as string[], exhausted: false };
+  }
 
   const filters = parseFilters(t);
   const pool = buildCandidates(data, filters, already);
 
+  // ricerca diretta su nome/descrizione
   if (!pool.length) {
     for (const c of data.menu?.categories || []) {
-      const hit = c.items.find((i) => i.name.toLowerCase().includes(t) || (i.desc || "").toLowerCase().includes(t));
+      const hit = (c.items || []).find((i) => {
+        const nm = norm(i.name); const ds = norm(i.desc || "");
+        const tt = norm(q);
+        return nm.includes(tt) || ds.includes(tt);
+      });
       if (hit) {
         return {
-          text: hit.price!=null ? `${hit.name}: ${(hit.desc||"nessuna descrizione")}. Prezzo ${hit.price.toFixed(2)} €.` : `${hit.name}: ${(hit.desc||"nessuna descrizione")}.`,
+          text: hit.price!=null
+            ? `${hit.name}: ${(hit.desc||"nessuna descrizione")}. Prezzo ${hit.price.toFixed(2)} €.`
+            : `${hit.name}: ${(hit.desc||"nessuna descrizione")}.`,
           used: [hit.name], exhausted: false
         };
       }
     }
   }
+
   if (pool.length) {
     const first = pool[cursor % pool.length];
     const second = pool.length>1 ? pool[(cursor+1)%pool.length] : undefined;
     const items = [first, second].filter(Boolean) as MenuItem[];
-    return { text: `Potrebbero piacerti: ${items.map(formatItem).join(" • ")}. Vuoi altre opzioni?`, used: items.map(x=>x.name), exhausted: false };
+    return {
+      text: `Potrebbe interessarti: ${items.map(formatItem).join(" • ")}. Vuoi altre opzioni?`,
+      used: items.map(x=>x.name), exhausted: false
+    };
   }
-  return { text: "Con questi criteri non ho altre proposte. Prova un ingrediente o un filtro come 'vegetariano', 'senza lattosio' o 'piccante'.", used: [], exhausted: true };
+
+  const example = hints.length
+    ? ` Prova con un argomento tra: ${hints.slice(0,3).join(" • ")}.`
+    : " Prova a scrivere una parola chiave (es. orari, indirizzo, servizi).";
+  return { text: "Per ora non ho altre proposte." + example, used: [], exhausted: true };
 }
 
-function telHref(t?: string){ return t ? `tel:${String(t).replace(/\s|\+/g, "")}` : "#"; }
-function waHref(t?: string,msg=""){ if(!t) return "#"; const p=String(t).replace(/\D/g,""); return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`; }
-
+/** -------- Component -------- */
 export default function ChatWidget({
   slug, phone, mapsUrl, venueName, buttonLabel, panelTitle, quickReplies, ctas, whatsapp, whatsDefaultMsg,
-  assistantLabel, assistantTitle
+  assistantLabel, assistantTitle, initialMessage
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [input, setInput] = React.useState("");
-  const [history, setHistory] = React.useState<Msg[]>([
-    { role: "assistant", text: `Ciao! Posso aiutarti a scegliere dal menu${venueName ? ` di ${venueName}`:""}: dimmi cosa ti va (es. "piccante", "senza lattosio", "vegetariano", o un ingrediente).` },
-  ]);
+  const [aiOnline, setAiOnline] = React.useState(true); // NEW: banner “AI offline”
+
+  const [history, setHistory] = React.useState<Msg[]>([{
+    role: "assistant",
+    text:
+      (initialMessage?.trim()) ||
+      `Ciao! Sono l’assistente ${venueName ? `di ${venueName}` : "AI"}. Dimmi su cosa ti serve aiuto (orari, indirizzo, servizi/prodotti, o un argomento).`
+  }]);
 
   const [cursor, setCursor] = React.useState(0);
   const [suggested, setSuggested] = React.useState<Set<string>>(new Set());
@@ -127,12 +215,26 @@ export default function ChatWidget({
     setHistory((h) => [...h, { role: "user", text: q }]);
 
     const data = dataRef.current;
+
+    // quick replies disponibili (props > json)
+    const hints = (quickReplies && quickReplies.length
+      ? quickReplies
+      : (data?.chat?.quickReplies || [])) as string[];
+
+    // Se l’utente ha cliccato/riscritto un topic, rispondi subito in locale
+    const predefined = data ? topicAnswer(q, data) : null;
+    if (predefined) {
+      setHistory((h) => [...h, { role: "assistant", text: predefined }]);
+      return;
+    }
+
     if (!data) {
       const more = MORE_RE.test(q);
-      const ans = offlineAnswer(q, { menu: { categories: [] } }, cursor + (more ? 2 : 0), suggested);
+      const ans = offlineAnswer(q, { menu: { categories: [] } }, cursor + (more ? 2 : 0), suggested, hints);
       setCursor((v) => v + (more ? 2 : 1));
       if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
       setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+      setAiOnline(false);
       return;
     }
 
@@ -145,29 +247,33 @@ export default function ChatWidget({
 
       if (!resp.ok) {
         const more = MORE_RE.test(q);
-        const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested);
+        const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested, hints);
         setCursor((v) => v + (more ? 2 : 1));
         if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
         setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+        setAiOnline(false);
       } else {
         const j = await resp.json();
         const text: string | undefined = j?.answer;
         if (text && text.trim()) {
           setHistory((h) => [...h, { role: "assistant", text }]);
+          setAiOnline(true);
         } else {
           const more = MORE_RE.test(q);
-          const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested);
+          const ans = offlineAnswer(q, data, cursor + (more ? 2 : 0), suggested, hints);
           setCursor((v) => v + (more ? 2 : 1));
           if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
           setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+          setAiOnline(false);
         }
       }
     } catch {
       const more = MORE_RE.test(q);
-      const ans = offlineAnswer(q, data!, cursor + (more ? 2 : 0), suggested);
+      const ans = offlineAnswer(q, data!, cursor + (more ? 2 : 0), suggested, hints);
       setCursor((v) => v + (more ? 2 : 1));
       if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
       setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
+      setAiOnline(false);
     } finally {
       setLoading(false);
     }
@@ -175,7 +281,7 @@ export default function ChatWidget({
 
   const chips = (quickReplies && quickReplies.length
     ? quickReplies
-    : ["Consigli piccanti", "Senza lattosio", "Vegetariano", "Promo del giorno", "Orari di apertura"]
+    : ["Informazioni", "Orari e contatti", "Servizi", "Dove siamo", "Novità"]
   );
 
   const actions: CTA[] = (ctas && ctas.length
@@ -205,7 +311,15 @@ export default function ChatWidget({
             {/* Header */}
             <div className="px-4 py-3 border-b flex items-center justify-between"
                  style={{ borderColor:"var(--border)", background:"var(--glass)" }}>
-              <div className="font-semibold" style={{color:"var(--text)"}}>{resolvedPanelTitle}</div>
+              <div className="font-semibold flex items-center gap-2" style={{color:"var(--text)"}}>
+                {resolvedPanelTitle}
+                {!aiOnline && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                        style={{background:"var(--accent-10)", color:"var(--accent)"}} title="Il modello AI non è raggiungibile: risposte locali attive">
+                    <AlertTriangle className="w-3 h-3"/> AI offline
+                  </span>
+                )}
+              </div>
               <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg border hover:opacity-90"
                       style={{borderColor:"var(--border)", background:"var(--card)", color:"var(--text)"}} aria-label="Chiudi">
                 <X className="w-4 h-4" />

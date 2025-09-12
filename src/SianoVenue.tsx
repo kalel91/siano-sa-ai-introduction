@@ -42,6 +42,8 @@ type Config = {
   chat?: {
     quickReplies?: string[];
     ctas?: CTA[];
+    /** Messaggio iniziale personalizzato per il widget */
+    initialMessage?: string;
   };
 };
 
@@ -473,6 +475,7 @@ export default function SianoVenue(){
         ctas={cfg.chat?.ctas}
         whatsapp={cfg.whatsapp}
         whatsDefaultMsg={cfg.whatsDefaultMsg}
+        initialMessage={cfg.chat?.initialMessage}
       />
     </div>
   );

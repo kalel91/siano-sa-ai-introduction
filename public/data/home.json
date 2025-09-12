@@ -1,0 +1,64 @@
+{
+  "cityName": "Siano (SA)",
+  "logoUrl": "/city/home-logo.png",
+
+  "heroTitle": "Siano AI — Tradizione che incontra l’Innovazione",
+  "heroSubtitle": "Un progetto comunale che unisce storia, cultura e tecnologia. Ogni esercente ha un QR code, una pagina dedicata e un assistente AI: un ecosistema digitale a servizio di cittadini e visitatori.",
+  "heroImages": ["/city/siano-1.jpg", "/city/siano-2.jpg", "/city/siano-3.jpg"],
+
+  "about": {
+    "title": "La storia di Siano",
+    "text": "Siano, incastonato tra le valli salernitane, è un comune caratterizzato da tradizioni radicate, artigianato locale e forte senso di comunità. Conosciuto per le sue feste popolari e per l’accoglienza dei cittadini, oggi sceglie di unire le radici storiche a nuove opportunità digitali."
+  },
+  "project": {
+    "title": "Il progetto comunale di trasformazione digitale",
+    "text": "Grazie a Siano AI, ogni attività aderente ottiene una scheda online, un QR personalizzato e un assistente virtuale capace di rispondere a domande su orari, prodotti e servizi. La piattaforma è centralizzata, open source e modulare: pronta ad accogliere eventi culturali, informazioni turistiche e servizi comunali, diventando uno strumento di innovazione al servizio della comunità."
+  },
+  "vision": {
+    "title": "Uno sguardo al futuro",
+    "text": "Il progetto è solo all’inizio: la visione è quella di creare un ‘Comune Digitale’ dove cittadini e visitatori possano accedere a informazioni, servizi e iniziative locali in tempo reale, attraverso un’unica piattaforma intelligente."
+  },
+
+  "gallery": ["/city/siano-1.jpg", "/city/siano-2.jpg", "/city/siano-3.jpg", "/city/siano-4.jpg"],
+
+  "openData": {
+    "csvUrl": "/data/venues.csv",
+    "jsonUrl": "/data/venues.json"
+  },
+
+  "social": {
+    "website": "https://www.comune.siano.sa.it",
+    "facebook": "https://facebook.com/comuneSiano",
+    "instagram": "https://instagram.com/comuneSiano"
+  },
+
+  "footer": {
+    "note": "Progetto promosso dal Comune di Siano — Innovazione digitale AI al servizio della comunità.",
+    "updated": "2025-09-12"
+  },
+
+  "theme": {
+    "accent": "#2563eb",
+    "accentText": "#ffffff",
+    "bgFrom": "#f0f4f8",
+    "bgTo": "#ffffff"
+  },
+
+  "assistant": {
+    "enabled": true,
+    "label": "Chiedi al Comune di Siano",
+    "panelTitle": "Assistente digitale comunale",
+    "slugForQA": "municipio",
+    "initialMessage": "Ciao! Sono l’assistente digitale del Comune di Siano. Posso raccontarti la storia del paese, spiegarti il progetto AI, mostrarti le attività aderenti e darti informazioni pratiche. Cosa vuoi sapere?"
+  },
+
+  "chat": {
+    "quickReplies": ["Storia di Siano", "Cos’è il progetto AI", "Attività aderenti", "Eventi e cultura", "Servizi comunali"],
+    "faq": {
+    "Storia di Siano": "Testo breve sulla storia…",
+    "Servizi comunali": "Anagrafe, tributi, SUAP…",
+    "Attività aderenti": "Consulta l'elenco in homepage /open-data…",
+    "Orari e contatti": "Telefono: … • Indirizzo: … • Orari: …"
+  }
+  }
+}
