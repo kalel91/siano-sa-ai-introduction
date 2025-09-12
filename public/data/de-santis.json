@@ -13,6 +13,12 @@
     "assistantLabel": "Chiedi a De Santis",
     "footerNote": "Pasticceria fresca ogni giorno. Ordini personalizzati per eventi.",
     "lastUpdated": "2025-09-05",
+    "onlineBadgeLabel": "Dolci online",
+    "searchPlaceholder": "Cerca un prodotto o dolce…",
+    "allergenNotice": {             
+      "enabled": true,
+      "text": "Avvertenze: alcuni prodotti possono contenere tracce di noci e soia."
+    },
     "theme": {
       "mode": "light",
       "accent": "#be123c",

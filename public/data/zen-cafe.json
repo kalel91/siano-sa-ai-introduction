@@ -13,6 +13,12 @@
     "assistantLabel": "Chiedi allo Zen Cafè",
     "footerNote": "Impasti leggeri 48h e caffetteria selezionata.",
     "lastUpdated": "2025-09-05",
+    "searchPlaceholder": "Cerca pizza o ingrediente…",
+    "onlineBadgeLabel": "Menu online",
+    "allergenNotice": {             
+      "enabled": true,
+      "text": "Avvertenze: alcuni prodotti possono contenere tracce di noci e soia."
+    },
     "theme": {
       "mode": "light",
       "accent": "#6d28d9",

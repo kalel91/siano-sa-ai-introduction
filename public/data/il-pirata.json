@@ -13,12 +13,18 @@
     "assistantLabel": "Chiedi al Pirata",
     "footerNote": "Dal 1998 sforniamo pizze a lenta lievitazione. Farine selezionate e ingredienti locali.",
     "lastUpdated": "2025-09-05",
+    "searchPlaceholder": "Cerca pizza o ingrediente…",
+    "onlineBadgeLabel": "Menu online",
+    "allergenNotice": {             
+      "enabled": true,
+      "text": "Avvertenze: alcuni prodotti possono contenere tracce di noci e soia."
+    },
     "theme": {
-      "mode": "light",
-      "accent": "#0f766e",
+      "mode": "dark",
+      "accent": "#e11d48",
       "accentText": "#ffffff",
-      "bgFrom": "#f8fafc",
-      "bgTo": "#ffffff",
+      "bgFrom": "#0b0b0b",
+      "bgTo": "#121417",
       "radius": "16px",
       "fontUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap",
       "fontFamily": "'Montserrat', system-ui",
