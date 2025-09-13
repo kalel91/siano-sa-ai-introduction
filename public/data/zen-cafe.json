@@ -31,13 +31,27 @@
       "cssUrl": ""
     },
     "chat": {
-      "quickReplies": ["Aperitivo", "Pizze gourmet", "Opzioni vegetali", "Caffetteria", "Orari di apertura"],
-      "ctas": [
-        {"type":"call","label":"Chiama"},
-        {"type":"directions","label":"Indicazioni"},
-        {"type":"whatsapp","label":"WhatsApp"}
-      ]
-    }
+  "quickReplies": [
+    "Colazioni",
+    "Caffè & speciali",
+    "Pasticceria",
+    "Orari e contatti",
+    "Dove siamo"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente di Zen Café. Posso aiutarti con caffè, colazioni, pasticceria e orari.",
+  "faq": {
+    "Colazioni": "Croissant, cornetti, sfoglie e proposte del giorno. Vuoi vedere cosa consigliamo oggi?",
+    "Caffè & speciali": "Espresso, cappuccino, estratti e bevande speciali. Preferisci classico o qualcosa di diverso?",
+    "Pasticceria": "Selezione di mignon e torte su ordinazione. Vuoi conoscere disponibilità e prezzi?",
+    "Orari e contatti": "Siamo aperti la mattina presto fino a sera (fasce variabili). Per info rapide chiamaci o scrivici su WhatsApp.",
+    "Dove siamo": "Siamo in centro a Siano. Premi *Indicazioni* per la mappa."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
   },
   "story": {
     "title": "Relax & buon gusto",

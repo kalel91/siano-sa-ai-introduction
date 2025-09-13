@@ -28,15 +28,30 @@
       "radius": "16px",
       "fontUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap",
       "fontFamily": "'Montserrat', system-ui",
-      "cssUrl": ""
+      "cssUrl": "/themes/pirata-dark.css",
+      "glass": "linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84))"
     },
     "chat": {
-      "quickReplies": ["Consigli piccanti", "Senza lattosio", "Vegetariano", "Promo del giorno", "Orari di apertura"],
-      "ctas": [
-        {"type":"call","label":"Chiama"},
-        {"type":"directions","label":"Indicazioni"},
-        {"type":"whatsapp","label":"WhatsApp"}
-      ]
+      "quickReplies": [
+    "Consigli del giorno",
+    "Senza lattosio",
+    "Vegetariano",
+    "Orari e contatti",
+    "Dove siamo"
+  ],
+      "initialMessage": "Ciao! Sono l’assistente de Il Pirata. Posso aiutarti con pizze, fritti, brace, ingredienti e orari.",
+  "faq": {
+    "Consigli del giorno": "Oggi puoi provare: **Margherita XL + Bibita** a 6,50 €. Vuoi vedere anche le pizze classiche o i fritti?",
+    "Senza lattosio": "Tra le pizze possiamo rimuovere o sostituire alcuni latticini. Chiedi pure una *personalizzazione senza lattosio* al momento dell’ordine.",
+    "Vegetariano": "Consigli: **Margherita**, **Bufalina**, **Norma**. Posso mostrarti la categoria completa?",
+    "Orari e contatti": "Orari: Lun/Dom 12:00–15:00 • 19:00–23:00 (chiuso Mar). Tel/WhatsApp: +39 333 1234567.",
+    "Dove siamo": "Ci trovi in **Via Roma 12, Siano (SA)**. Premi *Indicazioni* qui sotto per la mappa."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
     }
   },
   "story": {

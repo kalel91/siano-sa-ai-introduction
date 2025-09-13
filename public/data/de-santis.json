@@ -31,14 +31,27 @@
       "cssUrl": ""
     },
     "chat": {
-      "quickReplies": ["Colazione", "Mignon", "Torte su ordinazione", "Senza lattosio", "Orari"],
-      "initialMessage": "Ciao! Sono l’assistente di De Santis. Posso aiutarti con menu, prezzi ed orari.",
-      "ctas": [
-        {"type":"call","label":"Chiama"},
-        {"type":"directions","label":"Indicazioni"},
-        {"type":"whatsapp","label":"WhatsApp"}
-      ]
-    }
+  "quickReplies": [
+    "Pane del giorno",
+    "Pizze & rustici",
+    "Dolci & biscotti",
+    "Orari e contatti",
+    "Dove siamo"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente del Panificio De Santis. Posso aiutarti con pane, pizze rustiche, dolci e orari.",
+  "faq": {
+    "Pane del giorno": "Pane cafone, integrale, ai cereali e speciali a rotazione. Vuoi sapere cosa sforniamo oggi?",
+    "Pizze & rustici": "Pizza al taglio, focacce e rustici. Preferisci classico o farcito?",
+    "Dolci & biscotti": "Biscotti artigianali e dolci tradizionali. Posso indicarti gli ingredienti?",
+    "Orari e contatti": "Aperti la mattina e nel pomeriggio con chiusura a metà giornata. Per info rapide chiamaci o scrivici.",
+    "Dove siamo": "Siamo a Siano in zona centrale. Usa *Indicazioni* per raggiungerci."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
   },
   "story": {
     "title": "Dolci di famiglia",

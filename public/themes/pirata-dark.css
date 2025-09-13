@@ -1,0 +1,10 @@
+:root {
+  /* grigio scuro neutro, niente blu */
+  --bgFrom: #0f0f12;
+  --bgTo:   #0b0b0d;
+  /* header “glass” più grigio che blu */
+  --glass: linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84));
+  /* (opzionale) un pizzico più scuri i pannelli */
+  /* --card:  #0e1116;
+  --muted: #111317; */
+}

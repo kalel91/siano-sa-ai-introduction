@@ -31,20 +31,27 @@
       "cssUrl": ""
     },
     "chat": {
-      "quickReplies": [
-        "Prezzi taglio",
-        "Barba & panno caldo",
-        "Combo taglio + barba",
-        "Prodotti consigliati",
-        "Orari e contatti"
-      ],
-      "initialMessage": "Ciao! Sono l’assistente del salone. Posso aiutarti con prezzi, trattamenti, orari ed altro. Chiedi pure!",
-      "ctas": [
-        { "type": "call", "label": "Chiama" },
-        { "type": "directions", "label": "Indicazioni" },
-        { "type": "whatsapp", "label": "WhatsApp" }
-      ]
-    }
+  "quickReplies": [
+    "Prezzi taglio",
+    "Barba & panno caldo",
+    "Combo taglio + barba",
+    "Prodotti consigliati",
+    "Orari e contatti"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente del salone. Posso aiutarti con prezzi, trattamenti, orari ed altro. Chiedi pure!",
+  "faq": {
+    "Prezzi taglio": "Taglio classico **15€**, sfumato (fade) **17€**, bimbo **12€**. Vuoi dettagli su un taglio in particolare?",
+    "Barba & panno caldo": "Trattamento rilassante con panno caldo, oli e rifinitura: **14€**. Posso mostrarti anche la *rasatura tradizionale*?",
+    "Combo taglio + barba": "Pacchetto completo **23€** con styling finale. Vuoi fissare un orario?",
+    "Prodotti consigliati": "Pomata modellante **12€**, Olio da barba **14€**. Vuoi un consiglio in base al tuo look?",
+    "Orari e contatti": "Mar–Sab 09:00/13:00 • 15:30/20:00 (chiuso Lun, Dom pomeriggio). Tel/WhatsApp: +39 333 4455667."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
   },
   "story": {
     "title": "Lo stile di Marcello",

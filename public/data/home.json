@@ -48,17 +48,24 @@
     "enabled": true,
     "label": "Chiedi al Comune di Siano",
     "panelTitle": "Assistente digitale comunale",
-    "slugForQA": "municipio",
+    "slugForQA": "home",
     "initialMessage": "Ciao! Sono l’assistente digitale del Comune di Siano. Posso raccontarti la storia del paese, spiegarti il progetto AI, mostrarti le attività aderenti e darti informazioni pratiche. Cosa vuoi sapere?"
   },
 
   "chat": {
-    "quickReplies": ["Storia di Siano", "Cos’è il progetto AI", "Attività aderenti", "Eventi e cultura", "Servizi comunali"],
+    "quickReplies": [
+      "Storia di Siano",
+      "Progetto AI",
+      "Esercenti aderenti",
+      "Eventi del mese",
+      "Uffici & contatti"
+    ],
     "faq": {
-    "Storia di Siano": "Testo breve sulla storia…",
-    "Servizi comunali": "Anagrafe, tributi, SUAP…",
-    "Attività aderenti": "Consulta l'elenco in homepage /open-data…",
-    "Orari e contatti": "Telefono: … • Indirizzo: … • Orari: …"
-  }
+      "Storia di Siano": "Siano è un comune con tradizioni artigiane e agricole. In questa pagina trovi una galleria, curiosità e collegamenti utili per scoprire il territorio.",
+      "Progetto AI": "Il progetto comunale offre a ogni esercente una scheda online, QR personalizzato e un assistente AI per informazioni su orari, prodotti e servizi.",
+      "Esercenti aderenti": "Vai alla sezione *Esercenti aderenti*: trovi l’elenco aggiornato con link alle pagine dedicate.",
+      "Eventi del mese": "Gli eventi sono pubblicati periodicamente sui canali istituzionali. Segui il sito e i profili social del Comune.",
+      "Uffici & contatti": "Consulta il sito istituzionale per orari e contatti degli uffici comunali. In caso di urgenza usa i numeri indicati sulla pagina ufficiale."
+    }
   }
 }

@@ -74,7 +74,11 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   const topic = norm(topicRaw);
 
   // 1) FAQ dal JSON (massima priorità)
-  const faq = data.chat?.faq || {};
+  //    ✅ ora considera anche config.chat.faq in fallback
+  const faq =
+    (data.chat?.faq) ||
+    ((data as any)?.config?.chat?.faq) ||
+    {};
   for (const k of Object.keys(faq)) {
     if (norm(k) === topic) return faq[k];
   }
@@ -106,7 +110,7 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   return null;
 }
 
-/** -------- Offline fallback (neutral copy; guided by chips) -------- */
+/** -------- Offline fallback (neutral & guided) -------- */
 function offlineAnswer(
   q: string,
   data: MenuJson,
@@ -216,10 +220,15 @@ export default function ChatWidget({
 
     const data = dataRef.current;
 
-    // quick replies disponibili (props > json)
+    // quick replies disponibili (props > json.chat > config.chat)  ✅
     const hints = (quickReplies && quickReplies.length
       ? quickReplies
-      : (data?.chat?.quickReplies || [])) as string[];
+      : (
+          data?.chat?.quickReplies ||
+          ((data as any)?.config?.chat?.quickReplies) ||
+          []
+        )
+    ) as string[];
 
     // Se l’utente ha cliccato/riscritto un topic, rispondi subito in locale
     const predefined = data ? topicAnswer(q, data) : null;
