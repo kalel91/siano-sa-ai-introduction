@@ -1,4 +1,4 @@
-// SianoVenue.tsx — versione pulita e parametrica
+// SianoVenue.tsx — versione pulita e parametrica (safe anti-flash)
 import React from "react";
 import ChatWidget from "./ChatWidget";
 import { motion, AnimatePresence } from "framer-motion";
@@ -73,39 +73,77 @@ function applyFavicon(url?: string){
   const apple = ensure("apple-touch-icon"); apple.href = url;
 }
 
-/** Tema → CSS vars (+ glass adattivo) */
+/** Tema → CSS vars (+ glass adattivo) — fallback anti-flash & override sicuro del CSS esterno */
 function applyTheme(t?: Config["theme"]){
   const mode = t?.mode || "light";
-  const root = document.documentElement.style;
+  const root = document.documentElement;
+  const st = root.style;
 
-  root.setProperty("--accent", t?.accent || "#0f766e");
-  root.setProperty("--accentText", t?.accentText || "#ffffff");
-  root.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0b1321" : "#f8fafc"));
-  root.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#111827" : "#ffffff"));
-  root.setProperty("--radius", t?.radius || "16px");
+  // Fallback immediati (evita flash bianco) — neutri + derivazioni
+  st.setProperty("--accent", t?.accent || "#0f766e");
+  st.setProperty("--accentText", t?.accentText || "#ffffff");
+  st.setProperty("--radius", t?.radius || "16px");
 
-  // tonalità derivate
-  root.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
-  root.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
-  root.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
+  const setDefaults = () => {
+    st.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0f0f12" : "#f8fafc"));
+    st.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#121417" : "#ffffff"));
 
-  if (mode === "dark") {
-    root.setProperty("--text", "#e5e7eb");
-    root.setProperty("--textSoft", "#cbd5e1");
-    root.setProperty("--card", "#0f172a");
-    root.setProperty("--muted", "#111827");
-    root.setProperty("--border", "rgba(255,255,255,0.12)");
-    root.setProperty("--glass", "linear-gradient(180deg, rgba(17,24,39,.92), rgba(17,24,39,.82))");
-  } else {
-    root.setProperty("--text", "#0f172a");
-    root.setProperty("--textSoft", "#475569");
-    root.setProperty("--card", "#ffffff");
-    root.setProperty("--muted", "#f8fafc");
-    root.setProperty("--border", "#e5e7eb");
-    root.setProperty("--glass", "linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74))");
+    // derivate
+    st.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
+    st.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
+    st.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
+    // tinta morbida usata nel chrome/background
+    st.setProperty("--chromeTint", "var(--accent-05)");
+
+    if (mode === "dark") {
+      st.setProperty("--text", "#e5e7eb");
+      st.setProperty("--textSoft", "#cbd5e1");
+      st.setProperty("--card", "#111214");
+      st.setProperty("--muted", "#0e0f11");
+      st.setProperty("--border", "rgba(255,255,255,0.08)");
+      st.setProperty("--glass", "linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84))");
+    } else {
+      st.setProperty("--text", "#0f172a");
+      st.setProperty("--textSoft", "#475569");
+      st.setProperty("--card", "#ffffff");
+      st.setProperty("--muted", "#f8fafc");
+      st.setProperty("--border", "#e5e7eb");
+      st.setProperty("--glass", "linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74))");
+    }
+  };
+
+  setDefaults();
+
+  // CSS esterno opzionale (prioritario) — rimuove SOLO le var che il tema esterno ridefinisce davvero
+  if (t?.cssUrl){
+    let link = document.getElementById("venue-css") as HTMLLinkElement | null;
+    if(!link){
+      link = document.createElement("link");
+      link.id = "venue-css";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = t.cssUrl;
+
+    link.onload = () => {
+      const maybeThemeVars = [
+        "--bgFrom","--bgTo","--glass","--card","--muted","--border",
+        "--accent-20","--accent-10","--accent-05","--chromeTint",
+        "--text","--textSoft"
+      ];
+      const comp = getComputedStyle(root);
+
+      // rimuovo la var inline SOLO se il CSS tema ne fornisce una (computed non vuoto)
+      for (const v of maybeThemeVars){
+        const fromTheme = comp.getPropertyValue(v).trim();
+        if (fromTheme) st.removeProperty(v);
+      }
+
+      document.body.style.backgroundColor = comp.getPropertyValue("--bgTo") || "var(--bgTo)";
+    };
   }
-  document.body.style.backgroundColor = "var(--bgTo)";
 
+  // Font opzionale
   if (t?.fontUrl){
     let link = document.getElementById("venue-font") as HTMLLinkElement | null;
     if(!link){ link=document.createElement("link"); link.id="venue-font"; link.rel="stylesheet"; document.head.appendChild(link); }
@@ -114,11 +152,8 @@ function applyTheme(t?: Config["theme"]){
     if(!style){ style=document.createElement("style"); style.id="venue-font-style"; document.head.appendChild(style); }
     style.textContent=`body{font-family:${t.fontFamily || "system-ui"};}`;
   }
-  if (t?.cssUrl){
-    let link2=document.getElementById("venue-css") as HTMLLinkElement | null;
-    if(!link2){ link2=document.createElement("link"); link2.id="venue-css"; link2.rel="stylesheet"; document.head.appendChild(link2); }
-    link2.href=t.cssUrl;
-  }
+
+  document.body.style.backgroundColor = "var(--bgTo)";
 }
 
 /** Label “Chiedi al/allo/alla/all’/ai…” */
@@ -298,9 +333,8 @@ export default function SianoVenue(){
   const computedFab   = cfg.assistantLabel || makeAskLabel(cfg.name);
   const searchPH      = cfg.searchPlaceholder || "Cerca piatto o ingrediente…";
   const badgeLabel    = resolveBadgeLabel(cfg.onlineBadgeLabel);
-  // Mostra l’avviso solo se abilitato E c’è un testo nel JSON
-  const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
-  const showAllergen = (cfg.allergenNotice?.enabled !== false) && allergenText !== "";
+  const allergenText  = cfg.allergenNotice?.text?.trim() ?? "";
+  const showAllergen  = (cfg.allergenNotice?.enabled !== false) && allergenText !== "";
 
   return (
     <div
@@ -309,14 +343,14 @@ export default function SianoVenue(){
         color:"var(--text)",
         backgroundImage: `
           radial-gradient(1200px 800px at 80% -10%, var(--bgFrom), var(--bgTo)),
-          radial-gradient(600px 400px at -10% 20%, var(--accent-05), transparent),
-          radial-gradient(700px 500px at 110% 80%, var(--accent-05), transparent)
+          radial-gradient(600px 400px at -10% 20%, var(--chromeTint), transparent),
+          radial-gradient(700px 500px at 110% 80%, var(--chromeTint), transparent)
         `
       }}
     >
       {/* HEADER GLASS */}
       <div className="sticky top-0 z-40 backdrop-blur border-b"
-           style={{ background: "var(--glass)", borderColor: "var(--border)", boxShadow: "0 10px 30px rgba(0,0,0,.05)" }}>
+           style={{ background: "var(--glass)", borderColor: "transparent", boxShadow: "0 10px 30px rgba(0,0,0,.12)" }}>
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
           {cfg.logoUrl ? (
             <div className="w-11 h-11 rounded-[var(--radius)] overflow-hidden ring-1"

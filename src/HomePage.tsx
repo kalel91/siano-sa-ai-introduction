@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import ChatWidget from "./ChatWidget";
 import { MapPin, ExternalLink } from "lucide-react";
 
@@ -156,69 +156,103 @@ export default function HomePage() {
           </p>
         )}
 
-        {!!cfg.heroImages?.length && (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {cfg.heroImages!.slice(0, 3).map((src, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="rounded-xl overflow-hidden border"
-                style={{ borderColor: "var(--border)", boxShadow: glow }}
-              >
-                <img
-                  src={src}
-                  alt={`siano-${i + 1}`}
-                  className="w-full h-44 object-cover"
-                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-                />
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {!!cfg.heroImages?.length && (
+            <motion.div
+              key="hero-images"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.35 }}
+              className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3"
+            >
+              {cfg.heroImages!.slice(0, 3).map((src, i) => (
+                <motion.div
+                  key={src || i}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="rounded-xl overflow-hidden border"
+                  style={{ borderColor: "var(--border)", boxShadow: glow }}
+                >
+                  <img
+                    src={src}
+                    alt={`siano-${i + 1}`}
+                    className="w-full h-44 object-cover"
+                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <section className="mx-auto max-w-5xl px-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {cfg.about && (
-          <div className="rounded-xl p-5 border" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-            <h2 className="font-semibold text-lg">{cfg.about.title || "La storia"}</h2>
-            {cfg.about.text && (
-              <p className="mt-2 text-sm" style={{ color: "var(--textSoft)" }}>
-                {cfg.about.text}
-              </p>
-            )}
-          </div>
-        )}
-        {cfg.project && (
-          <div className="rounded-xl p-5 border" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-            <h2 className="font-semibold text-lg">{cfg.project.title || "Il progetto"}</h2>
-            {cfg.project.text && (
-              <p className="mt-2 text-sm" style={{ color: "var(--textSoft)" }}>
-                {cfg.project.text}
-              </p>
-            )}
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {cfg.about && (
+            <motion.div
+              key="about"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="rounded-xl p-5 border"
+              style={{ borderColor: "var(--border)", background: "var(--card)" }}
+            >
+              <h2 className="font-semibold text-lg">{cfg.about.title || "La storia"}</h2>
+              {cfg.about.text && (
+                <p className="mt-2 text-sm" style={{ color: "var(--textSoft)" }}>
+                  {cfg.about.text}
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {cfg.project && (
+            <motion.div
+              key="project"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="rounded-xl p-5 border"
+              style={{ borderColor: "var(--border)", background: "var(--card)" }}
+            >
+              <h2 className="font-semibold text-lg">{cfg.project.title || "Il progetto"}</h2>
+              {cfg.project.text && (
+                <p className="mt-2 text-sm" style={{ color: "var(--textSoft)" }}>
+                  {cfg.project.text}
+                </p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
-      {!!cfg.gallery?.length && (
-        <section className="mx-auto max-w-5xl px-4 mt-8">
-          <h3 className="font-semibold mb-3">Siano in immagini</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {cfg.gallery!.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt={`gallery-${i}`}
-                className="w-full h-32 object-cover rounded-xl border"
-                style={{ borderColor: "var(--border)" }}
-                onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      <AnimatePresence>
+        {!!cfg.gallery?.length && (
+          <motion.section
+            key="gallery"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="mx-auto max-w-5xl px-4 mt-8"
+          >
+            <h3 className="font-semibold mb-3">Siano in immagini</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {cfg.gallery!.map((src, i) => (
+                <img
+                  key={src || i}
+                  src={src}
+                  alt={`gallery-${i}`}
+                  className="w-full h-32 object-cover rounded-xl border"
+                  style={{ borderColor: "var(--border)" }}
+                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                />
+              ))}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       <section className="mx-auto max-w-5xl px-4 mt-10">
         <div className="flex items-center justify-between gap-2 mb-3">
@@ -242,63 +276,77 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {venues.map((v) => (
-              <a
-                key={v.slug}
-                href={`/${v.slug}`}
-                className="group rounded-xl p-4 border block"
-                style={{ borderColor: "var(--border)", background: "var(--card)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-11 h-11 rounded-xl border overflow-hidden"
-                    style={{ borderColor: "var(--border)", background: "var(--muted)" }}
-                  >
-                    {v.logoUrl ? (
-                      <img
-                        src={v.logoUrl}
-                        alt={`${v.name} logo`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-                      />
-                    ) : null}
+            <AnimatePresence initial={false}>
+              {venues.map((v) => (
+                <motion.a
+                  key={v.slug}
+                  href={`/${v.slug}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ type: "spring", stiffness: 250, damping: 24 }}
+                  className="group rounded-xl p-4 border block"
+                  style={{ borderColor: "var(--border)", background: "var(--card)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-11 h-11 rounded-xl border overflow-hidden"
+                      style={{ borderColor: "var(--border)", background: "var(--muted)" }}
+                    >
+                      {v.logoUrl ? (
+                        <img
+                          src={v.logoUrl}
+                          alt={`${v.name} logo`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{v.name}</div>
+                      {v.tagline && (
+                        <div className="text-xs truncate" style={{ color: "var(--textSoft)" }}>
+                          {v.tagline}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{v.name}</div>
-                    {v.tagline && (
-                      <div className="text-xs truncate" style={{ color: "var(--textSoft)" }}>
-                        {v.tagline}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </a>
-            ))}
+                </motion.a>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </section>
 
       {(cfg.social?.website || cfg.social?.facebook || cfg.social?.instagram) && (
-        <section className="mx-auto max-w-5xl px-4 mt-10">
-          <h3 className="font-semibold mb-2">Collegamenti</h3>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {cfg.social?.website && (
-              <a className="underline" href={cfg.social.website} target="_blank" rel="noreferrer">
-                Sito istituzionale
-              </a>
-            )}
-            {cfg.social?.facebook && (
-              <a className="underline" href={cfg.social.facebook} target="_blank" rel="noreferrer">
-                Facebook
-              </a>
-            )}
-            {cfg.social?.instagram && (
-              <a className="underline" href={cfg.social.instagram} target="_blank" rel="noreferrer">
-                Instagram
-              </a>
-            )}
-          </div>
-        </section>
+        <AnimatePresence>
+          <motion.section
+            key="links"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="mx-auto max-w-5xl px-4 mt-10"
+          >
+            <h3 className="font-semibold mb-2">Collegamenti</h3>
+            <div className="flex flex-wrap gap-2 text-sm">
+              {cfg.social?.website && (
+                <a className="underline" href={cfg.social.website} target="_blank" rel="noreferrer">
+                  Sito istituzionale
+                </a>
+              )}
+              {cfg.social?.facebook && (
+                <a className="underline" href={cfg.social.facebook} target="_blank" rel="noreferrer">
+                  Facebook
+                </a>
+              )}
+              {cfg.social?.instagram && (
+                <a className="underline" href={cfg.social.instagram} target="_blank" rel="noreferrer">
+                  Instagram
+                </a>
+              )}
+            </div>
+          </motion.section>
+        </AnimatePresence>
       )}
 
       <footer className="mx-auto max-w-5xl px-4 py-12 text-xs mt-10" style={{ color: "var(--textSoft)" }}>

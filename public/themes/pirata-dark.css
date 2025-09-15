@@ -1,10 +1,21 @@
-:root {
-  /* grigio scuro neutro, niente blu */
+/* /themes/pirata-dark.css — tinta neutra (no blu), contrasto alto */
+:root{
   --bgFrom: #0f0f12;
-  --bgTo:   #0b0b0d;
-  /* header “glass” più grigio che blu */
+  --bgTo:   #121417;
+
+  --text:     #e5e7eb;
+  --textSoft: #cbd5e1;
+
+  --card:  #111214;
+  --muted: #0e0f11;
+  --border: rgba(255,255,255,.08);
+
+  /* vetro scuro neutro (niente dominante blu) */
   --glass: linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84));
-  /* (opzionale) un pizzico più scuri i pannelli */
-  /* --card:  #0e1116;
-  --muted: #111317; */
+}
+
+/* sicurezza: evita flash all’avvio */
+html, body{
+  background: var(--bgTo);
+  color: var(--text);
 }
