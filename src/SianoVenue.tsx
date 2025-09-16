@@ -24,9 +24,9 @@ type Config = {
   assistantLabel?: string;
 
   /** personalizzazioni UI */
-  onlineBadgeLabel?: string | null;                 // null/"" → non mostra
-  searchPlaceholder?: string;                       // placeholder barra di ricerca
-  allergenNotice?: { enabled?: boolean; text?: string }; // default: on + fallback
+  onlineBadgeLabel?: string | null;
+  searchPlaceholder?: string;
+  allergenNotice?: { enabled?: boolean; text?: string };
 
   theme?: {
     mode?: "light" | "dark";
@@ -42,7 +42,6 @@ type Config = {
   chat?: {
     quickReplies?: string[];
     ctas?: CTA[];
-    /** Messaggio iniziale personalizzato per il widget */
     initialMessage?: string;
   };
 };
@@ -73,13 +72,12 @@ function applyFavicon(url?: string){
   const apple = ensure("apple-touch-icon"); apple.href = url;
 }
 
-/** Tema → CSS vars (+ glass adattivo) — fallback anti-flash & override sicuro del CSS esterno */
+/** Tema → CSS vars (+ glass adattivo) */
 function applyTheme(t?: Config["theme"]){
   const mode = t?.mode || "light";
   const root = document.documentElement;
   const st = root.style;
 
-  // Fallback immediati (evita flash bianco) — neutri + derivazioni
   st.setProperty("--accent", t?.accent || "#0f766e");
   st.setProperty("--accentText", t?.accentText || "#ffffff");
   st.setProperty("--radius", t?.radius || "16px");
@@ -87,12 +85,9 @@ function applyTheme(t?: Config["theme"]){
   const setDefaults = () => {
     st.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0f0f12" : "#f8fafc"));
     st.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#121417" : "#ffffff"));
-
-    // derivate
     st.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
     st.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
     st.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
-    // tinta morbida usata nel chrome/background
     st.setProperty("--chromeTint", "var(--accent-05)");
 
     if (mode === "dark") {
@@ -114,7 +109,6 @@ function applyTheme(t?: Config["theme"]){
 
   setDefaults();
 
-  // CSS esterno opzionale (prioritario) — rimuove SOLO le var che il tema esterno ridefinisce davvero
   if (t?.cssUrl){
     let link = document.getElementById("venue-css") as HTMLLinkElement | null;
     if(!link){
@@ -133,17 +127,14 @@ function applyTheme(t?: Config["theme"]){
       ];
       const comp = getComputedStyle(root);
 
-      // rimuovo la var inline SOLO se il CSS tema ne fornisce una (computed non vuoto)
       for (const v of maybeThemeVars){
         const fromTheme = comp.getPropertyValue(v).trim();
         if (fromTheme) st.removeProperty(v);
       }
-
       document.body.style.backgroundColor = comp.getPropertyValue("--bgTo") || "var(--bgTo)";
     };
   }
 
-  // Font opzionale
   if (t?.fontUrl){
     let link = document.getElementById("venue-font") as HTMLLinkElement | null;
     if(!link){ link=document.createElement("link"); link.id="venue-font"; link.rel="stylesheet"; document.head.appendChild(link); }
@@ -172,7 +163,6 @@ function makeAskLabel(venueName: string): string {
   return `Chiedi a ${name}`;
 }
 
-/** Risoluzione corretta del badge */
 function resolveBadgeLabel(label?: string | null): string | null {
   if (label === null) return null;
   if (label === "") return null;
@@ -310,6 +300,12 @@ export default function SianoVenue(){
   const {cfg,men,story,err} = useVenueData();
 
   const [query,setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
+  React.useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(id);
+  }, [query]);
+
   const categories: Category[] = React.useMemo(()=> men?.categories ?? [], [men]);
   const catNames = React.useMemo(()=> categories.map(c=>c.name), [categories]);
   const [activeCat,setActiveCat] = React.useState<string>("");
@@ -322,10 +318,10 @@ export default function SianoVenue(){
   const filtered = React.useMemo(()=> categories.map(c=>({
     ...c,
     items: c.items.filter(it=>{
-      const q=query.trim().toLowerCase();
+      const q=debouncedQuery.trim().toLowerCase();
       return !q || it.name.toLowerCase().includes(q) || (it.desc||"").toLowerCase().includes(q);
     })
-  })),[categories,query]);
+  })),[categories,debouncedQuery]);
 
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men) return <div className="p-6" style={{color:"var(--textSoft)"}}>Caricamento…</div>;
@@ -404,6 +400,7 @@ export default function SianoVenue(){
               onFocus={(e)=>{ e.currentTarget.style.boxShadow = `0 0 0 5px var(--accent-05)`; }}
               onBlur ={(e)=>{ e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)"; }}
               placeholder={searchPH}
+              aria-label={searchPH}
             />
           </div>
 
@@ -413,6 +410,7 @@ export default function SianoVenue(){
                 <button
                   key={c.name} onClick={()=>setActiveCat(c.name)}
                   className="px-3 py-1.5 rounded-full border text-sm transition active:scale-[.98]"
+                  aria-pressed={activeCat===c.name}
                   style={ activeCat===c.name
                     ? { background:"var(--accent)", color:"var(--accentText)", borderColor:"var(--accent)", boxShadow: glowShadow }
                     : { background:"var(--muted)", color:"var(--text)", borderColor:"var(--border)" }
@@ -429,7 +427,7 @@ export default function SianoVenue(){
       {/* HERO */}
       <Hero images={cfg.heroImages || []}/>
 
-      {/* STORY — glass adattivo */}
+      {/* STORY */}
       {story && (
         <div className="mx-auto max-w-3xl px-4 mt-6">
           <div className="rounded-[var(--radius)] p-[1px]"
@@ -497,7 +495,7 @@ export default function SianoVenue(){
         </div>
       </div>
 
-      {/* CHAT — quick replies & CTA dal JSON */}
+      {/* CHAT */}
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}

@@ -74,7 +74,7 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   const topic = norm(topicRaw);
 
   // 1) FAQ dal JSON (massima priorità)
-  //    ✅ ora considera anche config.chat.faq in fallback
+  //    ✅ considera anche config.chat.faq in fallback
   const faq =
     (data.chat?.faq) ||
     ((data as any)?.config?.chat?.faq) ||
@@ -313,10 +313,17 @@ export default function ChatWidget({
 
       {/* PANEL */}
       {open && (
-        <div className="fixed inset-0 z-[9998] flex items-end sm:items-center sm:justify-end">
+        <div
+          className="fixed inset-0 z-[9998] flex items-end sm:items-center sm:justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-label={resolvedPanelTitle}
+        >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="relative m-3 w-[min(680px,100%)] sm:w-[520px] rounded-2xl border shadow-2xl overflow-hidden"
-               style={{ background:"var(--card)", borderColor:"var(--border)" }}>
+          <div
+            className="relative m-3 w-[min(680px,100%)] sm:w-[520px] rounded-2xl border shadow-2xl overflow-hidden"
+            style={{ background:"var(--card)", borderColor:"var(--border)" }}
+          >
             {/* Header */}
             <div className="px-4 py-3 border-b flex items-center justify-between"
                  style={{ borderColor:"var(--border)", background:"var(--glass)" }}>
@@ -350,7 +357,12 @@ export default function ChatWidget({
             </div>
 
             {/* Messages */}
-            <div className="px-4 py-3 h-72 overflow-y-auto space-y-2">
+            <div
+              className="px-4 py-3 h-72 overflow-y-auto space-y-2"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+            >
               {history.map((m, i) => (
                 <div key={i}
                   className={m.role === "user"
