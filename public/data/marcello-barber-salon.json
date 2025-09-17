@@ -1,0 +1,98 @@
+{
+  "config": {
+    "name": "Marcello Barber Salon",
+    "tagline": "Barber • Grooming • Style",
+    "address": "Corso Garibaldi 21, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Corso+Garibaldi+21+Siano",
+    "hours": "Mar/Sab 09:00/13:00 • 15:30/20:00 (chiuso Lun, Dom pomeriggio)",
+    "phone": "+39 333 4455667",
+    "whatsapp": "+39 333 4455667",
+    "whatsDefaultMsg": "Ciao Marcello, vorrei informazioni e disponibilità per un taglio/barba 🙂",
+    "logoUrl": "/marcello/logo_1.png",
+    "heroImages": ["/marcello/marcello-1.jpg", "/marcello/marcello-2.jpg", "/marcello/marcello-3.jpg"],
+    "onlineBadgeLabel": "Catalogo Online",
+    "searchPlaceholder": "Cerca taglio, barba o prodotto…",
+    "allergenNotice": {             
+      "enabled": false,
+      "text": ""
+    },
+    "assistantLabel": "Chiedi al Barber",
+    "footerNote": "Grooming di qualità, prodotti professionali e stile su misura. Prenota il tuo momento.",
+    "lastUpdated": "2025-09-10",
+    "theme": {
+      "mode": "dark",
+      "accent": "#c9a227",
+      "accentText": "#0b0b0b",
+      "bgFrom": "#0f0f12",
+      "bgTo": "#121417",
+      "radius": "16px",
+      "fontUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap",
+      "fontFamily": "'Montserrat', system-ui",
+      "cssUrl": ""
+    },
+    "chat": {
+  "quickReplies": [
+    "Prezzi taglio",
+    "Barba & panno caldo",
+    "Combo taglio + barba",
+    "Prodotti consigliati",
+    "Orari e contatti"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente del salone. Posso aiutarti con prezzi, trattamenti, orari ed altro. Chiedi pure!",
+  "faq": {
+    "Prezzi taglio": "Taglio classico **15€**, sfumato (fade) **17€**, bimbo **12€**. Vuoi dettagli su un taglio in particolare?",
+    "Barba & panno caldo": "Trattamento rilassante con panno caldo, oli e rifinitura: **14€**. Posso mostrarti anche la *rasatura tradizionale*?",
+    "Combo taglio + barba": "Pacchetto completo **23€** con styling finale. Vuoi fissare un orario?",
+    "Prodotti consigliati": "Pomata modellante **12€**, Olio da barba **14€**. Vuoi un consiglio in base al tuo look?",
+    "Orari e contatti": "Mar–Sab 09:00/13:00 • 15:30/20:00 (chiuso Lun, Dom pomeriggio). Tel/WhatsApp: +39 333 4455667."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
+  },
+  "story": {
+    "title": "Lo stile di Marcello",
+    "text": "Un salone moderno con radici classiche: tagli sartoriali, rasatura tradizionale con panno caldo e una selezione di prodotti professionali per la cura quotidiana. Ogni cliente esce con uno stile definito e facile da gestire."
+  },
+  "menu": {
+    "specials": [
+      { "title": "Combo Taglio + Barba", "price": "23,00 €", "badge": "Più scelto" }
+    ],
+    "categories": [
+      {
+        "name": "Tagli Uomo",
+        "items": [
+          { "name": "Taglio classico", "desc": "Consulenza, shampoo, taglio forbici/macchinetta, styling", "price": 15.0, "tags": ["Hair"], "fav": true, "img": "/marcello/marcello-1.jpg" },
+          { "name": "Taglio sfumato (fade)", "desc": "Sfumature pulite e precise, definizione finale", "price": 17.0, "tags": ["Hair","Fade"], "img": "/marcello/marcello-3.jpg" },
+          { "name": "Taglio bimbo (0–12)", "desc": "Taglio junior con styling leggero", "price": 12.0, "tags": ["Kid","Hair"], "img": "/marcello/marcello-2.jpg" }
+        ]
+      },
+      {
+        "name": "Barba & Grooming",
+        "items": [
+          { "name": "Regolazione barba", "desc": "Accorcio e definizione con rifinitura", "price": 10.0, "tags": ["Beard"], "img": "/marcello/marcello-1.jpg" },
+          { "name": "Rasatura tradizionale", "desc": "Panno caldo, oli pre-barba, crema e dopobarba", "price": 12.0, "tags": ["Beard","Classic"], "fav": true, "img": "/marcello/marcello-2.jpg" },
+          { "name": "Barba & panno caldo", "desc": "Regolazione più trattamento rilassante", "price": 14.0, "tags": ["Beard","Spa"], "img": "/marcello/marcello-3.jpg" }
+        ]
+      },
+      {
+        "name": "Combo & Trattamenti",
+        "items": [
+          { "name": "Taglio + Barba", "desc": "Pacchetto completo con styling finale", "price": 23.0, "tags": ["Combo"], "fav": true, "img": "/marcello/marcello-3.jpg" },
+          { "name": "Taglio + Shampoo & Styling", "desc": "Detersione, finish e consigli di mantenimento", "price": 18.0, "tags": ["Combo","Hair"], "img": "/marcello/cmarcello-1.jpg" },
+          { "name": "Trattamento cuoio capelluto", "desc": "Esfoliazione, massaggio e lozione specifica", "price": 12.0, "tags": ["Care"], "img": "/marcello/marcello-2.jpg" }
+        ]
+      },
+      {
+        "name": "Prodotti",
+        "items": [
+          { "name": "Pomata modellante", "desc": "Tenuta media, finitura naturale", "price": 12.0, "tags": ["Product"], "img": "/marcello/product-pomade.jpg" },
+          { "name": "Olio da barba", "desc": "Nutriente e anti-crespo, profumo legnoso", "price": 14.0, "tags": ["Product","Beard"], "img": "/marcello/product-beard-oil.jpg" }
+        ]
+      }
+    ]
+  }
+}

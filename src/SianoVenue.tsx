@@ -1,3 +1,4 @@
+// SianoVenue.tsx — versione pulita e parametrica (safe anti-flash)
 import React from "react";
 import ChatWidget from "./ChatWidget";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +22,12 @@ type Config = {
   lastUpdated?: string;
   footerNote?: string;
   assistantLabel?: string;
+
+  /** personalizzazioni UI */
+  onlineBadgeLabel?: string | null;
+  searchPlaceholder?: string;
+  allergenNotice?: { enabled?: boolean; text?: string };
+
   theme?: {
     mode?: "light" | "dark";
     accent?: string;
@@ -35,6 +42,7 @@ type Config = {
   chat?: {
     quickReplies?: string[];
     ctas?: CTA[];
+    initialMessage?: string;
   };
 };
 
@@ -60,41 +68,72 @@ function applyFavicon(url?: string){
     if(!el){ el = document.createElement("link"); el.rel = rel; document.head.appendChild(el); }
     return el;
   };
-  const ico = ensure("icon");
-  ico.type = "image/png";
-  ico.href = url;
-  const apple = ensure("apple-touch-icon");
-  apple.href = url;
+  const ico = ensure("icon"); ico.type = "image/png"; ico.href = url;
+  const apple = ensure("apple-touch-icon"); apple.href = url;
 }
 
-/** Tema → CSS vars */
+/** Tema → CSS vars (+ glass adattivo) */
 function applyTheme(t?: Config["theme"]){
   const mode = t?.mode || "light";
-  const root = document.documentElement.style;
-  root.setProperty("--accent", t?.accent || "#0f766e");
-  root.setProperty("--accentText", t?.accentText || "#ffffff");
-  root.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0b1321" : "#f8fafc"));
-  root.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#111827" : "#ffffff"));
-  root.setProperty("--radius", t?.radius || "16px");
-  // tonalità derivate
-  root.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
-  root.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
-  root.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
+  const root = document.documentElement;
+  const st = root.style;
 
-  if (mode === "dark") {
-    root.setProperty("--text", "#e5e7eb");
-    root.setProperty("--textSoft", "#cbd5e1");
-    root.setProperty("--card", "#0f172a");
-    root.setProperty("--muted", "#111827");
-    root.setProperty("--border", "rgba(255,255,255,0.12)");
-  } else {
-    root.setProperty("--text", "#0f172a");
-    root.setProperty("--textSoft", "#475569");
-    root.setProperty("--card", "#ffffff");
-    root.setProperty("--muted", "#f8fafc");
-    root.setProperty("--border", "#e5e7eb");
+  st.setProperty("--accent", t?.accent || "#0f766e");
+  st.setProperty("--accentText", t?.accentText || "#ffffff");
+  st.setProperty("--radius", t?.radius || "16px");
+
+  const setDefaults = () => {
+    st.setProperty("--bgFrom", t?.bgFrom || (mode==="dark" ? "#0f0f12" : "#f8fafc"));
+    st.setProperty("--bgTo",   t?.bgTo   || (mode==="dark" ? "#121417" : "#ffffff"));
+    st.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
+    st.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
+    st.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
+    st.setProperty("--chromeTint", "var(--accent-05)");
+
+    if (mode === "dark") {
+      st.setProperty("--text", "#e5e7eb");
+      st.setProperty("--textSoft", "#cbd5e1");
+      st.setProperty("--card", "#111214");
+      st.setProperty("--muted", "#0e0f11");
+      st.setProperty("--border", "rgba(255,255,255,0.08)");
+      st.setProperty("--glass", "linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84))");
+    } else {
+      st.setProperty("--text", "#0f172a");
+      st.setProperty("--textSoft", "#475569");
+      st.setProperty("--card", "#ffffff");
+      st.setProperty("--muted", "#f8fafc");
+      st.setProperty("--border", "#e5e7eb");
+      st.setProperty("--glass", "linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74))");
+    }
+  };
+
+  setDefaults();
+
+  if (t?.cssUrl){
+    let link = document.getElementById("venue-css") as HTMLLinkElement | null;
+    if(!link){
+      link = document.createElement("link");
+      link.id = "venue-css";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = t.cssUrl;
+
+    link.onload = () => {
+      const maybeThemeVars = [
+        "--bgFrom","--bgTo","--glass","--card","--muted","--border",
+        "--accent-20","--accent-10","--accent-05","--chromeTint",
+        "--text","--textSoft"
+      ];
+      const comp = getComputedStyle(root);
+
+      for (const v of maybeThemeVars){
+        const fromTheme = comp.getPropertyValue(v).trim();
+        if (fromTheme) st.removeProperty(v);
+      }
+      document.body.style.backgroundColor = comp.getPropertyValue("--bgTo") || "var(--bgTo)";
+    };
   }
-  document.body.style.backgroundColor = "var(--bgTo)";
 
   if (t?.fontUrl){
     let link = document.getElementById("venue-font") as HTMLLinkElement | null;
@@ -104,20 +143,16 @@ function applyTheme(t?: Config["theme"]){
     if(!style){ style=document.createElement("style"); style.id="venue-font-style"; document.head.appendChild(style); }
     style.textContent=`body{font-family:${t.fontFamily || "system-ui"};}`;
   }
-  if (t?.cssUrl){
-    let link2=document.getElementById("venue-css") as HTMLLinkElement | null;
-    if(!link2){ link2=document.createElement("link"); link2.id="venue-css"; link2.rel="stylesheet"; document.head.appendChild(link2); }
-    link2.href=t.cssUrl;
-  }
+
+  document.body.style.backgroundColor = "var(--bgTo)";
 }
 
-/** Label “Chiedi al/allo/alla/all’/ai/ag…/alle …” */
+/** Label “Chiedi al/allo/alla/all’/ai…” */
 function makeAskLabel(venueName: string): string {
   const name = (venueName || "").trim();
   if (!name) return "Chiedi all’assistente AI";
   const lower = name.toLowerCase();
-  const lapost = /^l['\u2019]/i.test(lower);   // ' o ’
-
+  const lapost = /^l['\u2019]/i.test(lower);
   if (lower.startsWith("il "))   return `Chiedi al ${name.slice(3).trim()}`;
   if (lower.startsWith("lo "))   return `Chiedi allo ${name.slice(3).trim()}`;
   if (lower.startsWith("la "))   return `Chiedi alla ${name.slice(3).trim()}`;
@@ -126,6 +161,12 @@ function makeAskLabel(venueName: string): string {
   if (lower.startsWith("gli "))  return `Chiedi agli ${name.slice(4).trim()}`;
   if (lower.startsWith("le "))   return `Chiedi alle ${name.slice(3).trim()}`;
   return `Chiedi a ${name}`;
+}
+
+function resolveBadgeLabel(label?: string | null): string | null {
+  if (label === null) return null;
+  if (label === "") return null;
+  return label ?? "Menu online";
 }
 
 /** Data loader */
@@ -151,7 +192,8 @@ function useVenueData(){
         applyTheme(c.theme);
         applyFavicon(c.logoUrl);
 
-        document.title = `${c.name} — Menu online`;
+        const badge = resolveBadgeLabel(c.onlineBadgeLabel);
+        document.title = badge ? `${c.name} — ${badge}` : c.name;
       })
       .catch(e=>{ console.error(e); setErr(`Locale non trovato o JSON non valido (${slug})`); });
   },[]);
@@ -162,7 +204,7 @@ function useVenueData(){
 /** UI helpers */
 const glowShadow = "0 10px 30px 0 color-mix(in_oklab, var(--accent), transparent 80%)";
 
-/** ITEM CARD — outline gradiente + pill prezzo */
+/** ITEM CARD */
 function ItemCard({item}:{item:MenuItem}){
   return (
     <motion.div
@@ -172,27 +214,18 @@ function ItemCard({item}:{item:MenuItem}){
       whileHover={{y:-2, scale:1.01}}
       transition={{type:"spring", stiffness:250, damping:22}}
       className="relative rounded-[var(--radius)]"
-      style={{
-        padding: "1px",
-        background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))",
-        boxShadow: glowShadow
-      }}
+      style={{ padding: "1px", background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))", boxShadow: glowShadow }}
     >
-      <div className="group overflow-hidden rounded-[calc(var(--radius)-1px)] border bg-white"
+      <div className="group overflow-hidden rounded-[calc(var(--radius)-1px)] border"
            style={{ borderColor:"var(--border)", background:"var(--card)" }}>
         {item.img && (
           <div className="h-44 w-full overflow-hidden">
-            <img
-              src={item.img}
-              alt={item.name}
-              loading="lazy"
-              onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display="none";}}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-            />
+            <img src={item.img} alt={item.name} loading="lazy"
+                 onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display="none";}}
+                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           </div>
         )}
 
-        {/* price pill */}
         <div className="absolute right-3 top-3 rounded-full px-3 py-1 text-sm font-semibold shadow"
              style={{ background:"var(--accent)", color:"var(--accentText)", boxShadow: glowShadow }}>
           {item.price.toFixed(2).replace(".", ",")} €
@@ -235,10 +268,8 @@ function Hero({images}:{images:string[]}) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-3">
-      <div
-        className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border shadow-sm"
-        style={{borderColor:"var(--border)", background:"var(--muted)"}}
-      >
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border shadow-sm"
+           style={{borderColor:"var(--border)", background:"var(--muted)"}}>
         <AnimatePresence mode="wait">
           <motion.img
             key={idx}
@@ -265,10 +296,16 @@ function Hero({images}:{images:string[]}) {
   );
 }
 
-export default function QRMenuPro(){
+export default function SianoVenue(){
   const {cfg,men,story,err} = useVenueData();
 
   const [query,setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
+  React.useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(id);
+  }, [query]);
+
   const categories: Category[] = React.useMemo(()=> men?.categories ?? [], [men]);
   const catNames = React.useMemo(()=> categories.map(c=>c.name), [categories]);
   const [activeCat,setActiveCat] = React.useState<string>("");
@@ -281,15 +318,19 @@ export default function QRMenuPro(){
   const filtered = React.useMemo(()=> categories.map(c=>({
     ...c,
     items: c.items.filter(it=>{
-      const q=query.trim().toLowerCase();
+      const q=debouncedQuery.trim().toLowerCase();
       return !q || it.name.toLowerCase().includes(q) || (it.desc||"").toLowerCase().includes(q);
     })
-  })),[categories,query]);
+  })),[categories,debouncedQuery]);
 
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men) return <div className="p-6" style={{color:"var(--textSoft)"}}>Caricamento…</div>;
 
-  const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
+  const computedFab   = cfg.assistantLabel || makeAskLabel(cfg.name);
+  const searchPH      = cfg.searchPlaceholder || "Cerca piatto o ingrediente…";
+  const badgeLabel    = resolveBadgeLabel(cfg.onlineBadgeLabel);
+  const allergenText  = cfg.allergenNotice?.text?.trim() ?? "";
+  const showAllergen  = (cfg.allergenNotice?.enabled !== false) && allergenText !== "";
 
   return (
     <div
@@ -298,32 +339,20 @@ export default function QRMenuPro(){
         color:"var(--text)",
         backgroundImage: `
           radial-gradient(1200px 800px at 80% -10%, var(--bgFrom), var(--bgTo)),
-          radial-gradient(600px 400px at -10% 20%, var(--accent-05), transparent),
-          radial-gradient(700px 500px at 110% 80%, var(--accent-05), transparent)
+          radial-gradient(600px 400px at -10% 20%, var(--chromeTint), transparent),
+          radial-gradient(700px 500px at 110% 80%, var(--chromeTint), transparent)
         `
       }}
     >
       {/* HEADER GLASS */}
-      <div
-        className="sticky top-0 z-40 backdrop-blur border-b"
-        style={{
-          background: "linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.55))",
-          borderColor: "var(--border)",
-          boxShadow: "0 10px 30px rgba(0,0,0,.05)"
-        }}
-      >
+      <div className="sticky top-0 z-40 backdrop-blur border-b"
+           style={{ background: "var(--glass)", borderColor: "transparent", boxShadow: "0 10px 30px rgba(0,0,0,.12)" }}>
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
           {cfg.logoUrl ? (
-            <div
-              className="w-11 h-11 rounded-[var(--radius)] overflow-hidden ring-1 bg-white"
-              style={{borderColor:"var(--border)", boxShadow:"0 4px 20px rgba(0,0,0,.06)"}}
-            >
-              <img
-                src={cfg.logoUrl}
-                alt={`${cfg.name} logo`}
-                className="w-full h-full object-cover"
-                onError={(e)=>{ (e.currentTarget as HTMLImageElement).style.display="none"; }}
-              />
+            <div className="w-11 h-11 rounded-[var(--radius)] overflow-hidden ring-1"
+                 style={{borderColor:"var(--border)", background:"var(--card)", boxShadow:"0 4px 20px rgba(0,0,0,.06)"}}>
+              <img src={cfg.logoUrl} alt={`${cfg.name} logo`} className="w-full h-full object-cover"
+                   onError={(e)=>{ (e.currentTarget as HTMLImageElement).style.display="none"; }} />
             </div>
           ) : (
             <div className="w-11 h-11 rounded-[var(--radius)] bg-[var(--muted)] flex items-center justify-center ring-1"
@@ -335,15 +364,19 @@ export default function QRMenuPro(){
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-semibold" style={{color:"var(--text)"}}>{cfg.name}</h1>
-              <span className="text-[11px] px-2 py-0.5 rounded-full"
-                    style={{background:"var(--accent-10)", color:"var(--accent)"}}>Menu online</span>
+              {badgeLabel && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full"
+                      style={{background:"var(--accent-10)", color:"var(--accent)"}}>
+                  {badgeLabel}
+                </span>
+              )}
             </div>
             {cfg.tagline && <p className="text-sm" style={{color:"var(--textSoft)"}}>{cfg.tagline}</p>}
           </div>
 
           <div className="hidden sm:flex gap-2">
-            <a href={telHref(cfg.phone)} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border hover:bg-white"
-               style={{borderColor:"var(--border)", color:"var(--text)"}}><Phone className="w-4 h-4"/> Chiama</a>
+            <a href={telHref(cfg.phone)} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border hover:opacity-90"
+               style={{borderColor:"var(--border)", color:"var(--text)", background:"var(--card)"}}><Phone className="w-4 h-4"/> Chiama</a>
             <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
                className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] text-[var(--accentText)]"
                style={{background:"var(--accent)", boxShadow: glowShadow}}><MessageCircle className="w-4 h-4"/> WhatsApp</a>
@@ -361,18 +394,13 @@ export default function QRMenuPro(){
           <div className="relative">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2" style={{color:"var(--textSoft)"}}/>
             <input
-              value={query}
-              onChange={(e)=>setQuery(e.target.value)}
+              value={query} onChange={(e)=>setQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-[var(--radius)] border outline-none transition"
-              style={{
-                borderColor:"var(--border)",
-                background:"var(--card)",
-                color:"var(--text)",
-                boxShadow: "0 0 0 0 rgba(0,0,0,0)"
-              }}
+              style={{ borderColor:"var(--border)", background:"var(--card)", color:"var(--text)", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onFocus={(e)=>{ e.currentTarget.style.boxShadow = `0 0 0 5px var(--accent-05)`; }}
               onBlur ={(e)=>{ e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)"; }}
-              placeholder="Cerca piatto o ingrediente…"
+              placeholder={searchPH}
+              aria-label={searchPH}
             />
           </div>
 
@@ -380,9 +408,9 @@ export default function QRMenuPro(){
             <div className="flex gap-2 min-w-max">
               {categories.map((c)=>(
                 <button
-                  key={c.name}
-                  onClick={()=>setActiveCat(c.name)}
+                  key={c.name} onClick={()=>setActiveCat(c.name)}
                   className="px-3 py-1.5 rounded-full border text-sm transition active:scale-[.98]"
+                  aria-pressed={activeCat===c.name}
                   style={ activeCat===c.name
                     ? { background:"var(--accent)", color:"var(--accentText)", borderColor:"var(--accent)", boxShadow: glowShadow }
                     : { background:"var(--muted)", color:"var(--text)", borderColor:"var(--border)" }
@@ -399,20 +427,15 @@ export default function QRMenuPro(){
       {/* HERO */}
       <Hero images={cfg.heroImages || []}/>
 
-      {/* STORY — glass + gradient border */}
+      {/* STORY */}
       {story && (
         <div className="mx-auto max-w-3xl px-4 mt-6">
-          <div
-            className="rounded-[var(--radius)] p-[1px]"
-            style={{ background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))", boxShadow: glowShadow }}
-          >
-            <div
-              className="rounded-[calc(var(--radius)-1px)] p-4 sm:p-5 border"
-              style={{ background:"linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.75))", borderColor:"var(--border)" }}
-            >
+          <div className="rounded-[var(--radius)] p-[1px]"
+               style={{ background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))", boxShadow: glowShadow }}>
+            <div className="rounded-[calc(var(--radius)-1px)] p-4 sm:p-5 border"
+                 style={{ background:"var(--glass)", borderColor:"var(--border)" }}>
               <div className="flex items-start gap-3">
-                <div className="shrink-0 rounded-full p-2"
-                     style={{background:"var(--accent-10)", color:"var(--accent)"}}>
+                <div className="shrink-0 rounded-full p-2" style={{background:"var(--accent-10)", color:"var(--accent)"}}>
                   <BookOpenText className="w-5 h-5"/>
                 </div>
                 <div>
@@ -448,25 +471,31 @@ export default function QRMenuPro(){
 
         <footer className="mt-12 mb-28 text-xs space-y-1" style={{color:"var(--textSoft)"}}>
           {cfg.footerNote && <div>{cfg.footerNote}</div>}
-          <div>
-            Aggiornato: {cfg.lastUpdated || ""} • Allergeni:
-            {" "}G(Glutine), L(Latte), U(Uova), N(Noci), P(Pesce), C(Crostacei),
-            M(Molluschi), S(Soia), Se(Sesamo), Sd(Sedano), Sn(Senape), Lu(Lupini),
-            A(Arachidi), As(Anidride solforosa)
-          </div>
+          {showAllergen && (
+            <div>
+              {cfg.lastUpdated ? <>Aggiornato: {cfg.lastUpdated} • </> : null}
+              {allergenText}
+            </div>
+          )}
         </footer>
       </main>
 
       {/* STICKY CTA (mobile) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden p-3">
         <div className="mx-auto max-w-md grid grid-cols-2 gap-2 backdrop-blur border rounded-[var(--radius)] shadow-lg"
-             style={{background:"rgba(255,255,255,.9)", borderColor:"var(--border)"}}>
-          <a href={telHref(cfg.phone)} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)]"><Phone className="w-5 h-5"/> Chiama</a>
-          <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]" style={{background:"var(--accent)", boxShadow: glowShadow}}><MessageCircle className="w-5 h-5"/> WhatsApp</a>
+             style={{background:"var(--glass)", borderColor:"var(--border)"}}>
+          <a href={telHref(cfg.phone)} className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)]" style={{color:"var(--text)"}}>
+            <Phone className="w-5 h-5"/> Chiama
+          </a>
+          <a href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
+             className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]"
+             style={{background:"var(--accent)", boxShadow: glowShadow}}>
+            <MessageCircle className="w-5 h-5"/> WhatsApp
+          </a>
         </div>
       </div>
 
-      {/* CHAT — quick replies & CTA dal JSON */}
+      {/* CHAT */}
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}
@@ -478,6 +507,7 @@ export default function QRMenuPro(){
         ctas={cfg.chat?.ctas}
         whatsapp={cfg.whatsapp}
         whatsDefaultMsg={cfg.whatsDefaultMsg}
+        initialMessage={cfg.chat?.initialMessage}
       />
     </div>
   );

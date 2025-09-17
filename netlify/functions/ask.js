@@ -57,7 +57,7 @@ export async function handler(event) {
 
     const system = [
       `Sei "${assistantTitle}", l'assistente del locale ${brand}.`,
-      `Rispondi sempre in italiano, massimo 90 parole, tono cortese e sintetico.`,
+      `Rispondi in base alla lingua dell'interlocutore, massimo 90 parole, tono cortese e sintetico.`,
       `Devi usare SOLO i dati seguenti (menu/orari/indirizzo).`,
       `Se qualcosa non c'è nei dati, rispondi "Non disponibile".`,
       `Se utile, suggerisci una o due opzioni del menu con prezzo.`,

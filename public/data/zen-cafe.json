@@ -8,11 +8,17 @@
     "phone": "+39 333 111 2222",
     "whatsapp": "+39 333 111 2222",
     "whatsDefaultMsg": "Ciao Zen Cafè, vorrei info su menu e aperitivi 🙂",
-    "logoUrl": "/zen_logo_transparent.svg",
-    "heroImages": ["/zen-1.jpg", "/zen-2.jpg", "/zen-3.jpg"],
+    "logoUrl": "/zen/zen_logo_transparent.svg",
+    "heroImages": ["/zen/zen-1.jpg", "/zen/zen-2.jpg", "/zen/zen-3.jpg"],
     "assistantLabel": "Chiedi allo Zen Cafè",
     "footerNote": "Impasti leggeri 48h e caffetteria selezionata.",
     "lastUpdated": "2025-09-05",
+    "searchPlaceholder": "Cerca pizza o ingrediente…",
+    "onlineBadgeLabel": "Menu online",
+    "allergenNotice": {             
+      "enabled": true,
+      "text": "Avvertenze: alcuni prodotti possono contenere tracce di noci e soia."
+    },
     "theme": {
       "mode": "light",
       "accent": "#6d28d9",
@@ -25,13 +31,27 @@
       "cssUrl": ""
     },
     "chat": {
-      "quickReplies": ["Aperitivo", "Pizze gourmet", "Opzioni vegetali", "Caffetteria", "Orari di apertura"],
-      "ctas": [
-        {"type":"call","label":"Chiama"},
-        {"type":"directions","label":"Indicazioni"},
-        {"type":"whatsapp","label":"WhatsApp"}
-      ]
-    }
+  "quickReplies": [
+    "Colazioni",
+    "Caffè & speciali",
+    "Pasticceria",
+    "Orari e contatti",
+    "Dove siamo"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente di Zen Café. Posso aiutarti con caffè, colazioni, pasticceria e orari.",
+  "faq": {
+    "Colazioni": "Croissant, cornetti, sfoglie e proposte del giorno. Vuoi vedere cosa consigliamo oggi?",
+    "Caffè & speciali": "Espresso, cappuccino, estratti e bevande speciali. Preferisci classico o qualcosa di diverso?",
+    "Pasticceria": "Selezione di mignon e torte su ordinazione. Vuoi conoscere disponibilità e prezzi?",
+    "Orari e contatti": "Siamo aperti la mattina presto fino a sera (fasce variabili). Per info rapide chiamaci o scrivici su WhatsApp.",
+    "Dove siamo": "Siamo in centro a Siano. Premi *Indicazioni* per la mappa."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
   },
   "story": {
     "title": "Relax & buon gusto",
@@ -45,14 +65,14 @@
       {
         "name": "Pizze gourmet",
         "items": [
-          { "name": "Morta & Pistacchio", "desc": "Fior di latte, mortadella, granella di pistacchio", "price": 9.5, "tags": ["G","L"], "fav": true, "img": "/zen-3.jpg" },
-          { "name": "Ortolana", "desc": "Verdure grigliate, fior di latte", "price": 8.0, "tags": ["G","L","VEG"], "img": "/zen-4.jpg" }
+          { "name": "Morta & Pistacchio", "desc": "Fior di latte, mortadella, granella di pistacchio", "price": 9.5, "tags": ["G","L"], "fav": true, "img": "/zen/zen-3.jpg" },
+          { "name": "Ortolana", "desc": "Verdure grigliate, fior di latte", "price": 8.0, "tags": ["G","L","VEG"], "img": "/zen/zen-4.jpg" }
         ]
       },
       {
         "name": "Caffetteria",
         "items": [
-          { "name": "Espresso", "price": 1.2, "img": "/zen-5.jpg" },
+          { "name": "Espresso", "price": 1.2, "img": "/zen/zen-5.jpg" },
           { "name": "Cappuccino", "price": 1.8, "tags": ["L"] },
           { "name": "Cappuccino di soia", "price": 2.0, "tags": ["SENZA LATTOSIO"] }
         ]
@@ -60,7 +80,7 @@
       {
         "name": "Aperitivi",
         "items": [
-          { "name": "Spritz", "price": 4.5, "img": "/zen-6.jpg" },
+          { "name": "Spritz", "price": 4.5, "img": "/zen/zen-6.jpg" },
           { "name": "Analcolico agrumi", "price": 3.5 }
         ]
       },

@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Il Pirata",
+    "slug": "il-pirata",
+    "category": "Pizzeria • Braceria",
+    "logoUrl": "/pirata/pirate_logo_colored.png",
+    "address": "Via Roma 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
+    "accent": "#b91c1c"
+  },
+  {
+    "name": "De Santis",
+    "slug": "de-santis",
+    "category": "Pasticceria artigianale",
+    "logoUrl": "/desantis/desantis_favicon.svg",
+    "address": "Piazza Centrale 5, Siano (SA)"
+  },
+  {
+    "name": "Marcello Barber Salon",
+    "slug": "marcello-barber-salon",
+    "category": "Barber • Grooming",
+    "logoUrl": "/marcello/logo_1.png",
+    "address": "Corso Garibaldi 21, Siano (SA)"
+  },
+  {
+    "name": "Zen Cafè",
+    "slug": "zen-cafe",
+    "category": "Bar • Pizzeria",
+    "logoUrl": "/zen/zen_favicon.svg",
+    "address": "Via Tranquilla 12, Siano (SA)"
+  },
+  {
+    "name": "Pasticceria Aliberti",
+    "slug": "pasticceria-aliberti",
+    "category": "Bar • Pasticceria",
+    "logoUrl": "/aliberti/aliberti.webp",
+    "address": "Via Tranquilla 12, Siano (SA)"
+  },
+  {
+    "name": "Pizzeria Rosticceria Frasci",
+    "slug": "pizzeria-rosticceria-frasci",
+    "category": "Pizzeria • Rosticceria",
+    "logoUrl": "/frasci/frasci_via_botta.jpg",
+    "address": "Via Roma 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
+    "accent": "#b91c1c"
+  },
+  {
+    "name": "Asd Athena",
+    "slug": "asd-athena",
+    "category": "Gym",
+    "logoUrl": "/athena/athena.webp",
+    "address": "Via Roma 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
+    "accent": "#b91c1c"
+  }
+]

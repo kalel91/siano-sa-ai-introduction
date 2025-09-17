@@ -8,11 +8,17 @@
     "phone": "+39 333 444 5555",
     "whatsapp": "+39 333 444 5555",
     "whatsDefaultMsg": "Ciao De Santis, vorrei info su dolci e torte 🙂",
-    "logoUrl": "/desantis_favicon.svg",
-    "heroImages": ["/de-santis-1.jpg", "/de-santis-2.jpg"],
+    "logoUrl": "/desantis/desantis_favicon.svg",
+    "heroImages": ["/desantis/de-santis-1.jpg", "/desantis/de-santis-2.jpg"],
     "assistantLabel": "Chiedi a De Santis",
     "footerNote": "Pasticceria fresca ogni giorno. Ordini personalizzati per eventi.",
     "lastUpdated": "2025-09-05",
+    "onlineBadgeLabel": "Dolci online",
+    "searchPlaceholder": "Cerca un prodotto o dolce…",
+    "allergenNotice": {             
+      "enabled": true,
+      "text": "Avvertenze: alcuni prodotti possono contenere tracce di noci e soia."
+    },
     "theme": {
       "mode": "light",
       "accent": "#be123c",
@@ -25,13 +31,27 @@
       "cssUrl": ""
     },
     "chat": {
-      "quickReplies": ["Colazione", "Mignon", "Torte su ordinazione", "Senza lattosio", "Orari"],
-      "ctas": [
-        {"type":"call","label":"Chiama"},
-        {"type":"directions","label":"Indicazioni"},
-        {"type":"whatsapp","label":"WhatsApp"}
-      ]
-    }
+  "quickReplies": [
+    "Pane del giorno",
+    "Pizze & rustici",
+    "Dolci & biscotti",
+    "Orari e contatti",
+    "Dove siamo"
+  ],
+  "initialMessage": "Ciao! Sono l’assistente del Panificio De Santis. Posso aiutarti con pane, pizze rustiche, dolci e orari.",
+  "faq": {
+    "Pane del giorno": "Pane cafone, integrale, ai cereali e speciali a rotazione. Vuoi sapere cosa sforniamo oggi?",
+    "Pizze & rustici": "Pizza al taglio, focacce e rustici. Preferisci classico o farcito?",
+    "Dolci & biscotti": "Biscotti artigianali e dolci tradizionali. Posso indicarti gli ingredienti?",
+    "Orari e contatti": "Aperti la mattina e nel pomeriggio con chiusura a metà giornata. Per info rapide chiamaci o scrivici.",
+    "Dove siamo": "Siamo a Siano in zona centrale. Usa *Indicazioni* per raggiungerci."
+  },
+  "ctas": [
+    { "type": "call", "label": "Chiama" },
+    { "type": "directions", "label": "Indicazioni" },
+    { "type": "whatsapp", "label": "WhatsApp" }
+  ]
+}
   },
   "story": {
     "title": "Dolci di famiglia",
@@ -45,7 +65,7 @@
       {
         "name": "Cornetti",
         "items": [
-          { "name": "Cornetto vuoto", "price": 1.2, "tags": ["G","U","L"], "img": "/de-santis-3.jpg"  },
+          { "name": "Cornetto vuoto", "price": 1.2, "tags": ["G","U","L"], "img": "/desantis/de-santis-3.jpg"  },
           { "name": "Cornetto crema", "price": 1.5, "tags": ["G","U","L"] },
           { "name": "Cornetto marmellata", "price": 1.5, "tags": ["G","U","L"] }
         ]
