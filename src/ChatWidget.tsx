@@ -264,7 +264,7 @@ export default function ChatWidget({
       if (!mq.matches) { setHideFab(false); return; }
       const doc = document.documentElement;
       const atBottom =
-        window.innerHeight + window.scrollY >= (doc.scrollHeight - 120); // ~CTA row height
+        window.innerHeight + window.scrollY >= (doc.scrollHeight - 120);
       setHideFab(atBottom);
     };
     check();
@@ -390,6 +390,14 @@ export default function ChatWidget({
     background: "var(--card)",
   };
 
+  // ---- style helper for quick replies ----
+  const chipStyle: React.CSSProperties = {
+    // tinta molto leggera del tema corrente (accent + tanto bianco)
+    background: "color-mix(in_oklab, var(--accent) 12%, white)",
+    borderColor: "color-mix(in_oklab, var(--accent), white 65%)",
+    color: "color-mix(in_oklab, var(--accent) 92%, black)",
+  };
+
   return (
     <>
       {/* FAB (hidden when panel is open; auto-hide near bottom on mobile) */}
@@ -400,7 +408,6 @@ export default function ChatWidget({
             hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"
           }`}
           style={{
-            // safe-area bottom; override bottom-4
             position: "fixed",
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
             background: "var(--accent)",
@@ -448,9 +455,12 @@ export default function ChatWidget({
               {chips.map((p: string) => (
                 <button
                   key={p}
-                  className="px-3 py-1.5 rounded-full border text-sm hover:opacity-90"
-                  style={{background:"var(--muted)", borderColor:"var(--border)", color:"var(--text)"}}
+                  className="px-3 py-1.5 rounded-full border text-sm hover:opacity-95 focus:outline-none focus:ring-2 transition-colors font-medium"
+                  style={{ ...chipStyle, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
                   onClick={() => { setInput(p); setTimeout(onSend, 0); }}
+                  // ring nella tinta di accento
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px color-mix(in_oklab,var(--accent),white 70%)")}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02)")}
                 >
                   {p}
                 </button>
