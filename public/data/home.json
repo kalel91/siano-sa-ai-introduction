@@ -125,6 +125,10 @@
       "Esercenti aderenti": "Apri il tab “Esercenti”: trovi l’elenco con link alle pagine dedicate.",
       "Eventi e festività": "La ricorrenza principale è San Rocco ad agosto, con celebrazioni e iniziative che coinvolgono la comunità.",
       "Uffici & contatti": "Consulta il sito istituzionale per orari e contatti degli uffici comunali."
-    }
+    },
+    "ctas": [
+      { "type": "link", "label": "Sito", "href": "https://www.comune.siano.sa.it" },
+      { "type": "link", "label": "Open Data", "href": "/data/venues.json" }
+    ]
   }
 }
