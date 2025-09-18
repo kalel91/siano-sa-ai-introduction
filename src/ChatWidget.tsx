@@ -255,6 +255,37 @@ export default function ChatWidget({
     return () => cancelAnimationFrame(id);
   }, [dataVersion]);
 
+  // ---------- FAB offset vs sticky CTA (definitivo) ----------
+  const [fabBottomOffset, setFabBottomOffset] = React.useState<number>(16);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const el = document.querySelector<HTMLElement>("[data-sticky-cta]");
+    const compute = () => {
+      if (!el) { setFabBottomOffset(16); return; }
+      const rect = el.getBoundingClientRect();
+      // se la barra è visibile (mobile) prendiamo l'altezza reale, altrimenti 16
+      const visible = rect.height > 0 && getComputedStyle(el).display !== "none";
+      const h = visible ? Math.round(rect.height) : 0;
+      setFabBottomOffset(Math.max(16, h + 12)); // 12px di aria
+    };
+
+    compute();
+
+    let ro: ResizeObserver | null = null;
+    try {
+      ro = new ResizeObserver(() => compute());
+      if (el) ro.observe(el);
+    } catch { /* no-op in browser vecchi */ }
+
+    const onResize = () => compute();
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (ro && el) ro.disconnect();
+    };
+  }, []);
+
   // ---------- Mobile FAB auto-hide near bottom ----------
   const [hideFab, setHideFab] = React.useState(false);
   React.useEffect(() => {
@@ -263,8 +294,7 @@ export default function ChatWidget({
     const check = () => {
       if (!mq.matches) { setHideFab(false); return; }
       const doc = document.documentElement;
-      const atBottom =
-        window.innerHeight + window.scrollY >= (doc.scrollHeight - 120);
+      const atBottom = window.innerHeight + window.scrollY >= (doc.scrollHeight - 120);
       setHideFab(atBottom);
     };
     check();
@@ -392,7 +422,6 @@ export default function ChatWidget({
 
   // ---- style helper for quick replies ----
   const chipStyle: React.CSSProperties = {
-    // tinta molto leggera del tema corrente (accent + tanto bianco)
     background: "color-mix(in_oklab, var(--accent) 12%, white)",
     borderColor: "color-mix(in_oklab, var(--accent), white 65%)",
     color: "color-mix(in_oklab, var(--accent) 92%, black)",
@@ -400,16 +429,14 @@ export default function ChatWidget({
 
   return (
     <>
-      {/* FAB (hidden when panel is open; auto-hide near bottom on mobile) */}
+      {/* FAB (hidden when panel is open; offset sopra la sticky CTA; hide near bottom) */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className={`fixed right-4 z-[9999] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200 ${
-            hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"
-          }`}
+          className={`fixed right-4 z-[9999] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200 ${hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"}`}
           style={{
             position: "fixed",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+            bottom: `calc(env(safe-area-inset-bottom, 0px) + ${fabBottomOffset}px)`,
             background: "var(--accent)",
             color: "var(--accentText)",
             borderColor: "color-mix(in_oklab,var(--accent),white 60%)",
@@ -458,7 +485,6 @@ export default function ChatWidget({
                   className="px-3 py-1.5 rounded-full border text-sm hover:opacity-95 focus:outline-none focus:ring-2 transition-colors font-medium"
                   style={{ ...chipStyle, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
                   onClick={() => { setInput(p); setTimeout(onSend, 0); }}
-                  // ring nella tinta di accento
                   onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px color-mix(in_oklab,var(--accent),white 70%)")}
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02)")}
                 >
