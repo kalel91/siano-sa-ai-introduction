@@ -13,6 +13,11 @@ import {
 /** -------- Types (extended) -------- */
 type MenuItem = { name: string; desc?: string; price?: number; tags?: string[]; fav?: boolean };
 type Category = { name: string; items: MenuItem[] };
+type CTAType = "call" | "directions" | "whatsapp" | "link";
+type CTA = { type: CTAType; label: string; url?: string };
+
+type CtaJson = { type: CTAType; label: string; href?: string; url?: string };
+
 type MenuJson = {
   config?: {
     name?: string;
@@ -22,6 +27,11 @@ type MenuJson = {
     address?: string;
     assistantLabel?: string;
     mapUrl?: string;
+    chat?: {
+      quickReplies?: string[];
+      faq?: Record<string, string>;
+      ctas?: CtaJson[];
+    };
   };
   menu?: { specials?: { title: string; price?: string }[]; categories?: Category[] };
   story?: { title?: string; text?: string } | null;
@@ -29,12 +39,9 @@ type MenuJson = {
   chat?: {
     quickReplies?: string[];
     faq?: Record<string, string>;
-    ctas?: Array<{ type: "link" | "call" | "directions" | "whatsapp"; label: string; href?: string; url?: string }>;
+    ctas?: CtaJson[];
   };
 };
-
-type CTAType = "call" | "directions" | "whatsapp" | "link";
-type CTA = { type: CTAType; label: string; url?: string };
 
 type Props = {
   slug: string;
@@ -84,11 +91,20 @@ function formatItem(i: MenuItem){ return i.price!=null ? `${i.name} — ${i.pric
 
 function telHref(t?: string){ return t ? `tel:${String(t).replace(/\s|\+/g, "")}` : "#"; }
 function waHref(t?: string,msg=""){ if(!t) return "#"; const p=String(t).replace(/\D/g,""); return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`; }
+function normalizeCtas(src?: CtaJson[]): CTA[] {
+  if (!Array.isArray(src)) return [];
+  return src
+    .filter((c) => c && c.label && c.type)
+    .map((c) => ({ type: c.type, label: c.label, url: c.url || c.href }))
+    .filter((c) => !!c.label);
+}
 
 /** -------- Topic engine -------- */
 function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   const topic = norm(topicRaw);
-  const faq = data.chat?.faq || ((data as any)?.config?.chat?.faq) || {};
+  const faqRoot = data.chat?.faq || {};
+  const faqNested = (data as any)?.config?.chat?.faq || {};
+  const faq = { ...faqRoot, ...faqNested };
   for (const k of Object.keys(faq)) {
     if (norm(k) === topic) return faq[k];
   }
@@ -165,7 +181,7 @@ function offlineAnswer(
     const second = pool.length>1 ? pool[(cursor+1)%pool.length] : undefined;
     const items = [first, second].filter(Boolean) as MenuItem[];
     return {
-      text: `Potrebbe interessarti: ${items.map(formatItem).join(" • ")}. Vuoi altre opzioni?`,
+      text: `Ciao, potrebbe interessarti: ${items.map(formatItem).join(" • ")}. Vuoi altre opzioni?`,
       used: items.map(x=>x.name), exhausted: false
     };
   }
@@ -214,6 +230,54 @@ export default function ChatWidget({
     return (env && env.VITE_AI_ENDPOINT) ? env.VITE_AI_ENDPOINT : "/.netlify/functions/ask";
   }
 
+  // ---------- Auto-scroll ----------
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const endRef = React.useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = React.useMemo(() => {
+    if (typeof window === "undefined" || !("matchMedia" in window)) return false;
+    try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+  }, []);
+  function scrollToBottom(immediate = false) {
+    const el = listRef.current;
+    if (!el) return;
+    const behavior: ScrollBehavior = (immediate || prefersReducedMotion) ? "auto" : "smooth";
+    if (endRef.current?.scrollIntoView) endRef.current.scrollIntoView({ behavior, block: "end" });
+    else el.scrollTo({ top: el.scrollHeight, behavior });
+  }
+  React.useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => scrollToBottom());
+    return () => cancelAnimationFrame(id);
+  }, [open, history, loading]);
+  React.useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => scrollToBottom(true));
+    return () => cancelAnimationFrame(id);
+  }, [dataVersion]);
+
+  // ---------- Mobile FAB auto-hide near bottom ----------
+  const [hideFab, setHideFab] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 640px)");
+    const check = () => {
+      if (!mq.matches) { setHideFab(false); return; }
+      const doc = document.documentElement;
+      const atBottom =
+        window.innerHeight + window.scrollY >= (doc.scrollHeight - 120);
+      setHideFab(atBottom);
+    };
+    check();
+    const onScroll = () => { requestAnimationFrame(check); };
+    const onResize = () => { requestAnimationFrame(check); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
   async function onSend() {
     const q = input.trim();
     if (!q || loading) return;
@@ -224,11 +288,9 @@ export default function ChatWidget({
 
     const hints = (quickReplies && quickReplies.length
       ? quickReplies
-      : (
-          data?.chat?.quickReplies ||
-          ((data as any)?.config?.chat?.quickReplies) ||
-          []
-        )
+      : (data?.chat?.quickReplies ||
+         data?.config?.chat?.quickReplies ||
+         [])
     ) as string[];
 
     const predefined = data ? topicAnswer(q, data) : null;
@@ -292,20 +354,27 @@ export default function ChatWidget({
   const chips: string[] =
     (quickReplies && quickReplies.length
       ? quickReplies
-      : dataRef.current?.chat?.quickReplies || ((dataRef.current as any)?.config?.chat?.quickReplies) || ["Informazioni", "Orari e contatti", "Servizi", "Dove siamo", "Novità"]) || [];
+      : (dataRef.current?.chat?.quickReplies ||
+         dataRef.current?.config?.chat?.quickReplies ||
+         ["Informazioni", "Orari e contatti", "Servizi", "Dove siamo", "Novità"])) || [];
 
   const actions: CTA[] = React.useMemo(() => {
     if (ctas && ctas.length) return ctas;
 
     const data = dataRef.current;
+
+    // 1) CTA dal JSON (root)
     if (data?.chat?.ctas && data.chat.ctas.length) {
-      return data.chat.ctas.map((c) => ({
-        type: c.type as CTAType,
-        label: c.label,
-        url: c.url || c.href
-      }));
+      return normalizeCtas(data.chat.ctas);
     }
 
+    // 2) CTA dal JSON (annidate in config.chat)
+    if (data?.config?.chat?.ctas && data.config.chat.ctas.length) {
+      return normalizeCtas(data.config.chat.ctas);
+    }
+
+    // 3) Derivazione automatica (solo per venue)
+    if (slug === "home") return [];
     const cfg = data?.config || {};
     const list: CTA[] = [];
     if (cfg.phone) list.push({ type: "call", label: "Chiama" });
@@ -313,7 +382,7 @@ export default function ChatWidget({
     if (cfg.address || cfg.mapUrl) list.push({ type: "directions", label: "Indicazioni" });
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctas, dataVersion]);
+  }, [ctas, dataVersion, slug]);
 
   const outlineCobalt: React.CSSProperties = {
     borderColor: "color-mix(in_oklab,var(--accent),white 72%)",
@@ -321,18 +390,36 @@ export default function ChatWidget({
     background: "var(--card)",
   };
 
+  // ---- style helper for quick replies ----
+  const chipStyle: React.CSSProperties = {
+    // tinta molto leggera del tema corrente (accent + tanto bianco)
+    background: "color-mix(in_oklab, var(--accent) 12%, white)",
+    borderColor: "color-mix(in_oklab, var(--accent), white 65%)",
+    color: "color-mix(in_oklab, var(--accent) 92%, black)",
+  };
+
   return (
     <>
-      {/* FAB */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed right-4 bottom-4 z-[9999] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border"
-        style={{ background: "var(--accent)", color: "var(--accentText)", borderColor: "color-mix(in_oklab,var(--accent),white 60%)" }}
-        aria-label={resolvedButtonLabel}
-      >
-        <MessageCircle className="inline w-5 h-5" />
-        {resolvedButtonLabel}
-      </button>
+      {/* FAB (hidden when panel is open; auto-hide near bottom on mobile) */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className={`fixed right-4 z-[9999] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200 ${
+            hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"
+          }`}
+          style={{
+            position: "fixed",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+            background: "var(--accent)",
+            color: "var(--accentText)",
+            borderColor: "color-mix(in_oklab,var(--accent),white 60%)",
+          }}
+          aria-label={resolvedButtonLabel}
+        >
+          <MessageCircle className="inline w-5 h-5" />
+          {resolvedButtonLabel}
+        </button>
+      )}
 
       {/* PANEL */}
       {open && (
@@ -368,9 +455,12 @@ export default function ChatWidget({
               {chips.map((p: string) => (
                 <button
                   key={p}
-                  className="px-3 py-1.5 rounded-full border text-sm hover:opacity-90"
-                  style={{background:"var(--muted)", borderColor:"var(--border)", color:"var(--text)"}}
+                  className="px-3 py-1.5 rounded-full border text-sm hover:opacity-95 focus:outline-none focus:ring-2 transition-colors font-medium"
+                  style={{ ...chipStyle, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
                   onClick={() => { setInput(p); setTimeout(onSend, 0); }}
+                  // ring nella tinta di accento
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px color-mix(in_oklab,var(--accent),white 70%)")}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02)")}
                 >
                   {p}
                 </button>
@@ -378,7 +468,13 @@ export default function ChatWidget({
             </div>
 
             {/* Messages */}
-            <div className="px-4 py-3 h-72 overflow-y-auto space-y-2" role="log" aria-live="polite" aria-relevant="additions">
+            <div
+              ref={listRef}
+              className="px-4 py-3 h-72 overflow-y-auto space-y-2"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+            >
               {history.map((m, i) => (
                 <div key={i}
                   className={m.role === "user"
@@ -392,6 +488,7 @@ export default function ChatWidget({
                 </div>
               ))}
               {loading && <div className="text-sm" style={{color:"var(--textSoft)"}}>Sto pensando…</div>}
+              <div ref={endRef} />
             </div>
 
             {/* CTA row */}

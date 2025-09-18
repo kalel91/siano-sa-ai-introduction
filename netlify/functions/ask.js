@@ -1,13 +1,17 @@
 // netlify/functions/ask.js
 // Runtime: Node 18+
 // Endpoint usato dal widget quando l’AI è “online”.
-// Profilo COMUNE vs ESERCENTE, contesto compatto, CTA coerenti + chat.ctas support.
+// Profilo COMUNE vs ESERCENTE, contesto compatto, CTA coerenti + chat.ctas (anche sotto config.chat) support.
 
 function projectCtasFromJson(ctasJson) {
   if (!Array.isArray(ctasJson)) return [];
   // Trasforma in etichette [Label] usate come hint testuale nella risposta AI
   return ctasJson
-    .map((c) => (c && typeof c.label === "string" && c.label.trim() ? `[${c.label.trim()}]` : null))
+    .map((c) =>
+      c && typeof c.label === "string" && c.label.trim()
+        ? `[${c.label.trim()}]`
+        : null
+    )
     .filter(Boolean);
 }
 
@@ -69,7 +73,9 @@ export async function handler(event) {
         },
         festivities: Array.isArray(data?.festivities)
           ? data.festivities.map((f) => ({
-              name: f?.name, month: f?.month, description: f?.description
+              name: f?.name,
+              month: f?.month,
+              description: f?.description
             }))
           : [],
         openData: data?.openData?.jsonUrl || data?.openData?.csvUrl || null,
@@ -79,7 +85,7 @@ export async function handler(event) {
       // CTA base
       if (data?.social?.website) ctas.push("[Sito]");
       if (data?.openData?.jsonUrl || data?.openData?.csvUrl) ctas.push("[Open Data]");
-      // CTA dichiarate nel JSON (chat.ctas)
+      // CTA dichiarate nel JSON (chat.ctas a livello root)
       if (Array.isArray(data?.chat?.ctas)) {
         ctas = [...new Set([...ctas, ...projectCtasFromJson(data.chat.ctas)])];
       }
@@ -101,13 +107,15 @@ export async function handler(event) {
         }))
       };
 
-      // CTA base
+      // CTA derivate da config
       if (data?.config?.phone) ctas.push("[Chiama]");
       if (data?.config?.whatsapp) ctas.push("[WhatsApp]");
       if (data?.config?.address || data?.config?.mapUrl) ctas.push("[Indicazioni]");
-      // CTA dichiarate nel JSON (chat.ctas)
-      if (Array.isArray(data?.chat?.ctas)) {
-        ctas = [...new Set([...ctas, ...projectCtasFromJson(data.chat.ctas)])];
+      // CTA dichiarate nel JSON
+      const rootCtas = Array.isArray(data?.chat?.ctas) ? projectCtasFromJson(data.chat.ctas) : [];
+      const nestedCtas = Array.isArray(data?.config?.chat?.ctas) ? projectCtasFromJson(data.config.chat.ctas) : [];
+      if (rootCtas.length || nestedCtas.length) {
+        ctas = [...new Set([...ctas, ...rootCtas, ...nestedCtas])];
       }
     }
 
@@ -174,6 +182,7 @@ export async function handler(event) {
       console.error("Parse error:", e);
     }
 
+    // Manteniamo il formato original (no ctas nel payload) per evitare regressioni lato client
     return { statusCode: 200, body: JSON.stringify({ answer }) };
   } catch (e) {
     console.error(e);
