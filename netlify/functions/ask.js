@@ -73,10 +73,10 @@ export async function handler(event) {
         },
         festivities: Array.isArray(data?.festivities)
           ? data.festivities.map((f) => ({
-              name: f?.name,
-              month: f?.month,
-              description: f?.description
-            }))
+            name: f?.name,
+            month: f?.month,
+            description: f?.description
+          }))
           : [],
         openData: data?.openData?.jsonUrl || data?.openData?.csvUrl || null,
         social: data?.social || null,
@@ -127,22 +127,22 @@ export async function handler(event) {
 
     const system = isMunicipality
       ? [
-          commonHdr,
-          `Contesto: assistente istituzionale del ${brand}.`,
-          `Tratta storia locale, progetto/pilot, attività aderenti, festività/eventi e link utili.`,
-          `NON parlare di piatti/menu/prezzi.`,
-          `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
-          ctas.length ? `Se utile, chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
-          `DATI: ${JSON.stringify(context)}`
-        ].join("\n")
+        commonHdr,
+        `Contesto: assistente istituzionale del ${brand}.`,
+        `Tratta storia locale, progetto/pilot, attività aderenti, festività/eventi e link utili.`,
+        `NON parlare di piatti/menu/prezzi.`,
+        `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
+        ctas.length ? `Se utile, chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
+        `DATI: ${JSON.stringify(context)}`
+      ].join("\n")
       : [
-          commonHdr,
-          `Contesto: assistente dell'attività "${brand}".`,
-          `Puoi citare orari, indirizzo, telefono/WhatsApp. Se utile, suggerisci 1–2 voci di catalogo/servizi (o piatti, se ristorante) con prezzo se presente.`,
-          `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
-          ctas.length ? `Chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
-          `DATI: ${JSON.stringify(context)}`
-        ].join("\n");
+        commonHdr,
+        `Contesto: assistente dell'attività "${brand}".`,
+        `Puoi citare orari, indirizzo, telefono/WhatsApp. Se utile, suggerisci 1–2 voci di catalogo/servizi (o piatti, se ristorante) con prezzo se presente.`,
+        `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
+        ctas.length ? `Chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
+        `DATI: ${JSON.stringify(context)}`
+      ].join("\n");
 
     const body = {
       model,
@@ -176,7 +176,7 @@ export async function handler(event) {
       const j = JSON.parse(text);
       const raw = j?.choices?.[0]?.message?.content;
       if (typeof raw === "string") {
-        answer = raw.replace(/\s+$/,'').trim() || answer;
+        answer = raw.replace(/\s+$/, '').trim() || answer;
       }
     } catch (e) {
       console.error("Parse error:", e);

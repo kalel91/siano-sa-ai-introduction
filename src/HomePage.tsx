@@ -56,12 +56,12 @@ function publicAsset(path: string) {
   try {
     const base = (import.meta as any)?.env?.BASE_URL as string | undefined;
     if (base) return base.replace(/\/$/, "") + "/" + clean;
-  } catch {}
+  } catch { }
   try {
     const g = globalThis as any;
     const base2 = g?.process?.env?.PUBLIC_URL as string | undefined;
     if (base2) return base2.replace(/\/$/, "") + "/" + clean;
-  } catch {}
+  } catch { }
   return "/" + clean;
 }
 
@@ -140,9 +140,9 @@ function SectionSwitcher({
   available?: AvailableMap;
 }) {
   const items = [
-    { key: "siano",  label: "Siano",           icon: <Landmark className="w-4 h-4" /> },
-    { key: "pilot",  label: "Progetto Pilota", icon: <Sparkles className="w-4 h-4" /> },
-    { key: "venues", label: "Esercenti",       icon: <Users className="w-4 h-4" /> },
+    { key: "siano", label: "Siano", icon: <Landmark className="w-4 h-4" /> },
+    { key: "pilot", label: "Progetto Pilota", icon: <Sparkles className="w-4 h-4" /> },
+    { key: "venues", label: "Esercenti", icon: <Users className="w-4 h-4" /> },
   ] as const;
 
   const visible = items.filter((e) => available[e.key] !== false);
@@ -160,12 +160,12 @@ function SectionSwitcher({
       className="mx-auto max-w-5xl px-4"
     >
       <div className="rounded-xl border shadow-sm overflow-hidden"
-           style={{ background:"var(--card)", borderColor:"var(--border)" }}>
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <nav role="tablist" aria-label="Sezioni" className="flex">
           {visible.map((e) => {
             const activeStyle = active === e.key
-              ? { background:"var(--accentSolid)", color:"var(--accentText)", boxShadow:glow }
-              : { background:"transparent", color:"var(--text)" };
+              ? { background: "var(--accentSolid)", color: "var(--accentText)", boxShadow: glow }
+              : { background: "transparent", color: "var(--text)" };
             return (
               <button
                 key={e.key}
@@ -346,9 +346,9 @@ button[data-chat-launcher] svg,
             <div
               className="w-10 h-10 rounded-xl border overflow-hidden"
               style={{
-                borderColor:"color-mix(in_oklab,var(--accentSolid),white 60%)",
-                background:"var(--muted)",
-                boxShadow:"0 6px 18px rgba(0,0,0,.08)"
+                borderColor: "color-mix(in_oklab,var(--accentSolid),white 60%)",
+                background: "var(--muted)",
+                boxShadow: "0 6px 18px rgba(0,0,0,.08)"
               }}
               aria-label="Logo comunale"
             >
@@ -366,19 +366,19 @@ button[data-chat-launcher] svg,
       {/* HERO */}
       <section className="relative mx-auto max-w-5xl px-4 pt-10 pb-6">
         <div className="rounded-2xl border p-6 sm:p-8 shadow-xl"
-             style={{ background:"var(--card)", borderColor:"color-mix(in_oklab,var(--accentSolid),white 65%)" }}>
+          style={{ background: "var(--card)", borderColor: "color-mix(in_oklab,var(--accentSolid),white 65%)" }}>
           <div className="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full"
-               style={{ background:"color-mix(in_oklab,var(--accentSolid),white 86%)", color:"color-mix(in_oklab,var(--accentSolid),black 25%)" }}>
+            style={{ background: "color-mix(in_oklab,var(--accentSolid),white 86%)", color: "color-mix(in_oklab,var(--accentSolid),black 25%)" }}>
             <Sparkles className="w-3.5 h-3.5" />
             Progetto digitale del Comune
           </div>
 
           <h1 className="mt-3 text-[clamp(28px,4.5vw,48px)] font-extrabold leading-tight tracking-tight"
-              style={{ color:"color-mix(in_oklab,var(--text),black 10%)" }}>
+            style={{ color: "color-mix(in_oklab,var(--text),black 10%)" }}>
             {cfg?.heroTitle || "—"}
           </h1>
           <div aria-hidden className="mt-3 h-1.5 w-28 rounded-full"
-               style={{ background: "linear-gradient(90deg, var(--accentSolid), color-mix(in_oklab,var(--accentSolid),white 35%) 70%, transparent)" }} />
+            style={{ background: "linear-gradient(90deg, var(--accentSolid), color-mix(in_oklab,var(--accentSolid),white 35%) 70%, transparent)" }} />
           {cfg?.heroSubtitle && (
             <p className="mt-4 text-base sm:text-lg" style={{ color: "var(--textSoft)" }}>
               {cfg.heroSubtitle}
@@ -386,7 +386,7 @@ button[data-chat-launcher] svg,
           )}
 
           <figure className="mt-6 rounded-xl border overflow-hidden"
-                  style={{ borderColor:"var(--border)", boxShadow: glow }}>
+            style={{ borderColor: "var(--border)", boxShadow: glow }}>
             <img
               src={bannerUrl}
               alt="Siano - panorama"
@@ -443,7 +443,7 @@ button[data-chat-launcher] svg,
                           <button
                             onClick={() => setShowAllFeasts(v => !v)}
                             className="text-xs px-2 py-1 rounded-full border"
-                            style={{ borderColor:"var(--border)", background:"var(--muted)", color:"var(--text)" }}
+                            style={{ borderColor: "var(--border)", background: "var(--muted)", color: "var(--text)" }}
                             aria-expanded={showAllFeasts}
                           >
                             {showAllFeasts ? "Mostra meno" : "Mostra tutte"}
@@ -453,12 +453,12 @@ button[data-chat-launcher] svg,
 
                       <ul className="mt-2 space-y-3">
                         {visibleFeasts.map((f, i) => (
-                          <li key={i} className="rounded-lg p-3 border" style={{ borderColor:"var(--border)", background:"var(--muted)" }}>
+                          <li key={i} className="rounded-lg p-3 border" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="font-medium">{f.name}</div>
                               {f.month && (
                                 <span className="text-xs px-2 py-0.5 rounded-full"
-                                      style={{background:"var(--accentSolid)", color:"var(--accentText)"}}>
+                                  style={{ background: "var(--accentSolid)", color: "var(--accentText)" }}>
                                   {f.month}
                                 </span>
                               )}
@@ -466,7 +466,7 @@ button[data-chat-launcher] svg,
                             {f.description && <p className="text-sm mt-1" style={{ color: "var(--textSoft)" }}>{f.description}</p>}
                             {f.link && (
                               <a className="text-sm underline inline-flex items-center gap-1 mt-1"
-                                 href={f.link} target="_blank" rel="noreferrer" style={{ color: "var(--textSoft)" }}>
+                                href={f.link} target="_blank" rel="noreferrer" style={{ color: "var(--textSoft)" }}>
                                 Approfondisci <ExternalLink className="w-4 h-4" />
                               </a>
                             )}
@@ -491,7 +491,7 @@ button[data-chat-launcher] svg,
                           whileHover={{ scale: 1.03, y: -2 }}
                           transition={{ type: "spring", stiffness: 220, damping: 20 }}
                           className="rounded-xl border overflow-hidden"
-                          style={{ borderColor:"var(--border)", boxShadow: glow }}
+                          style={{ borderColor: "var(--border)", boxShadow: glow }}
                         >
                           <img
                             src={src}
@@ -550,21 +550,21 @@ button[data-chat-launcher] svg,
                   {cfg.pilot.downloadUrl && (
                     <div className="mt-4">
                       <a href={cfg.pilot.downloadUrl} target="_blank" rel="noreferrer"
-                         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg"
-                         style={{ background:"var(--accentSolid)", color:"var(--accentText)", boxShadow:glow }}>
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg"
+                        style={{ background: "var(--accentSolid)", color: "var(--accentText)", boxShadow: glow }}>
                         Scarica il documento del progetto <ExternalLink className="w-4 h-4" />
                       </a>
                     </div>
                   )}
                 </div>
 
-                <div className="rounded-xl p-5 border" style={{ borderColor:"var(--border)", background:"var(--card)" }}>
+                <div className="rounded-xl p-5 border" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
                   <h3 className="font-semibold mb-2">Benefici</h3>
                   <div className="space-y-4">
                     {!!cfg.pilot.benefits?.commerce?.length && (
                       <div>
                         <div className="text-sm font-medium">Per le attività</div>
-                        <ul className="list-disc ms-5 text-sm" style={{ color:"var(--textSoft)" }}>
+                        <ul className="list-disc ms-5 text-sm" style={{ color: "var(--textSoft)" }}>
                           {cfg.pilot.benefits!.commerce!.map((b, i) => <li key={i}>{b}</li>)}
                         </ul>
                       </div>
@@ -572,7 +572,7 @@ button[data-chat-launcher] svg,
                     {!!cfg.pilot.benefits?.citizens?.length && (
                       <div>
                         <div className="text-sm font-medium">Per i cittadini</div>
-                        <ul className="list-disc ms-5 text-sm" style={{ color:"var(--textSoft)" }}>
+                        <ul className="list-disc ms-5 text-sm" style={{ color: "var(--textSoft)" }}>
                           {cfg.pilot.benefits!.citizens!.map((b, i) => <li key={i}>{b}</li>)}
                         </ul>
                       </div>
@@ -580,7 +580,7 @@ button[data-chat-launcher] svg,
                     {!!cfg.pilot.benefits?.visitors?.length && (
                       <div>
                         <div className="text-sm font-medium">Per i visitatori</div>
-                        <ul className="list-disc ms-5 text-sm" style={{ color:"var(--textSoft)" }}>
+                        <ul className="list-disc ms-5 text-sm" style={{ color: "var(--textSoft)" }}>
                           {cfg.pilot.benefits!.visitors!.map((b, i) => <li key={i}>{b}</li>)}
                         </ul>
                       </div>
@@ -603,15 +603,15 @@ button[data-chat-launcher] svg,
                   <h3 className="font-semibold">Esercenti aderenti</h3>
                   {cfg.openData?.jsonUrl && (
                     <a href={cfg.openData.jsonUrl} target="_blank" rel="noreferrer"
-                       className="inline-flex items-center gap-1 text-sm underline"
-                       style={{ color:"var(--textSoft)" }}>
+                      className="inline-flex items-center gap-1 text-sm underline"
+                      style={{ color: "var(--textSoft)" }}>
                       Open data <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
                 </div>
 
                 {(venues.length === 0) ? (
-                  <div className="text-sm" style={{ color:"var(--textSoft)" }}>Nessun esercente pubblicato (ancora).</div>
+                  <div className="text-sm" style={{ color: "var(--textSoft)" }}>Nessun esercente pubblicato (ancora).</div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <AnimatePresence initial={false}>
@@ -624,19 +624,19 @@ button[data-chat-launcher] svg,
                           exit={{ opacity: 0, y: -10 }}
                           transition={{ type: "spring", stiffness: 250, damping: 24 }}
                           className="group rounded-xl p-4 border block"
-                          style={{ borderColor:"var(--border)", background:"var(--card)" }}
+                          style={{ borderColor: "var(--border)", background: "var(--card)" }}
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-11 h-11 rounded-xl border overflow-hidden"
-                                 style={{ borderColor:"var(--border)", background:"var(--muted)" }}>
+                              style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
                               {v.logoUrl ? (
                                 <img src={v.logoUrl} alt={`${v.name} logo`} className="w-full h-full object-cover"
-                                     onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+                                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
                               ) : null}
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium truncate">{v.name}</div>
-                              {v.tagline && <div className="text-xs truncate" style={{ color:"var(--textSoft)" }}>{v.tagline}</div>}
+                              {v.tagline && <div className="text-xs truncate" style={{ color: "var(--textSoft)" }}>{v.tagline}</div>}
                             </div>
                           </div>
                         </motion.a>
@@ -652,7 +652,7 @@ button[data-chat-launcher] svg,
 
       {/* Footer */}
       <footer className="mx-auto max-w-5xl px-4 py-10 text-xs"
-              style={{ color:"var(--textSoft)", borderTop:"1px solid var(--border)" }}>
+        style={{ color: "var(--textSoft)", borderTop: "1px solid var(--border)" }}>
         {cfg?.footer?.note && <div>{cfg.footer.note}</div>}
         {cfg?.footer?.updated && <div>Aggiornato: {cfg.footer.updated}</div>}
       </footer>
