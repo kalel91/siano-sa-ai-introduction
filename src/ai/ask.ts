@@ -1,11 +1,13 @@
-// src/ai/ask.ts
+// src/ai/ask.ts 
+// Fallback “offline” senza LLM, compatibile con esercenti e home comunale.
+// Mantiene la copertura funzionale estesa (FAQ, filtri, menu, storia/progetto/eventi/open data).
 
-// ===== Types: tutto opzionale per funzionare sia con esercenti che con "home" comunale
+/* ===== Tipi (allineati al repo) ===== */
 export type MenuItem = { name: string; desc?: string; price?: number; tags?: string[]; fav?: boolean };
 export type Category = { name: string; items?: MenuItem[] };
 
 export type GenericJson = {
-  // modello "esercente"
+  // Modello "esercente"
   config?: {
     name?: string;
     hours?: string;
@@ -21,7 +23,7 @@ export type GenericJson = {
   };
   story?: { title?: string; text?: string } | null;
 
-  // modello "comune"
+  // Modello "comune"
   cityName?: string;
   about?: { title?: string; text?: string };
   pilot?: {
@@ -46,7 +48,7 @@ type AskOptions = {
   locale?: "it" | "en";
 };
 
-// ===== Helpers
+/* ===== Helpers ===== */
 const norm = (s: string) =>
   (s || "")
     .toLowerCase()
@@ -57,7 +59,6 @@ const norm = (s: string) =>
 const hasMenu = (data?: GenericJson) => !!(data?.menu?.categories && data.menu.categories.length);
 const hasConfig = (data?: GenericJson) => !!data?.config;
 
-// filtri semplici ma generici
 type Filters = { veg?: boolean; nolactose?: boolean; spicy?: boolean };
 function parseFilters(q: string): Filters {
   const t = norm(q);
@@ -82,7 +83,7 @@ function euro(n?: number) {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
-// ===== Risposte “FAQ” generiche
+/* ===== FAQ esplicite ===== */
 function faqHit(q: string, data: GenericJson): string | null {
   const faq = data.chat?.faq || {};
   const t = norm(q);
@@ -92,11 +93,12 @@ function faqHit(q: string, data: GenericJson): string | null {
   return null;
 }
 
-// ===== Risposta stile "esercente"
+/* ===== Risposte stile "esercente" ===== */
 function venueAnswer(q: string, data: GenericJson, hints: string[]): string | null {
   const t = norm(q);
   const cfg = data.config || {};
 
+  // Orari / Indirizzo / Telefono / WhatsApp
   if (/(orari|apertur|chiusur|quando|aperto|chiuso)/.test(t)) {
     const base = cfg.hours ? `Orari: ${cfg.hours}.` : "Gli orari non sono indicati.";
     const hint = hints.length ? ` Prova anche: ${hints.slice(0, 3).join(" • ")}.` : "";
@@ -114,22 +116,26 @@ function venueAnswer(q: string, data: GenericJson, hints: string[]): string | nu
     return `WhatsApp: ${cfg.whatsapp || "—"}.`;
   }
 
-  // categorie / prodotti
+  // Categorie / Prodotti / Special
   if (/(serviz|prodott|catalog|listin|menu|offert|special)/.test(t) || hasMenu(data)) {
     const cats = data.menu?.categories || [];
     if (!cats.length) return "Non ho un elenco di servizi/prodotti pubblicato.";
     const f = parseFilters(q);
 
-    // pool
+    // pool filtrato
     const pool: MenuItem[] = [];
     for (const c of cats) for (const it of c.items || []) if (itemMatchesFilters(it, f)) pool.push(it);
+
     if (!pool.length) {
       const names = cats.map((c) => c.name).slice(0, 5).join(" • ");
-      return `Vuoi esplorare le categorie? ${names}.`;
+      // 🔧 testo neutro per non-food: catalogo/servizi
+      return `Vuoi esplorare le categorie del catalogo/servizi? ${names}.`;
     }
 
     // pick top 2 favorendo 'fav'
-    const sorted = pool.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || (a.name || "").localeCompare(b.name || ""));
+    const sorted = pool.sort(
+      (a, b) => Number(!!b.fav) - Number(!!a.fav) || (a.name || "").localeCompare(b.name || "")
+    );
     const picks = sorted.slice(0, 2);
     const line = picks
       .map((i) => `${i.name}${i.price != null ? ` — ${euro(i.price)}` : ""}`)
@@ -140,15 +146,17 @@ function venueAnswer(q: string, data: GenericJson, hints: string[]): string | nu
   return null;
 }
 
-// ===== Risposta stile "comune"
+/* ===== Risposte stile "comune" ===== */
 function cityAnswer(q: string, data: GenericJson, hints: string[]): string | null {
   const t = norm(q);
 
+  // Storia / About
   if (/(storia|paese|territorio|origini|chi siamo|about)/.test(t)) {
     const s = data.about?.text || data.story?.text;
     return s ? s : "Puoi esplorare storia, galleria e curiosità nella sezione dedicata.";
   }
 
+  // Progetto / Pilot
   if (/(progetto|pilota|ai|digitale)/.test(t)) {
     const intro = data.pilot?.intro || "Il progetto introduce una piattaforma digitale per informare, promuovere e innovare in modo accessibile.";
     const goals = (data.pilot?.goals || []).slice(0, 2);
@@ -156,6 +164,7 @@ function cityAnswer(q: string, data: GenericJson, hints: string[]): string | nul
     return intro + tail;
   }
 
+  // Eventi/Festività
   if (/(eventi|fest|ricorrenz|sagra)/.test(t)) {
     const f = data.festivities || [];
     if (!f.length) return "Calendario eventi non disponibile al momento.";
@@ -163,11 +172,13 @@ function cityAnswer(q: string, data: GenericJson, hints: string[]): string | nul
     return `Alcune ricorrenze: ${top}.`;
   }
 
+  // Uffici & contatti (rimando al sito)
   if (/(uffici|contatti|comune|municipio|informazioni)/.test(t)) {
     const site = data.social?.website || "sito istituzionale";
     return `Per orari e contatti degli uffici consulta il ${site}.`;
   }
 
+  // Open Data
   if (/(open\s*data|dati|json|csv)/.test(t)) {
     const j = data.openData?.jsonUrl;
     const c = data.openData?.csvUrl;
@@ -175,25 +186,26 @@ function cityAnswer(q: string, data: GenericJson, hints: string[]): string | nul
     return "Open Data non disponibili al momento.";
   }
 
+  // Sito
   if (/(sito|website|web)/.test(t)) {
     return data.social?.website ? `Sito del Comune: ${data.social.website}` : "Sito istituzionale non indicato.";
   }
 
-  // se ci sono quick replies, proponi
+  // Se ci sono quick replies, proponi
   if (hints.length) return `Posso aiutarti con: ${hints.slice(0, 4).join(" • ")}.`;
 
   return null;
 }
 
-// ===== Router principale (nessun LLM)
-function localAnswer(q: string, data: GenericJson): string {
+/* ===== Router principale (no LLM) ===== */
+function localRouter(q: string, data: GenericJson): string {
   // 1) FAQ esplicite
   const hit = faqHit(q, data);
   if (hit) return hit;
 
   const hints = data.chat?.quickReplies || [];
 
-  // 2) venue-like
+  // 2) venue-like (quando c’è config o menu)
   if (hasConfig(data) || hasMenu(data)) {
     const a = venueAnswer(q, data, hints);
     if (a) return a;
@@ -203,12 +215,13 @@ function localAnswer(q: string, data: GenericJson): string {
   const b = cityAnswer(q, data, hints);
   if (b) return b;
 
-  // 4) fallback generico
+  // 4) fallback generico coerente con la presenza di menu
   if (hasMenu(data)) {
     const cats = data.menu?.categories || [];
     if (cats.length) {
       const names = cats.map((c) => c.name).slice(0, 5).join(" • ");
-      return `Posso indicarti alcune categorie: ${names}. Oppure chiedimi orari, indirizzo o contatti.`;
+      // 🔧 testo neutro per tutti i tipi di attività
+      return `Posso indicarti alcune categorie del catalogo/servizi: ${names}. Oppure chiedimi orari, indirizzo o contatti.`;
     }
   }
 
@@ -220,12 +233,12 @@ function localAnswer(q: string, data: GenericJson): string {
   return "Posso aiutarti con orari, indirizzo, contatti, prodotti/servizi o argomenti specifici.";
 }
 
-// ===== API invariata
+/* ===== API invariata ===== */
 export async function askMenu(
   question: string,
   data: GenericJson,
   _opts: AskOptions = {}
 ): Promise<{ answer: string; used: "local" }> {
-  const answer = localAnswer(question, data);
+  const answer = localRouter(question, data);
   return { answer, used: "local" };
 }

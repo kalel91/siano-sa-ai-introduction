@@ -1,5 +1,16 @@
 // netlify/functions/ask.js
 // Runtime: Node 18+
+// Endpoint usato dal widget quando l’AI è “online”.
+// Profilo COMUNE vs ESERCENTE, contesto compatto, CTA coerenti + chat.ctas support.
+
+function projectCtasFromJson(ctasJson) {
+  if (!Array.isArray(ctasJson)) return [];
+  // Trasforma in etichette [Label] usate come hint testuale nella risposta AI
+  return ctasJson
+    .map((c) => (c && typeof c.label === "string" && c.label.trim() ? `[${c.label.trim()}]` : null))
+    .filter(Boolean);
+}
+
 export async function handler(event) {
   try {
     if (event.httpMethod !== "POST") {
@@ -9,19 +20,16 @@ export async function handler(event) {
     const payload = JSON.parse(event.body || "{}");
     const question = String(payload.question || "").trim();
     const model = String(payload.model || "deepseek-ai/DeepSeek-V3.1");
-
     if (!question) return { statusCode: 400, body: "Bad request: missing question" };
     if (!process.env.HF_TOKEN) return { statusCode: 500, body: "HF_TOKEN missing" };
 
-    // 1) DATI: passati inline...
+    // 1) Dati: inline oppure via slug
     let data = payload.data;
-
-    // ...oppure caricati dal sito tramite slug
     if (!data) {
       const slug = String(payload.slug || "").trim();
       if (!slug) return { statusCode: 400, body: "Bad request: missing data or slug" };
 
-      // Origine assoluta (funziona in prod e preview)
+      // origine assoluta (prod & preview)
       const host = event.headers?.host || "";
       const proto = (event.headers?.["x-forwarded-proto"] || "https").split(",")[0].trim();
       const origin =
@@ -35,25 +43,24 @@ export async function handler(event) {
       data = await r.json();
     }
 
-    /* ---------- Riconoscimento profilo ---------- */
+    /* ========== PROFILO ========== */
     const isMunicipality = !!data?.cityName && !data?.menu;
     const brand = isMunicipality
       ? `Comune di ${data.cityName}`
       : (data?.config?.name || "Il locale");
-    const assistantTitle =
-      (isMunicipality
-        ? (data?.assistant?.panelTitle || `Assistente digitale del ${brand}`)
-        : `Assistente di ${brand}`);
+    const assistantTitle = isMunicipality
+      ? (data?.assistant?.panelTitle || `Assistente digitale del ${brand}`)
+      : `Assistente di ${brand}`;
 
-    /* ---------- Compattazione contesto ---------- */
+    /* ========== CONTESTO COMPATTO ========== */
     let context = {};
     let ctas = [];
 
     if (isMunicipality) {
-      // HOME / MUNICIPIO
+      // HOME / COMUNE
       context = {
         cityName: data.cityName,
-        about: data?.about?.text,
+        about: data?.about?.text, // testo “La storia di Siano”
         pilot: {
           title: data?.pilot?.title,
           intro: data?.pilot?.intro,
@@ -61,7 +68,7 @@ export async function handler(event) {
           governance: data?.pilot?.governance,
         },
         festivities: Array.isArray(data?.festivities)
-          ? data.festivities.map(f => ({
+          ? data.festivities.map((f) => ({
               name: f?.name, month: f?.month, description: f?.description
             }))
           : [],
@@ -69,10 +76,14 @@ export async function handler(event) {
         social: data?.social || null,
       };
 
-      // CTA suggerite (solo se davvero presenti nel JSON)
+      // CTA base
       if (data?.social?.website) ctas.push("[Sito]");
       if (data?.openData?.jsonUrl || data?.openData?.csvUrl) ctas.push("[Open Data]");
-      // (nessun [Chiama]/[WhatsApp]/[Indicazioni] perché la home non li espone)
+      // CTA dichiarate nel JSON (chat.ctas)
+      if (Array.isArray(data?.chat?.ctas)) {
+        ctas = [...new Set([...ctas, ...projectCtasFromJson(data.chat.ctas)])];
+      }
+      // niente [Chiama]/[WhatsApp]/[Indicazioni] per la home
     } else {
       // ESERCENTE
       context = {
@@ -82,40 +93,45 @@ export async function handler(event) {
         phone: data?.config?.phone,
         whatsapp: data?.config?.whatsapp,
         specials: data?.menu?.specials || [],
-        categories: (Array.isArray(data?.menu?.categories) ? data.menu.categories : []).map(c => ({
+        categories: (Array.isArray(data?.menu?.categories) ? data.menu.categories : []).map((c) => ({
           name: c?.name,
-          items: (Array.isArray(c?.items) ? c.items : []).map(i => ({
+          items: (Array.isArray(c?.items) ? c.items : []).map((i) => ({
             name: i?.name, desc: i?.desc, price: i?.price, tags: i?.tags, fav: i?.fav
           }))
         }))
       };
 
+      // CTA base
       if (data?.config?.phone) ctas.push("[Chiama]");
       if (data?.config?.whatsapp) ctas.push("[WhatsApp]");
       if (data?.config?.address || data?.config?.mapUrl) ctas.push("[Indicazioni]");
+      // CTA dichiarate nel JSON (chat.ctas)
+      if (Array.isArray(data?.chat?.ctas)) {
+        ctas = [...new Set([...ctas, ...projectCtasFromJson(data.chat.ctas)])];
+      }
     }
 
-    /* ---------- Prompt ---------- */
+    /* ========== PROMPT ========== */
     const commonHdr =
-      `Sei "${assistantTitle}". Rispondi nella lingua dell'utente, in max 90 parole, tono cortese e sintetico. ` +
+      `Sei "${assistantTitle}". Rispondi nella lingua dell'utente, max 90 parole, tono cortese e sintetico. ` +
       `Usa SOLO le informazioni nei DATI. Se qualcosa manca, rispondi "Non disponibile". ` +
       `Non inventare link o contatti.`;
 
     const system = isMunicipality
       ? [
           commonHdr,
-          // vincoli specifici per la Home comunale
           `Contesto: assistente istituzionale del ${brand}.`,
-          `Tratta argomenti come storia locale, progetto pilota, attività aderenti, festività/eventi e link utili.`,
-          `NON parlare di piatti, menu, ristorante o prezzi.`,
+          `Tratta storia locale, progetto/pilot, attività aderenti, festività/eventi e link utili.`,
+          `NON parlare di piatti/menu/prezzi.`,
+          `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
           ctas.length ? `Se utile, chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
           `DATI: ${JSON.stringify(context)}`
         ].join("\n")
       : [
           commonHdr,
-          // vincoli specifici per l'esercente
           `Contesto: assistente dell'attività "${brand}".`,
-          `Puoi citare orari, indirizzo, telefono/WhatsApp. Se utile, suggerisci 1–2 voci di menu con prezzo.`,
+          `Puoi citare orari, indirizzo, telefono/WhatsApp. Se utile, suggerisci 1–2 voci di catalogo/servizi (o piatti, se ristorante) con prezzo se presente.`,
+          `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
           ctas.length ? `Chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
           `DATI: ${JSON.stringify(context)}`
         ].join("\n");
@@ -146,10 +162,14 @@ export async function handler(event) {
       return { statusCode: r.status, body: text };
     }
 
+    // parsing risposta più robusto
     let answer = "Non disponibile al momento.";
     try {
       const j = JSON.parse(text);
-      answer = j?.choices?.[0]?.message?.content?.trim() || answer;
+      const raw = j?.choices?.[0]?.message?.content;
+      if (typeof raw === "string") {
+        answer = raw.replace(/\s+$/,'').trim() || answer;
+      }
     } catch (e) {
       console.error("Parse error:", e);
     }
