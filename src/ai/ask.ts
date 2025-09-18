@@ -1,17 +1,44 @@
 // src/ai/ask.ts
-export type MenuJson = {
-  config: {
-    name: string;
+
+// ===== Types: tutto opzionale per funzionare sia con esercenti che con "home" comunale
+export type MenuItem = { name: string; desc?: string; price?: number; tags?: string[]; fav?: boolean };
+export type Category = { name: string; items?: MenuItem[] };
+
+export type GenericJson = {
+  // modello "esercente"
+  config?: {
+    name?: string;
     hours?: string;
     address?: string;
     phone?: string;
     whatsapp?: string;
     assistantLabel?: string;
+    mapUrl?: string;
+  };
+  menu?: {
+    specials?: { title: string; price?: string; badge?: string }[];
+    categories?: Category[];
   };
   story?: { title?: string; text?: string } | null;
-  menu: {
-    specials?: { title: string; price: string; badge?: string }[];
-    categories: { name: string; items: { name: string; desc?: string; price: number; tags?: string[]; fav?: boolean }[] }[];
+
+  // modello "comune"
+  cityName?: string;
+  about?: { title?: string; text?: string };
+  pilot?: {
+    title?: string;
+    intro?: string;
+    goals?: string[];
+    components?: string[];
+    governance?: string;
+  };
+  festivities?: Array<{ name: string; month?: string; description?: string; link?: string }>;
+  openData?: { csvUrl?: string; jsonUrl?: string };
+  social?: { website?: string; facebook?: string; instagram?: string };
+
+  chat?: {
+    quickReplies?: string[];
+    faq?: Record<string, string>;
+    ctas?: Array<{ type: "link" | "call" | "directions" | "whatsapp"; label: string; href?: string; url?: string }>;
   };
 };
 
@@ -19,62 +46,186 @@ type AskOptions = {
   locale?: "it" | "en";
 };
 
-// semplice euristica locale (no LLM)
-function localAnswer(q: string, data: MenuJson): string {
-  const question = q.toLowerCase();
+// ===== Helpers
+const norm = (s: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
 
-  if (/(orari|apert|chius|quando|aperto|chiuso)/i.test(question)) {
-    return `Siamo aperti: ${data.config.hours || "vedi in alto nella pagina"}. Vuoi che apra le indicazioni o ti metta in contatto?`;
+const hasMenu = (data?: GenericJson) => !!(data?.menu?.categories && data.menu.categories.length);
+const hasConfig = (data?: GenericJson) => !!data?.config;
+
+// filtri semplici ma generici
+type Filters = { veg?: boolean; nolactose?: boolean; spicy?: boolean };
+function parseFilters(q: string): Filters {
+  const t = norm(q);
+  return {
+    veg: /\bveg(etarian|\b)|senza carne\b/.test(t),
+    nolactose: /senza (latte|lattosio)|no lattosio/.test(t),
+    spicy: /\b(piccant|speziat|hot|spicy|diavol)\b/.test(t),
+  };
+}
+
+function itemMatchesFilters(item: MenuItem, f: Filters): boolean {
+  if (!f.veg && !f.nolactose && !f.spicy) return true;
+  const hay = norm([item.name, item.desc, (item.tags || []).join(" ")].join(" "));
+  if (f.veg && !/\bveg\b/.test(hay)) return false;
+  if (f.nolactose && /(latte|lattosio|formagg)/.test(hay)) return false;
+  if (f.spicy && !/(piccant|spicy|hot|diavol)/.test(hay)) return false;
+  return true;
+}
+
+function euro(n?: number) {
+  if (typeof n !== "number" || Number.isNaN(n)) return "";
+  return `${n.toFixed(2).replace(".", ",")} €`;
+}
+
+// ===== Risposte “FAQ” generiche
+function faqHit(q: string, data: GenericJson): string | null {
+  const faq = data.chat?.faq || {};
+  const t = norm(q);
+  for (const k of Object.keys(faq)) {
+    if (norm(k) === t) return faq[k];
   }
-  if (/(indirizz|dove|come arriv|mappa)/i.test(question)) {
-    return `Indirizzo: ${data.config.address || "—"}. Tocca "Indicazioni" per Google Maps.`;
+  return null;
+}
+
+// ===== Risposta stile "esercente"
+function venueAnswer(q: string, data: GenericJson, hints: string[]): string | null {
+  const t = norm(q);
+  const cfg = data.config || {};
+
+  if (/(orari|apertur|chiusur|quando|aperto|chiuso)/.test(t)) {
+    const base = cfg.hours ? `Orari: ${cfg.hours}.` : "Gli orari non sono indicati.";
+    const hint = hints.length ? ` Prova anche: ${hints.slice(0, 3).join(" • ")}.` : "";
+    return base + hint;
   }
-  if (/(telefono|chiama|numero)/i.test(question)) {
-    return `Telefono: ${data.config.phone || "—"}. Tocca "Chiama" per comporre.`;
+  if (/(indirizz|dove|come si arriv|indicaz|mappa)/.test(t)) {
+    const base = cfg.address ? `Indirizzo: ${cfg.address}.` : "L'indirizzo non è indicato.";
+    const hint = hints.length ? ` Usa il pulsante “Indicazioni”.` : "";
+    return base + hint;
   }
-  if (/(whatsapp|contatto)/i.test(question)) {
-    return `WhatsApp: ${data.config.whatsapp || "—"}. Tocca "WhatsApp" per scrivere.`;
+  if (/(telefono|chiama|numero)/.test(t)) {
+    return `Telefono: ${cfg.phone || "—"}.`;
   }
-  if (/(promo|offert|special)/i.test(question)) {
-    const s = data.menu.specials?.[0];
-    if (s) return `Oggi: ${s.title} — ${s.price}${s.badge ? " (" + s.badge + ")" : ""}.`;
+  if (/(whatsapp|contatto)/.test(t)) {
+    return `WhatsApp: ${cfg.whatsapp || "—"}.`;
   }
 
-  // scoring leggero su ingredienti/parole chiave
-  const wantsNoCheese = /(senza.*(latte|lattosio)|no.*(latte|lattosio))/i.test(question);
-  const wantsSpicy    = /(piccante|calabrese|nduja|diavola)/i.test(question);
-  const wantsVeg      = /(vegetarian|veg\b|senza carne)/i.test(question);
-  const tokens = question.split(/[^\p{L}\p{N}]+/u).filter(t => t.length > 2);
+  // categorie / prodotti
+  if (/(serviz|prodott|catalog|listin|menu|offert|special)/.test(t) || hasMenu(data)) {
+    const cats = data.menu?.categories || [];
+    if (!cats.length) return "Non ho un elenco di servizi/prodotti pubblicato.";
+    const f = parseFilters(q);
 
-  type Scored = { cat: string; item: any; score: number };
-  const scored: Scored[] = [];
+    // pool
+    const pool: MenuItem[] = [];
+    for (const c of cats) for (const it of c.items || []) if (itemMatchesFilters(it, f)) pool.push(it);
+    if (!pool.length) {
+      const names = cats.map((c) => c.name).slice(0, 5).join(" • ");
+      return `Vuoi esplorare le categorie? ${names}.`;
+    }
 
-  for (const c of data.menu.categories || []) {
-    for (const it of c.items || []) {
-      let score = 0;
-      const hay = (it.name + " " + (it.desc || "")).toLowerCase();
+    // pick top 2 favorendo 'fav'
+    const sorted = pool.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || (a.name || "").localeCompare(b.name || ""));
+    const picks = sorted.slice(0, 2);
+    const line = picks
+      .map((i) => `${i.name}${i.price != null ? ` — ${euro(i.price)}` : ""}`)
+      .join(" • ");
+    return `Posso suggerire: ${line}. Vuoi altre opzioni?`;
+  }
 
-      for (const t of tokens) if (hay.includes(t)) score += 2;
-      if (wantsVeg && /(verd|margherita|bufala|formagg|ort|pomodoro|melanz|zucchin|friariell)/.test(hay)) score += 1.5;
-      if (wantsNoCheese && /(mozz|fior di latte|formagg|bufal)/.test(hay)) score -= 2;
-      if (wantsSpicy && /(nduja|diavola|piccant|salame|peperonc)/.test(hay)) score += 2;
-      if (it.fav) score += 1;
+  return null;
+}
 
-      if (score > 0) scored.push({ cat: c.name, item: it, score });
+// ===== Risposta stile "comune"
+function cityAnswer(q: string, data: GenericJson, hints: string[]): string | null {
+  const t = norm(q);
+
+  if (/(storia|paese|territorio|origini|chi siamo|about)/.test(t)) {
+    const s = data.about?.text || data.story?.text;
+    return s ? s : "Puoi esplorare storia, galleria e curiosità nella sezione dedicata.";
+  }
+
+  if (/(progetto|pilota|ai|digitale)/.test(t)) {
+    const intro = data.pilot?.intro || "Il progetto introduce una piattaforma digitale per informare, promuovere e innovare in modo accessibile.";
+    const goals = (data.pilot?.goals || []).slice(0, 2);
+    const tail = goals.length ? ` Obiettivi: ${goals.join(" • ")}.` : "";
+    return intro + tail;
+  }
+
+  if (/(eventi|fest|ricorrenz|sagra)/.test(t)) {
+    const f = data.festivities || [];
+    if (!f.length) return "Calendario eventi non disponibile al momento.";
+    const top = f.slice(0, 2).map((x) => (x.month ? `${x.name} (${x.month})` : x.name)).join(" • ");
+    return `Alcune ricorrenze: ${top}.`;
+  }
+
+  if (/(uffici|contatti|comune|municipio|informazioni)/.test(t)) {
+    const site = data.social?.website || "sito istituzionale";
+    return `Per orari e contatti degli uffici consulta il ${site}.`;
+  }
+
+  if (/(open\s*data|dati|json|csv)/.test(t)) {
+    const j = data.openData?.jsonUrl;
+    const c = data.openData?.csvUrl;
+    if (j || c) return `Dati aperti disponibili: ${[j && "JSON", c && "CSV"].filter(Boolean).join(" e ")}.`;
+    return "Open Data non disponibili al momento.";
+  }
+
+  if (/(sito|website|web)/.test(t)) {
+    return data.social?.website ? `Sito del Comune: ${data.social.website}` : "Sito istituzionale non indicato.";
+  }
+
+  // se ci sono quick replies, proponi
+  if (hints.length) return `Posso aiutarti con: ${hints.slice(0, 4).join(" • ")}.`;
+
+  return null;
+}
+
+// ===== Router principale (nessun LLM)
+function localAnswer(q: string, data: GenericJson): string {
+  // 1) FAQ esplicite
+  const hit = faqHit(q, data);
+  if (hit) return hit;
+
+  const hints = data.chat?.quickReplies || [];
+
+  // 2) venue-like
+  if (hasConfig(data) || hasMenu(data)) {
+    const a = venueAnswer(q, data, hints);
+    if (a) return a;
+  }
+
+  // 3) city-like
+  const b = cityAnswer(q, data, hints);
+  if (b) return b;
+
+  // 4) fallback generico
+  if (hasMenu(data)) {
+    const cats = data.menu?.categories || [];
+    if (cats.length) {
+      const names = cats.map((c) => c.name).slice(0, 5).join(" • ");
+      return `Posso indicarti alcune categorie: ${names}. Oppure chiedimi orari, indirizzo o contatti.`;
     }
   }
 
-  scored.sort((a, b) => b.score - a.score);
-  const picks = scored.slice(0, 4);
-  if (picks.length) {
-    const lines = picks.map(p => `• ${p.item.name} — ${p.item.price.toFixed(2).replace(".", ",")} €${p.item.desc ? " — " + p.item.desc : ""}`);
-    return `Ecco cosa ti consiglio:\n${lines.join("\n")}\n\nVuoi ordinare al telefono o scrivere su WhatsApp?`;
+  if (data.cityName) {
+    const choices = hints.length ? hints.slice(0, 4).join(" • ") : "Storia • Progetto AI • Esercenti • Eventi";
+    return `Dimmi cosa ti serve: ${choices}.`;
   }
 
-  return "Posso aiutarti a scegliere: dimmi ingredienti che ti piacciono (es. 'senza lattosio', 'qualcosa di piccante', 'con salsiccia').";
+  return "Posso aiutarti con orari, indirizzo, contatti, prodotti/servizi o argomenti specifici.";
 }
 
-export async function askMenu(question: string, data: MenuJson, _opts: AskOptions = {}): Promise<{ answer: string; used: "local" }> {
+// ===== API invariata
+export async function askMenu(
+  question: string,
+  data: GenericJson,
+  _opts: AskOptions = {}
+): Promise<{ answer: string; used: "local" }> {
   const answer = localAnswer(question, data);
   return { answer, used: "local" };
 }
