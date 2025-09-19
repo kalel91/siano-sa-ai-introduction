@@ -99,6 +99,32 @@ function normalizeCtas(src?: CtaJson[]): CTA[] {
     .filter((c) => !!c.label);
 }
 
+/** -------- Intent helpers (precisi, anti-false-positive) -------- */
+function isAddressIntent(q: string): boolean {
+  const t = q.toLowerCase().trim();
+  if (/\bindirizz/.test(t)) return true;                           // indirizzo/indirizzi
+  if (/\bindicaz(ioni)?\b/.test(t)) return true;                   // indicazione/i
+  if (/\bcome\s+si\s+arriv/.test(t)) return true;                  // come si arriva
+  if (/\bdove\s+(siamo|siete|si\s+trova|vi\s+trov\w*)\b/.test(t)) return true; // dove siete/si trova/vi trovate
+  return false;                                                    // NOT "dove posso mangiare..."
+}
+function isHoursIntent(q: string): boolean {
+  const t = q.toLowerCase();
+  return /\b(orari|apertur|chiusur|quando\s+siete\s+aperti)\b/.test(t);
+}
+function isContactIntent(q: string): boolean {
+  const t = q.toLowerCase();
+  return /\b(contatt|telefono|tel\.?|chiama|whatsapp)\b/.test(t);
+}
+function isStoryIntent(q: string): boolean {
+  const t = norm(q);
+  return /\b(storia|chi siamo|about)\b/.test(t);
+}
+function isServicesIntent(q: string): boolean {
+  const t = norm(q);
+  return /\b(serviz|prodott|catalogo|listino|menu)\b/.test(t);
+}
+
 /** -------- Topic engine -------- */
 function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   const topic = norm(topicRaw);
@@ -109,20 +135,20 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
     if (norm(k) === topic) return faq[k];
   }
   const cfg = data.config || {};
-  if (/orari|apertur|chiusur/.test(topic)) return cfg.hours ? `Orari: ${cfg.hours}` : "Gli orari non sono indicati.";
-  if (/indirizz|dove|come si arriv|indicaz/.test(topic))
+  if (isHoursIntent(topicRaw)) return cfg.hours ? `Orari: ${cfg.hours}` : "Gli orari non sono indicati.";
+  if (isAddressIntent(topicRaw))
     return cfg.address ? `Indirizzo: ${cfg.address}. Per le indicazioni usa il pulsante qui sotto.` : "L'indirizzo non è indicato.";
-  if (/contatt|telefono|chiama|whatsapp/.test(topic)) {
+  if (isContactIntent(topicRaw)) {
     const p = cfg.phone ? `Telefono: ${cfg.phone}` : "Telefono non indicato.";
     const w = (cfg as any).whatsapp ? ` WhatsApp: ${(cfg as any).whatsapp}` : "";
     return p + w;
   }
-  if (/storia|chi siamo|about/.test(topic)) {
+  if (isStoryIntent(topicRaw)) {
     // Fallback per la home comunale
     const desc = (data.story?.text ?? (data as any)?.about?.text)?.trim();
     return desc || "Al momento non è stata inserita una descrizione.";
   }
-  if (/serviz|prodott|catalogo|listino|menu/.test(topic)) {
+  if (isServicesIntent(topicRaw)) {
     const cats = data.menu?.categories || [];
     if (!cats.length) return "Non ho un elenco di servizi/prodotti pubblicato.";
     const names = cats.map(c=>c.name).slice(0,5).join(" • ");
@@ -139,23 +165,22 @@ function offlineAnswer(
   already: Set<string>,
   hints: string[] = []
 ) {
-  const t = q.toLowerCase();
   const cfg = data?.config || {};
   const tAns = topicAnswer(q, data);
   if (tAns) return { text: tAns, used: [], exhausted: false };
 
-  if (/orari|apertur|chiusur/.test(t)) {
+  if (isHoursIntent(q)) {
     const base = cfg.hours ? `Siamo aperti: ${cfg.hours}.` : "Gli orari non sono indicati.";
     const suffix = hints.length ? ` Prova uno dei tasti rapidi: ${hints.slice(0,3).join(" • ")}.` : "";
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
-  if (/dove|indirizz|come (si )?arriv|indicazioni/.test(t)) {
+  if (isAddressIntent(q)) {
     const base = cfg.address ? `Ci trovi in ${cfg.address}.` : "L'indirizzo non è indicato.";
     const suffix = hints.length ? ` Vuoi altro? ${hints.slice(0,3).join(" • ")}.` : "";
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
 
-  const filters = parseFilters(t);
+  const filters = parseFilters(q);
   const pool = buildCandidates(data, filters, already);
 
   if (!pool.length) {
@@ -264,10 +289,9 @@ export default function ChatWidget({
     const compute = () => {
       if (!el) { setFabBottomOffset(16); return; }
       const rect = el.getBoundingClientRect();
-      // se la barra è visibile (mobile) prendiamo l'altezza reale, altrimenti 16
       const visible = rect.height > 0 && getComputedStyle(el).display !== "none";
       const h = visible ? Math.round(rect.height) : 0;
-      setFabBottomOffset(Math.max(16, h + 12)); // 12px di aria
+      setFabBottomOffset(Math.max(16, h + 12));
     };
 
     compute();
@@ -276,7 +300,7 @@ export default function ChatWidget({
     try {
       ro = new ResizeObserver(() => compute());
       if (el) ro.observe(el);
-    } catch { /* no-op in browser vecchi */ }
+    } catch {}
 
     const onResize = () => compute();
     window.addEventListener("resize", onResize);
