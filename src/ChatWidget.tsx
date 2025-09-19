@@ -109,12 +109,14 @@ function isAddressIntent(q: string): boolean {
   return false;                                                    // NOT "dove posso mangiare..."
 }
 function isHoursIntent(q: string): boolean {
-  const t = q.toLowerCase();
-  return /\b(orari|apertur|chiusur|quando\s+siete\s+aperti)\b/.test(t);
+  const t = norm(q);
+  // orario/orari, apertura/aperture, chiusura/chiusure, frase esplicita
+  return /\b(orari?\w*|apertur\w*|chiusur\w*|quando\s+siete\s+aperti)\b/.test(t);
 }
 function isContactIntent(q: string): boolean {
-  const t = q.toLowerCase();
-  return /\b(contatt|telefono|tel\.?|chiama|whatsapp)\b/.test(t);
+  const t = norm(q);
+  // contatto/contatti/contattare, telefono/tel, chiamare/chiama, whatsapp
+  return /\b(contatt\w*|telefono|tel\.?|chiama\w*|whatsapp)\b/.test(t);
 }
 function isStoryIntent(q: string): boolean {
   const t = norm(q);
@@ -122,7 +124,8 @@ function isStoryIntent(q: string): boolean {
 }
 function isServicesIntent(q: string): boolean {
   const t = norm(q);
-  return /\b(serviz|prodott|catalogo|listino|menu)\b/.test(t);
+  // servizi, servizio, prodotti, prodotto, catalogo/cataloghi, listino/listini, menu/menù
+  return /\b(serviz\w*|prodott\w*|catalog\w*|listin\w*|menu|menu)\b/.test(t);
 }
 
 /** -------- Topic engine -------- */
