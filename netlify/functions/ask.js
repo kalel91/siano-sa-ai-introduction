@@ -1,8 +1,16 @@
 // netlify/functions/ask.js
 // Runtime: Node 18+
 // Endpoint usato dal widget quando l’AI è “online”.
-// Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout, cache JSON 60s, mappatura errori 429/503.
-// Logica originale (profilo COMUNE/ESERCENTE, prompt, risposta) invariata.
+// Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout 5s, cache JSON 60s, mappatura errori 429/503.
+// Esteso per HOME: include elenco esercenti (venues.json) in contesto, con categoria dedotta.
+
+const TIMEOUT_MS = 5_000;        // timeout endpoint AI
+const RETRIES = 3;               // tentativi totali (incluso il primo)
+const BACKOFF_MIN = 180;         // jitter min (ms)
+const BACKOFF_MAX = 420;         // jitter max (ms)
+
+/* ---------- Helpers ---------- */
+function rid() { return Math.random().toString(36).slice(2, 8); }
 
 function projectCtasFromJson(ctasJson) {
   if (!Array.isArray(ctasJson)) return [];
@@ -14,6 +22,23 @@ function projectCtasFromJson(ctasJson) {
         : null
     )
     .filter(Boolean);
+}
+
+/* Categoria molto compatta per venue (serve al solo instradamento nel prompt) */
+function inferCategory(name = "", tagline = "") {
+  const t = `${name} ${tagline}`.toLowerCase();
+  if (/pizzer/i.test(t)) return "pizzeria";
+  if (/ristorant/i.test(t)) return "ristorante";
+  if (/\bbar\b|caf[èe]|caffetteria/.test(t)) return "bar";
+  if (/panific|forn|bakery|pane/.test(t)) return "panificio";
+  if (/pasticc|dolci|gelat/.test(t)) return "pasticceria";
+  if (/farmac/i.test(t)) return "farmacia";
+  if (/tabac/i.test(t)) return "tabacchi";
+  if (/supermerc|market|alimentar/.test(t)) return "supermercato";
+  if (/parrucch|barbier/i.test(t)) return "parrucchiere";
+  if (/estetica|estetist/i.test(t)) return "estetista";
+  if (/ferrament/i.test(t)) return "ferramenta";
+  return "altro";
 }
 
 /* ---------- Utils HTTP ---------- */
@@ -53,11 +78,11 @@ function allow(ip) {
 }
 
 /* ---------- Retry con jitter + timeout ---------- */
-async function withRetry(fn, { tries = 3, min = 150, max = 350 } = {}) {
+async function withRetry(fn, { tries = RETRIES, min = BACKOFF_MIN, max = BACKOFF_MAX } = {}) {
   let lastErr;
   for (let i = 0; i < tries; i++) {
     try {
-      return await fn();
+      return await fn(i);
     } catch (e) {
       lastErr = e;
       if (i === tries - 1) break;
@@ -68,7 +93,7 @@ async function withRetry(fn, { tries = 3, min = 150, max = 350 } = {}) {
   throw lastErr;
 }
 
-async function fetchWithTimeout(url, opts = {}, ms = 10000) {
+async function fetchWithTimeout(url, opts = {}, ms = TIMEOUT_MS) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(new Error("timeout")), ms);
   try {
@@ -85,7 +110,9 @@ const JSON_TTL = 60_000;
 async function fetchJsonCached(url) {
   const now = Date.now();
   const hit = JSON_CACHE.get(url);
-  if (hit && now - hit.ts < JSON_TTL) return hit.data;
+  if (hit && now - hit.ts < JSON_TTL) {
+    return hit.data;
+  }
   const r = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
   if (!r.ok) throw new Error(`json ${r.status}`);
   const data = await r.json();
@@ -94,6 +121,9 @@ async function fetchJsonCached(url) {
 }
 
 export async function handler(event) {
+  const requestId = rid();
+  const started = Date.now();
+
   try {
     if (event.httpMethod !== "POST") {
       return res(405, { error: "Method Not Allowed" });
@@ -105,6 +135,7 @@ export async function handler(event) {
       event.headers?.["client-ip"] ||
       "anon";
     if (!allow(ip)) {
+      console.warn(`[ask][${requestId}] throttle hit ip=${ip}`);
       return res(429, { error: "Too Many Requests" }, { "Retry-After": "2" });
     }
 
@@ -117,26 +148,28 @@ export async function handler(event) {
       process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || "";
     if (!HF_KEY) return res(503, { error: "AI not configured (HF_TOKEN missing)" });
 
+    // origine assoluta (prod & preview) — serve anche per venues.json in HOME
+    const host = event.headers?.host || "";
+    const proto = (event.headers?.["x-forwarded-proto"] || "https").split(",")[0].trim();
+    const origin =
+      process.env.URL ||
+      process.env.DEPLOY_PRIME_URL ||
+      (host ? `${proto}://${host}` : "");
+
     // 1) Dati: inline oppure via slug
     let data = payload.data;
+    let slugUsed = null;
+
     if (!data) {
       const slug = String(payload.slug || "").trim();
       if (!slug) return res(400, { error: "Bad request: missing data or slug" });
-
-      // origine assoluta (prod & preview)
-      const host = event.headers?.host || "";
-      const proto = (event.headers?.["x-forwarded-proto"] || "https")
-        .split(",")[0]
-        .trim();
-      const origin =
-        process.env.URL ||
-        process.env.DEPLOY_PRIME_URL ||
-        (host ? `${proto}://${host}` : "");
+      slugUsed = slug;
 
       const jsonUrl = `${origin}/data/${slug}.json`;
       try {
         data = await fetchJsonCached(jsonUrl);
-      } catch {
+      } catch (e) {
+        console.warn(`[ask][${requestId}] json 404 slug=${slug} ip=${ip}`);
         return res(404, { error: `JSON not found for slug '${slug}'` });
       }
     }
@@ -176,10 +209,24 @@ export async function handler(event) {
         social: data?.social || null,
       };
 
+      // Includi elenco Esercenti (compatto) per domande tipo "pizzeria", "dove mangiare", ecc.
+      try {
+        const venues = await fetchJsonCached(`${origin}/data/venues.json`);
+        if (Array.isArray(venues) && venues.length) {
+          // Minimizza il payload: { n: name, c: category }
+          const vlist = venues.map((v) => ({
+            n: String(v?.name || "").trim(),
+            c: inferCategory(String(v?.name || ""), String(v?.tagline || "")),
+          })).filter(x => x.n);
+          context.venues = vlist;
+        }
+      } catch {
+        // nessun blocco se venues.json non esiste
+      }
+
       // CTA base
       if (data?.social?.website) ctas.push("[Sito]");
-      if (data?.openData?.jsonUrl || data?.openData?.csvUrl)
-        ctas.push("[Open Data]");
+      if (data?.openData?.jsonUrl || data?.openData?.csvUrl) ctas.push("[Open Data]");
       // CTA dichiarate nel JSON (chat.ctas a livello root)
       if (Array.isArray(data?.chat?.ctas)) {
         ctas = [...new Set([...ctas, ...projectCtasFromJson(data.chat.ctas)])];
@@ -231,6 +278,14 @@ export async function handler(event) {
       `Usa SOLO le informazioni nei DATI. Se qualcosa manca, rispondi "Non disponibile". ` +
       `Non inventare link o contatti.`;
 
+    // Regola speciale per HOME: se l’utente chiede luoghi/cibo/attività, seleziona dai VENUES fino a 5 nomi pertinenti.
+    const homeVenueGuide = context.venues
+      ? `Se l'utente chiede un luogo o dove mangiare/bere/acquistare (es. "pizzeria", "ristorante", "bar", "panificio", "pasticceria", "farmacia", "tabacchi", "supermercato", "parrucchiere", "estetista", "ferramenta"):
+- Seleziona dai VENUES fino a 5 nomi con categoria pertinente.
+- Elenca solo i nomi (separati da " • "). Non inventare indirizzi o telefoni.
+- Chiudi con: "Per i dettagli apri Esercenti aderenti."`
+      : ``;
+
     const system = isMunicipality
       ? [
           commonHdr,
@@ -238,8 +293,17 @@ export async function handler(event) {
           `Tratta storia locale, progetto/pilot, attività aderenti, festività/eventi e link utili.`,
           `NON parlare di piatti/menu/prezzi.`,
           `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
-          ctas.length ? `Se utile, chiudi con: ${ctas.join(" ")}` : `Evita CTA finali se non pertinenti.`,
-          `DATI: ${JSON.stringify(context)}`,
+          homeVenueGuide,
+          `Se utile, chiudi con: ${ctas.length ? ctas.join(" ") : "—"}`,
+          `DATI: ${JSON.stringify({
+            cityName: context.cityName,
+            about: context.about,
+            pilot: context.pilot,
+            festivities: context.festivities,
+            openData: context.openData,
+            social: context.social,
+            venues: context.venues || []
+          })}`,
         ].join("\n")
       : [
           commonHdr,
@@ -265,7 +329,7 @@ export async function handler(event) {
     const hfUrl = "https://router.huggingface.co/v1/chat/completions";
 
     const r = await withRetry(
-      async () => {
+      async (attempt) => {
         const resp = await fetchWithTimeout(
           hfUrl,
           {
@@ -276,26 +340,29 @@ export async function handler(event) {
             },
             body: JSON.stringify(body),
           },
-          10_000
+          TIMEOUT_MS
         );
 
         // Se rate-limit/errore server → trigger retry
         if (resp.status === 429 || resp.status === 502 || resp.status === 503) {
           const e = new Error(`upstream ${resp.status}`);
           e.code = resp.status;
+          console.warn(`[ask][${requestId}] upstream=${resp.status} attempt=${attempt+1}/${RETRIES} ip=${ip} slug=${slugUsed??"-"}`);
           throw e;
         }
         return resp;
       },
-      { tries: 3, min: 150, max: 350 }
+      { tries: RETRIES, min: BACKOFF_MIN, max: BACKOFF_MAX }
     );
 
     const text = await r.text();
     if (!r.ok) {
       // Mappa in 429/503, niente 500
       if (r.status === 429) {
+        console.warn(`[ask][${requestId}] HF 429 rate-limited ip=${ip} slug=${slugUsed??"-"}`);
         return res(429, { error: "Rate limited by AI" }, { "Retry-After": "2" });
       }
+      console.warn(`[ask][${requestId}] HF ${r.status} mapped->503 ip=${ip} slug=${slugUsed??"-"}`);
       return res(503, { error: "AI temporarily unavailable", detail: text });
     }
 
@@ -308,17 +375,19 @@ export async function handler(event) {
         answer = (raw || "").replace(/\s+$/, "").trim() || answer;
       }
     } catch (e) {
-      console.error("Parse error:", e);
+      console.error(`[ask][${requestId}] parse error`, e);
     }
 
+    console.info(`[ask][${requestId}] ok ip=${ip} slug=${slugUsed??"-"} t=${Date.now()-started}ms`);
     // Manteniamo il formato originale (solo {answer}) per evitare regressioni lato client
     return res(200, { answer });
   } catch (e) {
     // Timeout o eccezioni generiche → 503 (non 500) per forzare fallback senza "errori rossi"
     if (e?.name === "AbortError" || e?.message === "timeout") {
+      console.warn(`[ask][${requestId}] timeout ${TIMEOUT_MS}ms`);
       return res(503, { error: "AI timeout" });
     }
-    console.error(e);
+    console.error(`[ask][${requestId}] fatal`, e);
     return res(503, { error: "Service temporarily unavailable" });
   }
 }
