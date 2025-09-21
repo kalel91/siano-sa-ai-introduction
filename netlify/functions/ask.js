@@ -4,7 +4,7 @@
 // Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout 5s, cache JSON 60s, mappatura errori 429/503.
 // HOME: include elenco esercenti (venues.json) in contesto, con categoria dedotta.
 // Strategia 2025: HYBRID
-// 1) Fast-path deterministico su venues (solo se produce risultati utili).
+// 1) Fast-path deterministico SOLO per richieste di elenco.
 // 2) Altrimenti AI con guardrail e history sanificata.
 
 const TIMEOUT_MS = 5_000;
@@ -14,25 +14,18 @@ const BACKOFF_MAX = 420;
 
 /* ---------- Helpers ---------- */
 function rid() { return Math.random().toString(36).slice(2, 8); }
-const norm = (s) =>
-  String(s).toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "").trim();
+const norm = (s) => String(s).toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "").trim();
 
 function projectCtasFromJson(ctasJson) {
   if (!Array.isArray(ctasJson)) return [];
   return ctasJson
-    .map((c) =>
-      c && typeof c.label === "string" && c.label.trim()
-        ? `[${c.label.trim()}]`
-        : null
-    )
+    .map((c) => c && typeof c.label === "string" && c.label.trim() ? `[${c.label.trim()}]` : null)
     .filter(Boolean);
 }
 
-/* ---- Inferenza di categoria dal nome/tagline (stringhe corte, robuste) ---- */
+/* ---- Inferenza di categoria dal nome/tagline (fallback) ---- */
 function inferCategory(name = "", tagline = "") {
   const t = `${name} ${tagline}`.toLowerCase();
-
-  // food & bar
   if (/pizzer/i.test(t)) return "pizzeria";
   if (/ristorant|trattor|osteria/.test(t)) return "ristorante";
   if (/\bbar\b|caf[èe]|caffetteria/.test(t)) return "bar";
@@ -40,12 +33,8 @@ function inferCategory(name = "", tagline = "") {
   if (/panific|forn|bakery|pane/.test(t)) return "panificio";
   if (/pasticc|dolci|gelat/.test(t)) return "pasticceria";
   if (/kebab|sushi|burger|panin|panuoz|focacci|tavola\s*calda/.test(t)) return "streetfood";
-
-  // salute & professioni
   if (/studio\s*medic|medic[oi]|dottor|dottoress|ambulator|pediatr|dentist|odontoiatr|oculist|ortoped|fisioterap|veterinar/.test(t)) return "medico";
   if (/farmac/.test(t)) return "farmacia";
-
-  // servizi tecnici/professionali
   if (/elettricist/.test(t)) return "elettricista";
   if (/idraulic/.test(t)) return "idraulico";
   if (/meccanic|officina/.test(t)) return "meccanico";
@@ -55,22 +44,17 @@ function inferCategory(name = "", tagline = "") {
   if (/avvocat/.test(t)) return "avvocato";
   if (/commercialist|ragionier/.test(t)) return "commercialista";
   if (/architett|ingegner/.test(t)) return "tecnico";
-
-  // cura persona & retail
   if (/parrucch|barbier/.test(t)) return "parrucchiere";
   if (/estetica|estetist|beauty/.test(t)) return "estetista";
   if (/ferrament/.test(t)) return "ferramenta";
-  if (/tabac/i.test(t)) return "tabacchi";           // ripristinato
+  if (/tabac/i.test(t)) return "tabacchi";
   if (/supermerc|market|alimentar/.test(t)) return "supermercato";
-
   return "altro";
 }
 
-/* ---- Normalizzazione categoria dichiarata (venues.json) ---- */
+/* ---- Normalizzazione categoria dichiarata in venues.json ---- */
 function normalizeCategory(cat = "") {
   const t = String(cat).toLowerCase().trim();
-
-  // food & bar
   if (/pizzer/.test(t)) return "pizzeria";
   if (/ristor|trattor|osteria/.test(t)) return "ristorante";
   if (/\bbar\b|caff[eè]|caffetteri/.test(t)) return "bar";
@@ -78,12 +62,8 @@ function normalizeCategory(cat = "") {
   if (/panific|forn|bakery|pane/.test(t)) return "panificio";
   if (/pasticc|dolci|gelat/.test(t)) return "pasticceria";
   if (/kebab|sushi|burger|panin|panuoz|focacci|tavola\s*calda|street/.test(t)) return "streetfood";
-
-  // salute & professioni
   if (/medic|studio\s*medic|dottor|dottoress|pediatr|dentist|odontoiatr|oculist|ortoped|fisioterap|veterinar/.test(t)) return "medico";
   if (/farmac/.test(t)) return "farmacia";
-
-  // servizi tecnici/professionali
   if (/elettricist/.test(t)) return "elettricista";
   if (/idraulic/.test(t)) return "idraulico";
   if (/meccanic|officina/.test(t)) return "meccanico";
@@ -93,18 +73,15 @@ function normalizeCategory(cat = "") {
   if (/avvocat/.test(t)) return "avvocato";
   if (/commercialist|ragionier/.test(t)) return "commercialista";
   if (/architett|ingegner/.test(t)) return "tecnico";
-
-  // cura persona & retail
   if (/parrucch|barbier/.test(t)) return "parrucchiere";
   if (/estetica|estetist|beauty/.test(t)) return "estetista";
   if (/ferrament/.test(t)) return "ferramenta";
   if (/tabac/.test(t)) return "tabacchi";
   if (/supermerc|market|alimentar/.test(t)) return "supermercato";
-
-  return ""; // sconosciuta → lascia all’inferenza
+  return "";
 }
 
-/* ---- Sinonimi → categoria target (per interpretare la domanda) ---- */
+/* ---- Sinonimi → categoria (per capire la domanda) ---- */
 const CATEGORY_SYNONYMS = [
   { cat: "pizzeria",      re: /(pizza|pizzer\w*)/i },
   { cat: "ristorante",    re: /(ristor\w*|trattor\w*|osteria\w*)/i },
@@ -113,10 +90,8 @@ const CATEGORY_SYNONYMS = [
   { cat: "panificio",     re: /(panific\w*|forn\w*|bakery|pane)/i },
   { cat: "pasticceria",   re: /(pasticc\w*|pasticceria|dolc\w*|gelat\w*)/i },
   { cat: "streetfood",    re: /(kebab|sushi|burger|panin\w*|panuoz\w*|focacci\w*|tavola\s*calda)/i },
-
   { cat: "medico",        re: /(medic\w*|studio\s*medic\w*|dottor\w*|dottoress\w*|pediatr\w*|dentist\w*|odontoiatr\w*|oculist\w*|ortoped\w*|fisioterap\w*|veterinar\w*|dott\.)/i },
   { cat: "farmacia",      re: /farmac\w*/i },
-
   { cat: "elettricista",  re: /elettricist\w*/i },
   { cat: "idraulico",     re: /idraulic\w*/i },
   { cat: "meccanico",     re: /meccanic\w*|officina/i },
@@ -126,7 +101,6 @@ const CATEGORY_SYNONYMS = [
   { cat: "avvocato",      re: /avvocat\w*/i },
   { cat: "commercialista",re: /commercialist\w*|ragionier\w*/i },
   { cat: "tecnico",       re: /architett\w*|ingegner\w*/i },
-
   { cat: "parrucchiere",  re: /parrucch\w*|barbier\w*/i },
   { cat: "estetista",     re: /estetica|estetist\w*|beauty/i },
   { cat: "ferramenta",    re: /ferrament\w*/i },
@@ -134,7 +108,13 @@ const CATEGORY_SYNONYMS = [
   { cat: "supermercato",  re: /supermerc\w*|market|alimentar\w*/i },
 ];
 
-/* ---- Mini helper per fast-path ---- */
+/* ---- Intents: elenco vs narrativo/valutativo ---- */
+const LISTING_RE =
+  /\b(elenc|lista|mostra|cerca|trova|quali|quale sono|dove|dov'|indicami|suggerisc|consigli|disponibil|tutti|tutte)\b/i;
+
+const NARRATIVE_RE =
+  /\b(stori|raccont|dettagli|informaz|descrizion|parlami|spiega|miglior|migliore|chi fa|recension)\b/i;
+
 function matchCategoryFromQuestion(q) {
   const t = norm(q);
   for (const { cat, re } of CATEGORY_SYNONYMS) if (re.test(t)) return cat;
@@ -146,10 +126,7 @@ function filterVenuesByCategory(raw, targetCat) {
   return inArr
     .map(v => {
       const name = String(v?.n || v?.name || "").trim();
-      const cat =
-        String(v?.c || "") ||
-        normalizeCategory(v?.category) ||
-        inferCategory(v?.name, v?.tagline);
+      const cat = String(v?.c || "") || normalizeCategory(v?.category) || inferCategory(v?.name, v?.tagline);
       return { n: name, c: cat };
     })
     .filter(x => x.n && x.c === targetCat);
@@ -162,15 +139,10 @@ function pickNames(list, max = 5) {
 function res(status, bodyObj, extraHeaders = {}) {
   return {
     statusCode: status,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      ...extraHeaders,
-    },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extraHeaders },
     body: typeof bodyObj === "string" ? bodyObj : JSON.stringify(bodyObj),
   };
 }
-
 const BUCKET = new Map();
 const RATE = { capacity: 3, refillMs: 1500 };
 function allow(ip) {
@@ -182,7 +154,6 @@ function allow(ip) {
   if (s.tokens <= 0) { BUCKET.set(ip, s); return false; }
   s.tokens -= 1; BUCKET.set(ip, s); return true;
 }
-
 async function withRetry(fn, { tries = RETRIES, min = BACKOFF_MIN, max = BACKOFF_MAX } = {}) {
   let lastErr;
   for (let i = 0; i < tries; i++) {
@@ -196,7 +167,6 @@ async function fetchWithTimeout(url, opts = {}, ms = TIMEOUT_MS) {
   try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
   finally { clearTimeout(t); }
 }
-
 const JSON_CACHE = new Map();
 const JSON_TTL = 60_000;
 async function fetchJsonCached(url) {
@@ -222,7 +192,7 @@ export async function handler(event) {
     const model = String(payload.model || "deepseek-ai/DeepSeek-V3.1");
     if (!question) return res(400, { error: "Bad request: missing question" });
 
-    // History hardening: accetta solo user/assistant e tronca contenuto
+    // History hardening
     const rawHist = Array.isArray(payload.history) ? payload.history.slice(-6) : [];
     const history = rawHist
       .map((m) => {
@@ -241,9 +211,7 @@ export async function handler(event) {
     const origin = process.env.URL || process.env.DEPLOY_PRIME_URL || (host ? `${proto}://${host}` : "");
 
     // Carica dati: inline oppure via slug
-    let data = payload.data;
-    let slugUsed = null;
-
+    let data = payload.data; let slugUsed = null;
     if (!data) {
       const slug = String(payload.slug || "").trim();
       if (!slug) return res(400, { error: "Bad request: missing data or slug" });
@@ -259,27 +227,19 @@ export async function handler(event) {
       ? data?.assistant?.panelTitle || `Assistente digitale del ${brand}`
       : `Assistente di ${brand}`;
 
-    let context = {};
-    let ctas = [];
+    let context = {}; let ctas = [];
 
     if (isMunicipality) {
       context = {
         cityName: data.cityName,
         about: data?.about?.text,
-        pilot: {
-          title: data?.pilot?.title,
-          intro: data?.pilot?.intro,
-          goals: data?.pilot?.goals,
-          governance: data?.pilot?.governance,
-        },
-        festivities: Array.isArray(data?.festivities)
-          ? data.festivities.map((f) => ({ name: f?.name, month: f?.month, description: f?.description }))
-          : [],
+        pilot: { title: data?.pilot?.title, intro: data?.pilot?.intro, goals: data?.pilot?.goals, governance: data?.pilot?.governance },
+        festivities: Array.isArray(data?.festivities) ? data.festivities.map((f) => ({ name: f?.name, month: f?.month, description: f?.description })) : [],
         openData: data?.openData?.jsonUrl || data?.openData?.csvUrl || null,
         social: data?.social || null,
       };
 
-      // Allego elenco esercenti compatto (nome + categoria normalizzata o dedotta)
+      // venues compatti (nome + categoria normalizzata o dedotta)
       try {
         const venues = await fetchJsonCached(`${origin}/data/venues.json`);
         if (Array.isArray(venues) && venues.length) {
@@ -306,9 +266,7 @@ export async function handler(event) {
         specials: data?.menu?.specials || [],
         categories: (Array.isArray(data?.menu?.categories) ? data.menu.categories : []).map((c) => ({
           name: c?.name,
-          items: (Array.isArray(c?.items) ? c.items : []).map((i) => ({
-            name: i?.name, desc: i?.desc, price: i?.price, tags: i?.tags, fav: i?.fav,
-          })),
+          items: (Array.isArray(c?.items) ? c.items : []).map((i) => ({ name: i?.name, desc: i?.desc, price: i?.price, tags: i?.tags, fav: i?.fav })),
         })),
       };
       if (data?.config?.phone) ctas.push("[Chiama]");
@@ -319,16 +277,18 @@ export async function handler(event) {
       if (rootCtas.length || nestedCtas.length) ctas = [...new Set([...ctas, ...rootCtas, ...nestedCtas])];
     }
 
-    /* ========= FAST-PATH DETERMINISTICO (solo HOME) ========= */
+    /* ========= FAST-PATH DETERMINISTICO (solo HOME, SOLO richieste elenco) ========= */
     if (isMunicipality && Array.isArray(context.venues) && context.venues.length) {
       const cat = matchCategoryFromQuestion(question);
-      if (cat) {
+      const wantsList = LISTING_RE.test(question);
+      const isNarr = NARRATIVE_RE.test(question);
+      if (cat && wantsList && !isNarr) {
         const matches = filterVenuesByCategory(context.venues, cat);
         if (matches.length) {
           const names = pickNames(matches, 5);
           return res(200, { answer: `${names}. Per altri apri “Esercenti aderenti”.` });
         }
-        // nessun risultato: si prosegue con l’AI
+        // zero match → passa all’AI
       }
     }
 
@@ -342,8 +302,8 @@ export async function handler(event) {
       ? `Se l'utente chiede un'attività/professione o un luogo (es. pizzeria, medico, farmacia, elettricista, parrucchiere, tabacchi, ecc.):
 - seleziona dai VENUES fino a 5 nomi con categoria pertinente;
 - elenca solo i nomi (separati da " • ");
-- chiudi con "Per altri apri Esercenti aderenti."`
-      : ``;
+- chiudi con "Per altri apri Esercenti aderenti."
+Se l'utente chiede storie, confronti o qualità e i DATI non includono tali informazioni, rispondi "Non disponibile" e suggerisci di aprire "Esercenti aderenti" per i dettagli.` : ``;
 
     const system = isMunicipality
       ? [
@@ -354,15 +314,7 @@ export async function handler(event) {
           `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
           municipalGuide,
           `Se utile, chiudi con: ${ctas.length ? ctas.join(" ") : "—"}`,
-          `DATI: ${JSON.stringify({
-            cityName: context.cityName,
-            about: context.about,
-            pilot: context.pilot,
-            festivities: context.festivities,
-            openData: context.openData,
-            social: context.social,
-            venues: context.venues || []
-          })}`,
+          `DATI: ${JSON.stringify({ cityName: context.cityName, about: context.about, pilot: context.pilot, festivities: context.festivities, openData: context.openData, social: context.social, venues: context.venues || [] })}`,
         ].join("\n")
       : [
           commonHdr,
@@ -375,7 +327,6 @@ export async function handler(event) {
 
     const messages = [
       { role: "system", content: system },
-      // history sanificata: opzionale, accetta solo user/assistant e max 600 char ciascuno
       ...history,
       { role: "user", content: String(question) },
     ];
@@ -384,7 +335,6 @@ export async function handler(event) {
 
     /* ========== Chiamata a Hugging Face con retry/timeout ========== */
     const hfUrl = "https://router.huggingface.co/v1/chat/completions";
-
     const r = await withRetry(
       async () => {
         const resp = await fetchWithTimeout(
@@ -392,9 +342,7 @@ export async function handler(event) {
           { method: "POST", headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(body) },
           TIMEOUT_MS
         );
-        if (resp.status === 429 || resp.status === 502 || resp.status === 503) {
-          const e = new Error(`upstream ${resp.status}`); e.code = resp.status; throw e;
-        }
+        if (resp.status === 429 || resp.status === 502 || resp.status === 503) { const e = new Error(`upstream ${resp.status}`); e.code = resp.status; throw e; }
         return resp;
       },
       { tries: RETRIES, min: BACKOFF_MIN, max: BACKOFF_MAX }
