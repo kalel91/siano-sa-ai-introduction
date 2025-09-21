@@ -2,8 +2,10 @@
 // Runtime: Node 18+
 // Endpoint usato dal widget quando l’AI è “online”.
 // Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout 5s, cache JSON 60s, mappatura errori 429/503.
-// Esteso per HOME: include elenco esercenti (venues.json) in contesto, con categoria dedotta.
-// Esteso (GENERALE): fallback deterministico per domande su CATEGORIE/PROFESSIONI (medici ecc.), non solo food.
+// HOME: include elenco esercenti (venues.json) in contesto, con categoria dedotta.
+// Strategia 2025: HYBRID
+// 1) Fast-path deterministico su venues (solo se produce risultati utili).
+// 2) Altrimenti AI con guardrail e history sanificata.
 
 const TIMEOUT_MS = 5_000;
 const RETRIES = 3;
@@ -29,6 +31,7 @@ function projectCtasFromJson(ctasJson) {
 /* ---- Inferenza di categoria dal nome/tagline (stringhe corte, robuste) ---- */
 function inferCategory(name = "", tagline = "") {
   const t = `${name} ${tagline}`.toLowerCase();
+
   // food & bar
   if (/pizzer/i.test(t)) return "pizzeria";
   if (/ristorant|trattor|osteria/.test(t)) return "ristorante";
@@ -37,9 +40,11 @@ function inferCategory(name = "", tagline = "") {
   if (/panific|forn|bakery|pane/.test(t)) return "panificio";
   if (/pasticc|dolci|gelat/.test(t)) return "pasticceria";
   if (/kebab|sushi|burger|panin|panuoz|focacci|tavola\s*calda/.test(t)) return "streetfood";
+
   // salute & professioni
   if (/studio\s*medic|medic[oi]|dottor|dottoress|ambulator|pediatr|dentist|odontoiatr|oculist|ortoped|fisioterap|veterinar/.test(t)) return "medico";
   if (/farmac/.test(t)) return "farmacia";
+
   // servizi tecnici/professionali
   if (/elettricist/.test(t)) return "elettricista";
   if (/idraulic/.test(t)) return "idraulico";
@@ -50,72 +55,106 @@ function inferCategory(name = "", tagline = "") {
   if (/avvocat/.test(t)) return "avvocato";
   if (/commercialist|ragionier/.test(t)) return "commercialista";
   if (/architett|ingegner/.test(t)) return "tecnico";
+
   // cura persona & retail
   if (/parrucch|barbier/.test(t)) return "parrucchiere";
   if (/estetica|estetist|beauty/.test(t)) return "estetista";
   if (/ferrament/.test(t)) return "ferramenta";
+  if (/tabac/i.test(t)) return "tabacchi";           // ripristinato
   if (/supermerc|market|alimentar/.test(t)) return "supermercato";
+
   return "altro";
 }
 
-/* ---- Sinonimi → categoria target (per il matching domanda) ---- */
+/* ---- Normalizzazione categoria dichiarata (venues.json) ---- */
+function normalizeCategory(cat = "") {
+  const t = String(cat).toLowerCase().trim();
+
+  // food & bar
+  if (/pizzer/.test(t)) return "pizzeria";
+  if (/ristor|trattor|osteria/.test(t)) return "ristorante";
+  if (/\bbar\b|caff[eè]|caffetteri/.test(t)) return "bar";
+  if (/bracer|griglier|brace/.test(t)) return "braceria";
+  if (/panific|forn|bakery|pane/.test(t)) return "panificio";
+  if (/pasticc|dolci|gelat/.test(t)) return "pasticceria";
+  if (/kebab|sushi|burger|panin|panuoz|focacci|tavola\s*calda|street/.test(t)) return "streetfood";
+
+  // salute & professioni
+  if (/medic|studio\s*medic|dottor|dottoress|pediatr|dentist|odontoiatr|oculist|ortoped|fisioterap|veterinar/.test(t)) return "medico";
+  if (/farmac/.test(t)) return "farmacia";
+
+  // servizi tecnici/professionali
+  if (/elettricist/.test(t)) return "elettricista";
+  if (/idraulic/.test(t)) return "idraulico";
+  if (/meccanic|officina/.test(t)) return "meccanico";
+  if (/fabbro/.test(t)) return "fabbro";
+  if (/falegnam/.test(t)) return "falegname";
+  if (/murator|edil/.test(t)) return "edile";
+  if (/avvocat/.test(t)) return "avvocato";
+  if (/commercialist|ragionier/.test(t)) return "commercialista";
+  if (/architett|ingegner/.test(t)) return "tecnico";
+
+  // cura persona & retail
+  if (/parrucch|barbier/.test(t)) return "parrucchiere";
+  if (/estetica|estetist|beauty/.test(t)) return "estetista";
+  if (/ferrament/.test(t)) return "ferramenta";
+  if (/tabac/.test(t)) return "tabacchi";
+  if (/supermerc|market|alimentar/.test(t)) return "supermercato";
+
+  return ""; // sconosciuta → lascia all’inferenza
+}
+
+/* ---- Sinonimi → categoria target (per interpretare la domanda) ---- */
 const CATEGORY_SYNONYMS = [
-  { cat: "pizzeria", re: /(pizza|pizzer)/i },
-  { cat: "ristorante", re: /(ristor|trattor|osteria)/i },
-  { cat: "bar", re: /\bbar\b|caffe|caffetteria/i },
-  { cat: "braceria", re: /(bracer|griglier|brace)/i },
-  { cat: "panificio", re: /(panific|forn|bakery|pane)/i },
-  { cat: "pasticceria", re: /(pasticc|pasticceria|dolci|gelat)/i },
-  { cat: "streetfood", re: /(kebab|sushi|burger|panin|panuoz|focacci|tavola\s*calda)/i },
+  { cat: "pizzeria",      re: /(pizza|pizzer\w*)/i },
+  { cat: "ristorante",    re: /(ristor\w*|trattor\w*|osteria\w*)/i },
+  { cat: "bar",           re: /\bbar\b|caff[eè]|caffetteri\w*/i },
+  { cat: "braceria",      re: /(bracer\w*|griglier\w*|brace)/i },
+  { cat: "panificio",     re: /(panific\w*|forn\w*|bakery|pane)/i },
+  { cat: "pasticceria",   re: /(pasticc\w*|pasticceria|dolc\w*|gelat\w*)/i },
+  { cat: "streetfood",    re: /(kebab|sushi|burger|panin\w*|panuoz\w*|focacci\w*|tavola\s*calda)/i },
 
-  { cat: "medico", re: /(medic|studio\s*medic|dottor|dottoress|pediatr|dentist|odontoiatr|oculist|ortoped|fisioterap|veterinar|dott\.)/i },
-  { cat: "farmacia", re: /farmac/i },
+  { cat: "medico",        re: /(medic\w*|studio\s*medic\w*|dottor\w*|dottoress\w*|pediatr\w*|dentist\w*|odontoiatr\w*|oculist\w*|ortoped\w*|fisioterap\w*|veterinar\w*|dott\.)/i },
+  { cat: "farmacia",      re: /farmac\w*/i },
 
-  { cat: "elettricista", re: /elettricist/i },
-  { cat: "idraulico", re: /idraulic/i },
-  { cat: "meccanico", re: /meccanic|officina/i },
-  { cat: "fabbro", re: /fabbro/i },
-  { cat: "falegname", re: /falegnam/i },
-  { cat: "edile", re: /murator|edil/i },
-  { cat: "avvocato", re: /avvocat/i },
-  { cat: "commercialista", re: /commercialist|ragionier/i },
-  { cat: "tecnico", re: /architett|ingegner/i },
+  { cat: "elettricista",  re: /elettricist\w*/i },
+  { cat: "idraulico",     re: /idraulic\w*/i },
+  { cat: "meccanico",     re: /meccanic\w*|officina/i },
+  { cat: "fabbro",        re: /fabbro/i },
+  { cat: "falegname",     re: /falegnam\w*/i },
+  { cat: "edile",         re: /murator\w*|edil\w*/i },
+  { cat: "avvocato",      re: /avvocat\w*/i },
+  { cat: "commercialista",re: /commercialist\w*|ragionier\w*/i },
+  { cat: "tecnico",       re: /architett\w*|ingegner\w*/i },
 
-  { cat: "parrucchiere", re: /parrucch|barbier/i },
-  { cat: "estetista", re: /estetica|estetist|beauty/i },
-  { cat: "ferramenta", re: /ferrament/i },
-  { cat: "supermercato", re: /supermerc|market|alimentar/i },
+  { cat: "parrucchiere",  re: /parrucch\w*|barbier\w*/i },
+  { cat: "estetista",     re: /estetica|estetist\w*|beauty/i },
+  { cat: "ferramenta",    re: /ferrament\w*/i },
+  { cat: "tabacchi",      re: /tabac\w*/i },
+  { cat: "supermercato",  re: /supermerc\w*|market|alimentar\w*/i },
 ];
 
-/* Intent generico “categoria/professione cercata?” */
+/* ---- Mini helper per fast-path ---- */
 function matchCategoryFromQuestion(q) {
   const t = norm(q);
-  for (const { cat, re } of CATEGORY_SYNONYMS) {
-    if (re.test(t)) return cat;
-  }
-  // pattern generico “elenca tutti gli esercenti”
-  if (/\b(tutt[oi]|elenc|lista|tutti gli esercenti)\b/i.test(t)) return "__all__";
+  for (const { cat, re } of CATEGORY_SYNONYMS) if (re.test(t)) return cat;
   return null;
 }
-
-const FOLLOWUP_RE =
-  /^(si|s[iì]|ok|va bene|quali|quale|altri|altre|altro|ancora|poi|dimmi|cos'?altro|solo\??)\b/i;
-
-/* utilities per selezione nomi */
 function filterVenuesByCategory(raw, targetCat) {
   const inArr = Array.isArray(raw) ? raw : [];
-  if (targetCat === "__all__") {
-    return inArr.map(v => ({ n: v?.n || v?.name, c: v?.c || v?.category })).filter(x => x.n);
-  }
+  if (!targetCat) return [];
   return inArr
-    .map(v => ({
-      n: String(v?.n || v?.name || "").trim(),
-      c: String(v?.c || v?.category || inferCategory(v?.name, v?.tagline)),
-    }))
+    .map(v => {
+      const name = String(v?.n || v?.name || "").trim();
+      const cat =
+        String(v?.c || "") ||
+        normalizeCategory(v?.category) ||
+        inferCategory(v?.name, v?.tagline);
+      return { n: name, c: cat };
+    })
     .filter(x => x.n && x.c === targetCat);
 }
-function pickNames(list, many) {
-  const max = many ? 8 : 4;
+function pickNames(list, max = 5) {
   return list.slice(0, max).map(x => x.n).join(" • ");
 }
 
@@ -139,10 +178,7 @@ function allow(ip) {
   const s = BUCKET.get(ip) ?? { tokens: RATE.capacity, last: now };
   const elapsed = now - s.last;
   const add = Math.floor(elapsed / RATE.refillMs);
-  if (add > 0) {
-    s.tokens = Math.min(RATE.capacity, s.tokens + add);
-    s.last = now;
-  }
+  if (add > 0) { s.tokens = Math.min(RATE.capacity, s.tokens + add); s.last = now; }
   if (s.tokens <= 0) { BUCKET.set(ip, s); return false; }
   s.tokens -= 1; BUCKET.set(ip, s); return true;
 }
@@ -173,9 +209,6 @@ async function fetchJsonCached(url) {
 
 /* ---------- Handler ---------- */
 export async function handler(event) {
-  const requestId = rid();
-  const started = Date.now();
-
   try {
     if (event.httpMethod !== "POST") return res(405, { error: "Method Not Allowed" });
 
@@ -187,8 +220,18 @@ export async function handler(event) {
     const payload = JSON.parse(event.body || "{}");
     const question = String(payload.question || "").trim();
     const model = String(payload.model || "deepseek-ai/DeepSeek-V3.1");
-    const history = Array.isArray(payload.history) ? payload.history.slice(-6) : []; // opzionale, no-regression
     if (!question) return res(400, { error: "Bad request: missing question" });
+
+    // History hardening: accetta solo user/assistant e tronca contenuto
+    const rawHist = Array.isArray(payload.history) ? payload.history.slice(-6) : [];
+    const history = rawHist
+      .map((m) => {
+        const role = m?.role === "assistant" ? "assistant" : (m?.role === "user" ? "user" : null);
+        const text = typeof m?.text === "string" ? m.text : "";
+        if (!role || !text) return null;
+        return { role, content: String(text).slice(0, 600) };
+      })
+      .filter(Boolean);
 
     const HF_KEY = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || "";
     if (!HF_KEY) return res(503, { error: "AI not configured (HF_TOKEN missing)" });
@@ -197,6 +240,7 @@ export async function handler(event) {
     const proto = (event.headers?.["x-forwarded-proto"] || "https").split(",")[0].trim();
     const origin = process.env.URL || process.env.DEPLOY_PRIME_URL || (host ? `${proto}://${host}` : "");
 
+    // Carica dati: inline oppure via slug
     let data = payload.data;
     let slugUsed = null;
 
@@ -235,13 +279,16 @@ export async function handler(event) {
         social: data?.social || null,
       };
 
+      // Allego elenco esercenti compatto (nome + categoria normalizzata o dedotta)
       try {
         const venues = await fetchJsonCached(`${origin}/data/venues.json`);
         if (Array.isArray(venues) && venues.length) {
-          const vlist = venues.map((v) => ({
-            n: String(v?.name || "").trim(),
-            c: inferCategory(String(v?.name || ""), String(v?.tagline || "")),
-          })).filter(x => x.n);
+          const vlist = venues.map((v) => {
+            const name = String(v?.name || "").trim();
+            const catFromFile = normalizeCategory(v?.category);
+            const cat = catFromFile || inferCategory(String(v?.name || ""), String(v?.tagline || ""));
+            return { n: name, c: cat };
+          }).filter(x => x.n && x.c);
           context.venues = vlist;
         }
       } catch {}
@@ -272,30 +319,27 @@ export async function handler(event) {
       if (rootCtas.length || nestedCtas.length) ctas = [...new Set([...ctas, ...rootCtas, ...nestedCtas])];
     }
 
-    /* ======= FALLBACK deterministico per HOME: qualsiasi CATEGORIA/professione ======= */
+    /* ========= FAST-PATH DETERMINISTICO (solo HOME) ========= */
     if (isMunicipality && Array.isArray(context.venues) && context.venues.length) {
       const cat = matchCategoryFromQuestion(question);
-      const wantsMore = FOLLOWUP_RE.test(norm(question));
       if (cat) {
-        const list = filterVenuesByCategory(context.venues, cat);
-        if (list.length) {
-          const names = pickNames(list, wantsMore);
-          const tail = wantsMore
-            ? " Per l’elenco completo apri “Esercenti aderenti”."
-            : " Per altri, apri “Esercenti aderenti”.";
-          return res(200, { answer: `${names}.${tail}` });
+        const matches = filterVenuesByCategory(context.venues, cat);
+        if (matches.length) {
+          const names = pickNames(matches, 5);
+          return res(200, { answer: `${names}. Per altri apri “Esercenti aderenti”.` });
         }
+        // nessun risultato: si prosegue con l’AI
       }
     }
 
-    /* ========== PROMPT ========== */
+    /* ========== PROMPT (AI) ========== */
     const commonHdr =
       `Sei "${assistantTitle}". Rispondi nella lingua dell'utente, max 90 parole, tono cortese e sintetico. ` +
       `Usa SOLO le informazioni nei DATI. Se qualcosa manca, rispondi "Non disponibile". ` +
       `Non inventare link o contatti.`;
 
     const municipalGuide = context.venues
-      ? `Se l'utente chiede un'attività/professione o un luogo (es. pizzeria, medico, farmacia, elettricista, parrucchiere, ecc.)
+      ? `Se l'utente chiede un'attività/professione o un luogo (es. pizzeria, medico, farmacia, elettricista, parrucchiere, tabacchi, ecc.):
 - seleziona dai VENUES fino a 5 nomi con categoria pertinente;
 - elenca solo i nomi (separati da " • ");
 - chiudi con "Per altri apri Esercenti aderenti."`
@@ -331,7 +375,8 @@ export async function handler(event) {
 
     const messages = [
       { role: "system", content: system },
-      ...history,                                  // opzionale (no-regression)
+      // history sanificata: opzionale, accetta solo user/assistant e max 600 char ciascuno
+      ...history,
       { role: "user", content: String(question) },
     ];
 
@@ -341,7 +386,7 @@ export async function handler(event) {
     const hfUrl = "https://router.huggingface.co/v1/chat/completions";
 
     const r = await withRetry(
-      async (attempt) => {
+      async () => {
         const resp = await fetchWithTimeout(
           hfUrl,
           { method: "POST", headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(body) },
