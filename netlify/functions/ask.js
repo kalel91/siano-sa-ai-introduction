@@ -7,7 +7,7 @@
 // 1) Fast-path deterministico SOLO per richieste di elenco.
 // 2) Altrimenti AI con guardrail e history sanificata.
 
-const TIMEOUT_MS = 5_000;
+const TIMEOUT_MS = 20_000;
 const RETRIES = 3;
 const BACKOFF_MIN = 180;
 const BACKOFF_MAX = 420;
