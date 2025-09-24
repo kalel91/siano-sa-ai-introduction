@@ -288,6 +288,26 @@ function offlineAnswer(
   return { text: "Ciao, per ora non ho altre proposte." + example, used: [], exhausted: true };
 }
 
+/** -------- PERSISTENZA SESSIONE (aggiunta minimale) -------- */
+const STORE_PREFIX = "sianoai_chat_";
+const MAX_TURNS = 20;
+
+function loadStored(slug: string): Msg[] {
+  try {
+    const raw = localStorage.getItem(STORE_PREFIX + slug);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.text === "string");
+  } catch { return []; }
+}
+function saveStored(slug: string, history: Msg[]) {
+  try {
+    const trimmed = history.slice(-MAX_TURNS);
+    localStorage.setItem(STORE_PREFIX + slug, JSON.stringify(trimmed));
+  } catch { /* ignore */ }
+}
+
 /** -------- Component -------- */
 export default function ChatWidget({
   slug, phone, mapsUrl, venueName, buttonLabel, panelTitle, quickReplies, ctas, whatsapp, whatsDefaultMsg,
@@ -320,6 +340,14 @@ export default function ChatWidget({
       .then((j) => { dataRef.current = j as MenuJson; setDataVersion(v => v + 1); })
       .catch(() => {});
   }, [slug]);
+
+  // Ripristino chat salvata (se presente) e salvataggio continuo
+  React.useEffect(() => {
+    const stored = loadStored(slug);
+    if (stored.length) setHistory(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+  React.useEffect(() => { saveStored(slug, history); }, [slug, history]);
 
   function getAIEndpoint(): string {
     const env = (import.meta as any)?.env;
@@ -451,7 +479,10 @@ export default function ChatWidget({
     try {
       const endpoint = getAIEndpoint();
       const isNetlify = endpoint.includes("/.netlify/functions/");
-      const payload = isNetlify ? { slug, question: q } : { question: q, data };
+      // >>> PATCH MINIMA: aggiungo history (ultimi turni) nel payload <<<
+      const recent = history.slice(-MAX_TURNS).map(m => ({ role: m.role, text: m.text }));
+      const payload = isNetlify ? { slug, question: q, history: recent } : { question: q, data, history: recent };
+
       const resp = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
 
       if (!resp.ok) {

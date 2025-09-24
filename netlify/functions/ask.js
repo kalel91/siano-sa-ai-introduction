@@ -355,10 +355,11 @@ export async function handler(event) {
     }
 
     /* ========== PROMPT (AI) ========== */
+    // >>> PATCH MINIMA: prompt più libero, ma senza inventare dati locali <<<
     const commonHdr =
       `Sei "${assistantTitle}". Rispondi nella lingua dell'utente, max 90 parole, tono cortese e sintetico. ` +
-      `Usa SOLO le informazioni nei DATI. Se qualcosa manca, rispondi "Non disponibile". ` +
-      `Non inventare link o contatti.`;
+      `Dai priorità alle informazioni nei DATI locali. Se qualcosa non è presente nei DATI, puoi aggiungere informazioni [Generale] non locali utili al cittadino/cliente. ` +
+      `Non inventare dati locali (orari, prezzi, telefoni). Non inventare link o contatti.`;
 
     const municipalGuide = context.venues
       ? `Se l'utente chiede un'attività/professione o un luogo (es. pizzeria, medico, farmacia, elettricista, parrucchiere, tabacchi, ecc.):
