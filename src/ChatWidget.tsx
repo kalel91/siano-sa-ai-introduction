@@ -41,7 +41,6 @@ type MenuJson = {
     faq?: Record<string, string>;
     ctas?: CtaJson[];
   };
-  // dati per la home comunale
   municipal?: {
     hoursShort?: string;
     address?: string;
@@ -121,7 +120,6 @@ function isHoursIntent(q: string): boolean {
 }
 function isContactIntent(q: string): boolean {
   const t = norm(q);
-  // aggiunte: cellulare/cell, recapiti, “numero (di) telefono/cellulare”
   if (/\b(contatt\w*|telefono|tel\.?|chiama\w*|whatsapp|cellular\w*|cell|phone|telephone|recapit\w*)\b/.test(t)) return true;
   if (/\bnumero(\s+di)?\s+(telefono|cellulare)\b/.test(t)) return true;
   return false;
@@ -148,14 +146,12 @@ function extractContacts(data: MenuJson): { phone?: string; whatsapp?: string } 
   const muni = (data as any)?.municipal || {};
   const mC = muni?.contacts || {};
 
-  // 1) chiavi note (incluse “switchboard/centralino”)
   const phone =
     cfg.phone ||
     firstString(mC, [
       "phone", "telefono", "tel", "mobile", "cell", "cellulare", "phoneNumber",
       "switchboard", "centralino", "centralinoComune", "numeroTelefono", "numero"
     ]) ||
-    // 2) fallback euristico: prendi il primo valore stringa che contenga ≥5 cifre
     (() => {
       try {
         const vals = Object.values(mC) as any[];
@@ -200,7 +196,7 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
     return desc || "Al momento non è stata inserita una descrizione.";
   }
   if (isServicesIntent(topicRaw)) {
-    const cats = data.menu?.categories || [];
+    const cats = (data.menu?.categories || []);
     if (!cats.length) return "Non ho un elenco di servizi/prodotti pubblicato.";
     const names = cats.map(c=>c.name).slice(0,5).join(" • ");
     return `Posso mostrarti alcune categorie: ${names}. Scrivi una parola chiave oppure apri una categoria.`;
@@ -220,7 +216,6 @@ function offlineAnswer(
   const tAns = topicAnswer(q, data);
   if (tAns) return { text: tAns, used: [], exhausted: false };
 
-  // home comunale: orari / indirizzo anche in locale
   if (isHoursIntent(q)) {
     const muni = (data as any)?.municipal;
     const base =
@@ -230,7 +225,6 @@ function offlineAnswer(
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
 
-  // contatti in locale (config + municipal.contacts)
   if (isContactIntent(q)) {
     const { phone, whatsapp } = extractContacts(data);
     const parts: string[] = [];
@@ -250,7 +244,6 @@ function offlineAnswer(
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
 
-  // menu / catalogo
   const filters = parseFilters(q);
   const pool = buildCandidates(data, filters, already);
 
@@ -288,10 +281,9 @@ function offlineAnswer(
   return { text: "Ciao, per ora non ho altre proposte." + example, used: [], exhausted: true };
 }
 
-/** -------- PERSISTENZA SESSIONE (aggiunta minimale) -------- */
+/** -------- PERSISTENZA SESSIONE -------- */
 const STORE_PREFIX = "sianoai_chat_";
 const MAX_TURNS = 20;
-
 function loadStored(slug: string): Msg[] {
   try {
     const raw = localStorage.getItem(STORE_PREFIX + slug);
@@ -306,6 +298,96 @@ function saveStored(slug: string, history: Msg[]) {
     const trimmed = history.slice(-MAX_TURNS);
     localStorage.setItem(STORE_PREFIX + slug, JSON.stringify(trimmed));
   } catch { /* ignore */ }
+}
+
+/** -------- ANIMAZIONI FAB (CSS-only, zero dipendenze) -------- */
+const FAB_STYLE_ID = "sianoai-fab-anim-v3";
+function ensureFabStyleInjected() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(FAB_STYLE_ID)) return;
+
+  const css = `
+  /* --- Keyframes potenziati --- */
+  @keyframes fab-breathe { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1.5px) scale(1.06); } }
+  @keyframes fab-pulse-ring-strong { 0% { opacity:.6; transform: scale(0.98); }
+                                     60% { opacity:.08; transform: scale(2.2); }
+                                     100% { opacity:0; transform: scale(2.25); } }
+  @keyframes fab-rotate { to { transform: rotate(360deg); } }
+  @keyframes fab-sheen { 0% { transform: translateX(-260%) skewX(-18deg); }
+                         100% { transform: translateX(260%) skewX(-18deg); } }
+
+  /* --- Wrappers --- */
+  .sianoai-fab-wrap { position: relative; display: inline-block; }
+  .sianoai-fab { position: relative; z-index: 3; }
+  .sianoai-fab-anim { animation: fab-breathe 4s ease-in-out infinite; will-change: transform; }
+
+  /* Glow forte */
+  .sianoai-fab-glow {
+    position:absolute; inset:0; border-radius:9999px; z-index:0; pointer-events:none;
+    box-shadow:
+      0 0 0 2px color-mix(in_oklab,var(--accent),transparent 80%),
+      0 8px 26px -8px color-mix(in_oklab,var(--accent),transparent 40%),
+      0 0 40px -6px color-mix(in_oklab,var(--accent),transparent 40%);
+    animation: fab-breathe 4s ease-in-out infinite;
+  }
+
+  /* Triplo ripple (due + uno sfalsato) */
+  .sianoai-fab-ripples,
+  .sianoai-fab-rippleX { position:absolute; inset:0; border-radius:9999px; z-index:1; pointer-events:none; }
+  .sianoai-fab-ripples::before,
+  .sianoai-fab-ripples::after,
+  .sianoai-fab-rippleX::before {
+    content:""; position:absolute; inset:-10px; border-radius:9999px;
+    border: 3px solid color-mix(in_oklab,var(--accent),white 42%);
+    box-shadow: 0 0 12px color-mix(in_oklab,var(--accent),white 30%);
+    animation: fab-pulse-ring-strong 2.8s ease-out infinite;
+  }
+  .sianoai-fab-ripples::after { animation-delay: 1.1s; }
+  .sianoai-fab-rippleX::before { animation-delay: 2.0s; }
+
+  /* Halo rotante più evidente */
+  .sianoai-fab-halo {
+    position:absolute; inset:-10px; border-radius:9999px; z-index:2; pointer-events:none;
+    background: conic-gradient(from 0deg,
+      color-mix(in_oklab,var(--accent),white 34%) 0%,
+      transparent 12%,
+      transparent 35%,
+      color-mix(in_oklab,var(--accent),white 40%) 50%,
+      transparent 65%,
+      transparent 88%,
+      color-mix(in_oklab,var(--accent),white 34%) 100%);
+    filter: blur(0.6px);
+    opacity:.9;
+    animation: fab-rotate 6s linear infinite;
+  }
+
+  /* Sheen perfettamente “da sinistra a destra” */
+  .sianoai-fab-sheen { position:absolute; inset:0; border-radius:9999px; overflow:hidden; z-index:4; pointer-events:none; }
+  .sianoai-fab-sheen::before {
+    content:""; position:absolute; top:0; bottom:0; width:46%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.48), transparent);
+    filter: blur(1.2px);
+    transform: translateX(-260%) skewX(-18deg);
+    animation: fab-sheen 4.2s ease-in-out infinite;
+    opacity:.95;
+  }
+
+  .sianoai-fab:hover, .sianoai-fab:focus-visible { transform: translateY(-1px) scale(1.04); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sianoai-fab-anim,
+    .sianoai-fab-glow,
+    .sianoai-fab-ripples::before,
+    .sianoai-fab-ripples::after,
+    .sianoai-fab-rippleX::before,
+    .sianoai-fab-halo,
+    .sianoai-fab-sheen::before { animation: none !important; }
+  }`;
+
+  const el = document.createElement("style");
+  el.id = FAB_STYLE_ID;
+  el.appendChild(document.createTextNode(css));
+  document.head.appendChild(el);
 }
 
 /** -------- Component -------- */
@@ -341,13 +423,16 @@ export default function ChatWidget({
       .catch(() => {});
   }, [slug]);
 
-  // Ripristino chat salvata (se presente) e salvataggio continuo
+  // Persistenza sessione
   React.useEffect(() => {
     const stored = loadStored(slug);
     if (stored.length) setHistory(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
   React.useEffect(() => { saveStored(slug, history); }, [slug, history]);
+
+  // Inietta il CSS per le animazioni
+  React.useEffect(() => { ensureFabStyleInjected(); }, []);
 
   function getAIEndpoint(): string {
     const env = (import.meta as any)?.env;
@@ -438,7 +523,6 @@ export default function ChatWidget({
     setHistory((h) => [...h, { role: "user", text: q }]);
 
     const data = dataRef.current;
-
     const hints = (quickReplies && quickReplies.length
       ? quickReplies
       : (data?.chat?.quickReplies ||
@@ -446,7 +530,7 @@ export default function ChatWidget({
          [])
     ) as string[];
 
-    // --- MICRO-FIX: risposta deterministica sulla HOME per "orari Comune/uffici"
+    // MICRO-FIX home: orari Comune
     if (data && slug === "home" && isHoursIntent(q)) {
       const t = norm(q);
       const wantsMunicipal = /\b(comune|municip|uffic)\w*\b/.test(t);
@@ -458,7 +542,6 @@ export default function ChatWidget({
       }
     }
 
-    // NON intercettare con topicAnswer sulla home: lasciare all'AI (tranne la micro-fix sopra)
     const predefined = (data && slug !== "home") ? topicAnswer(q, data) : null;
     if (predefined) {
       setHistory((h) => [...h, { role: "assistant", text: predefined }]);
@@ -479,7 +562,6 @@ export default function ChatWidget({
     try {
       const endpoint = getAIEndpoint();
       const isNetlify = endpoint.includes("/.netlify/functions/");
-      // >>> PATCH MINIMA: aggiungo history (ultimi turni) nel payload <<<
       const recent = history.slice(-MAX_TURNS).map(m => ({ role: m.role, text: m.text }));
       const payload = isNetlify ? { slug, question: q, history: recent } : { question: q, data, history: recent };
 
@@ -532,17 +614,13 @@ export default function ChatWidget({
 
     const data = dataRef.current;
 
-    // 1) CTA dal JSON (root)
     if (data?.chat?.ctas && data.chat.ctas.length) {
       return normalizeCtas(data.chat.ctas);
     }
-
-    // 2) CTA dal JSON (annidate in config.chat)
     if (data?.config?.chat?.ctas && data.config.chat.ctas.length) {
       return normalizeCtas(data.config.chat.ctas);
     }
 
-    // 3) Derivazione automatica (solo per venue)
     if (slug === "home") return [];
     const cfg = data?.config || {};
     const list: CTA[] = [];
@@ -567,23 +645,38 @@ export default function ChatWidget({
 
   return (
     <>
-      {/* FAB */}
+      {/* FAB con animazioni molto visibili */}
       {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className={`fixed right-4 z-[9999] inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200 ${hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"}`}
-          style={{
-            position: "fixed",
-            bottom: `calc(env(safe-area-inset-bottom, 0px) + ${fabBottomOffset}px)`,
-            background: "var(--accent)",
-            color: "var(--accentText)",
-            borderColor: "color-mix(in_oklab,var(--accent),white 60%)",
-          }}
-          aria-label={resolvedButtonLabel}
+        <div
+          className={`fixed right-4 z-[9999] ${hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"}`}
+          style={{ position: "fixed", bottom: `calc(env(safe-area-inset-bottom, 0px) + ${fabBottomOffset}px)` }}
         >
-          <MessageCircle className="inline w-5 h-5" />
-          {resolvedButtonLabel}
-        </button>
+          <div className="sianoai-fab-wrap">
+            {/* Ripples + Glow dietro */}
+            <span aria-hidden="true" className="sianoai-fab-ripples" />
+            <span aria-hidden="true" className="sianoai-fab-rippleX" />
+            <span aria-hidden="true" className="sianoai-fab-glow" />
+            {/* Halo radiale rotante (ghiera) */}
+            <span aria-hidden="true" className="sianoai-fab-halo" />
+            {/* Bottone vero */}
+            <button
+              onClick={() => setOpen(true)}
+              className="sianoai-fab sianoai-fab-anim inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200"
+              style={{
+                background: "var(--accent)",
+                color: "var(--accentText)",
+                borderColor: "color-mix(in_oklab,var(--accent),white 60%)",
+                transformOrigin: "center",
+              }}
+              aria-label={resolvedButtonLabel}
+            >
+              <MessageCircle className="inline w-5 h-5" />
+              {resolvedButtonLabel}
+              {/* Sheen in primo piano */}
+              <span aria-hidden="true" className="sianoai-fab-sheen" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* PANEL */}
