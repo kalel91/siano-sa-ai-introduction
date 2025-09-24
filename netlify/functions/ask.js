@@ -1,10 +1,10 @@
 // netlify/functions/ask.js
 // Runtime: Node 18+
 // Endpoint usato dal widget quando l’AI è “online”.
-// Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout 5s, cache JSON 60s, mappatura errori 429/503.
+// Hardening: throttle per-IP, retry con jitter su 429/5xx, timeout 20s, cache JSON 60s, mappatura errori 429/503.
 // HOME: include elenco esercenti (venues.json) in contesto, con categoria dedotta.
 // Strategia 2025: HYBRID
-// 1) Fast-path deterministico SOLO per richieste di elenco.
+// 1) Fast-path deterministico per richieste di ELENCO e di ORARI per categoria (se i dati esistono).
 // 2) Altrimenti AI con guardrail e history sanificata.
 
 const TIMEOUT_MS = 20_000;
@@ -108,12 +108,20 @@ const CATEGORY_SYNONYMS = [
   { cat: "supermercato",  re: /supermerc\w*|market|alimentar\w*/i },
 ];
 
-/* ---- Intents: elenco vs narrativo/valutativo ---- */
+/* ---- Intents: elenco / narrativo / orari / contatti ---- */
 const LISTING_RE =
   /\b(elenc|lista|mostra|cerca|trova|quali|quale sono|dove|dov'|indicami|suggerisc|consigli|disponibil|tutti|tutte)\b/i;
 
 const NARRATIVE_RE =
   /\b(stori|raccont|dettagli|informaz|descrizion|parlami|spiega|miglior|migliore|chi fa|recension)\b/i;
+
+/* nuovo: intent orari */
+const HOURS_INTENT_RE =
+  /\b(orari|orario|apert[ioa]|apre|aprono|chiud[eo]|chiusur[ae]|open|aperti\s*oggi|oggi\s*aperti)\b/i;
+
+/* nuovo: intent contatti (telefono/tel/cell/whatsapp/email/contatti) */
+const CONTACT_INTENT_RE =
+  /\b(telefono|telefon|tel\.?|cell\w*|whats?app|contatt\w*|email|e-?mail|posta)\b/i;
 
 function matchCategoryFromQuestion(q) {
   const t = norm(q);
@@ -127,12 +135,21 @@ function filterVenuesByCategory(raw, targetCat) {
     .map(v => {
       const name = String(v?.n || v?.name || "").trim();
       const cat = String(v?.c || "") || normalizeCategory(v?.category) || inferCategory(v?.name, v?.tagline);
-      return { n: name, c: cat };
+      const h = String(v?.h || v?.hoursShort || "").trim();
+      return { n: name, c: cat, h };
     })
     .filter(x => x.n && x.c === targetCat);
 }
 function pickNames(list, max = 5) {
   return list.slice(0, max).map(x => x.n).join(" • ");
+}
+function pickNamesWithHours(list, max = 5) {
+  const out = [];
+  for (const v of list) {
+    if (v.h) out.push(`${v.n} — ${v.h}`);
+    if (out.length >= max) break;
+  }
+  return out.join(" • ");
 }
 
 /* ---------- Utils HTTP / throttle / retry / cache ---------- */
@@ -237,9 +254,15 @@ export async function handler(event) {
         festivities: Array.isArray(data?.festivities) ? data.festivities.map((f) => ({ name: f?.name, month: f?.month, description: f?.description })) : [],
         openData: data?.openData?.jsonUrl || data?.openData?.csvUrl || null,
         social: data?.social || null,
+        municipal: data?.municipal ? {
+          address: data.municipal.address || null,
+          hoursShort: data.municipal.hoursShort || null,
+          contacts: data.municipal.contacts || null,
+          notes: data.municipal.notes || null,
+        } : null,
       };
 
-      // venues compatti (nome + categoria normalizzata o dedotta)
+      // venues compatti (nome + categoria + orari brevi se presenti)
       try {
         const venues = await fetchJsonCached(`${origin}/data/venues.json`);
         if (Array.isArray(venues) && venues.length) {
@@ -247,7 +270,8 @@ export async function handler(event) {
             const name = String(v?.name || "").trim();
             const catFromFile = normalizeCategory(v?.category);
             const cat = catFromFile || inferCategory(String(v?.name || ""), String(v?.tagline || ""));
-            return { n: name, c: cat };
+            const h = String(v?.hoursShort || "").trim();
+            return { n: name, c: cat, h };
           }).filter(x => x.n && x.c);
           context.venues = vlist;
         }
@@ -277,11 +301,49 @@ export async function handler(event) {
       if (rootCtas.length || nestedCtas.length) ctas = [...new Set([...ctas, ...rootCtas, ...nestedCtas])];
     }
 
-    /* ========= FAST-PATH DETERMINISTICO (solo HOME, SOLO richieste elenco) ========= */
+    /* ---------- PRE-CHECK: dalla HOME chiedono contatti di un esercente ---------- */
+    if (isMunicipality && CONTACT_INTENT_RE.test(question) && Array.isArray(context.venues) && context.venues.length) {
+      const qn = norm(question);
+      let hit = null;
+      for (const v of context.venues) {
+        const vn = norm(v.n);
+        if (vn && qn.includes(vn)) { hit = v; break; }
+        if (!hit) {
+          const parts = vn.split(" ").filter(w => w.length >= 4);
+          if (parts.some(p => qn.includes(p))) { hit = v; break; }
+        }
+      }
+      if (hit) {
+        return res(200, {
+          answer: `Non disponibile dalla home. Per i dettagli su "${hit.n}", apri "Esercenti aderenti" e seleziona la scheda del locale.`
+        });
+      }
+    }
+
+    /* ========= FAST-PATH DETERMINISTICO (solo HOME) ========= */
     if (isMunicipality && Array.isArray(context.venues) && context.venues.length) {
       const cat = matchCategoryFromQuestion(question);
       const wantsList = LISTING_RE.test(question);
       const isNarr = NARRATIVE_RE.test(question);
+      const wantsHours = HOURS_INTENT_RE.test(question);
+
+      // 1) ORARI per categoria (se la domanda chiede orari)
+      if (cat && wantsHours) {
+        const matches = filterVenuesByCategory(context.venues, cat);
+        const withHours = matches.filter(m => m.h);
+        if (withHours.length) {
+          const out = pickNamesWithHours(withHours, 5);
+          return res(200, { answer: `${out}. Per altri apri “Esercenti aderenti”.` });
+        }
+        return res(200, { answer: `Non disponibile. Per i dettagli sugli orari, apri “Esercenti aderenti”.` });
+      }
+
+      // 2) ORARI del Comune (se esplicitamente richiesti)
+      if (wantsHours && /\b(comune|municip\w*)\b/i.test(norm(question)) && context?.municipal?.hoursShort) {
+        return res(200, { answer: `Orari Comune: ${context.municipal.hoursShort}.` });
+      }
+
+      // 3) Elenco semplici (solo se chiaramente listato e non narrativo)
       if (cat && wantsList && !isNarr) {
         const matches = filterVenuesByCategory(context.venues, cat);
         if (matches.length) {
@@ -300,10 +362,12 @@ export async function handler(event) {
 
     const municipalGuide = context.venues
       ? `Se l'utente chiede un'attività/professione o un luogo (es. pizzeria, medico, farmacia, elettricista, parrucchiere, tabacchi, ecc.):
-- seleziona dai VENUES fino a 5 nomi con categoria pertinente;
+- seleziona dai VENUES i nomi con categoria pertinente;
 - elenca solo i nomi (separati da " • ");
-- chiudi con "Per altri apri Esercenti aderenti."
-Se l'utente chiede storie, confronti o qualità e i DATI non includono tali informazioni, rispondi "Non disponibile" e suggerisci di aprire "Esercenti aderenti" per i dettagli.` : ``;
+- chiudi con "Per altre informazioni, apri la sezione Esercenti aderenti.".
+Se chiede ORARI dei locali: se per un venue è presente "h" (hoursShort), elenca "Nome — h"; se mancano, dì "Non disponibile".
+Per orari/contatti del Comune usa MUNICIPAL (hoursShort, address, contacts).`
+      : ``;
 
     const system = isMunicipality
       ? [
@@ -314,7 +378,16 @@ Se l'utente chiede storie, confronti o qualità e i DATI non includono tali info
           `Per saluti o convenevoli (es. “ciao”, “come va”, “grazie”), rispondi brevemente e in modo cordiale anche se non è nei DATI.`,
           municipalGuide,
           `Se utile, chiudi con: ${ctas.length ? ctas.join(" ") : "—"}`,
-          `DATI: ${JSON.stringify({ cityName: context.cityName, about: context.about, pilot: context.pilot, festivities: context.festivities, openData: context.openData, social: context.social, venues: context.venues || [] })}`,
+          `DATI: ${JSON.stringify({
+            cityName: context.cityName,
+            about: context.about,
+            pilot: context.pilot,
+            festivities: context.festivities,
+            openData: context.openData,
+            social: context.social,
+            municipal: context.municipal || null,
+            venues: context.venues || []
+          })}`,
         ].join("\n")
       : [
           commonHdr,

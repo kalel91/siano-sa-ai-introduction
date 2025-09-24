@@ -1,8 +1,8 @@
-readme_19092025 (pilot “Siano AI”)
+readme – Pilot “Siano AI”
 
-Versione: 19/09/2025
+Versione: 19/09/2025 (revisione aggiornata)
 
-COS’È
+Cos’è
 
 “Siano AI” è una homepage comunale “viva” che:
 
@@ -14,47 +14,47 @@ integra un assistente AI che risponde usando solo dati locali (JSON).
 
 È un pilot: low-cost (static hosting), modulare, facilmente estendibile.
 
-TECNOLOGIE
+Tecnologie
 
 Vite + React + TypeScript
 
-Tailwind utility classes (classi inline, nessun config custom)
+Tailwind (classi inline; nessun config custom)
 
 Framer Motion (transizioni/AnimatePresence)
 
 lucide-react (icone)
 
-Netlify (hosting + Functions per endpoint AI /.netlify/functions/ask)
+Netlify: hosting + Functions (endpoint AI: /.netlify/functions/ask)
 
-Dati statici JSON in /public/data (home.json, venues.json, <slug>.json)
+Dati JSON in public/data (home.json, venues.json, <slug>.json)
 
 Facoltativo: VITE_AI_ENDPOINT per puntare a un endpoint AI esterno
 
-AI upstream attuale: Hugging Face (router Chat Completions).
-Chiave: variabile di ambiente HF_TOKEN su Netlify.
+AI upstream attuale: Hugging Face (Chat Completions router)
+→ chiave in HF_TOKEN su Netlify
 
-ARCHITETTURA (semplificata)
+Architettura (semplificata)
 public/
-  city/          # immagini/logo Comune
+  city/            # immagini/logo Comune
   data/
-    home.json    # dati homepage comunale
-    venues.json  # open data esercenti
-    <slug>.json  # dati singolo esercente: catalogo/menu/config/chat
+    home.json      # dati homepage comunale
+    venues.json    # open data esercenti
+    <slug>.json    # dati singolo esercente (catalogo/menu/config/chat)
 src/
   App.tsx
   main.tsx
-  HomePage.tsx       # UI principale: HERO, tabs, scroll uniforme
-  SianoVenue.tsx     # pagina cuore per gli esercenti
-  ChatWidget.tsx     # chat Comune/esercente; CTA; quick replies; autoscroll
+  HomePage.tsx     # UI principale: HERO, tabs, scroll-pad stabile
+  SianoVenue.tsx   # pagina esercente
+  ChatWidget.tsx   # chat Comune/esercente; CTA; quick replies; autoscroll
   ai/
-    ask.ts           # fallback “offline” locale, senza LLM
+    ask.ts         # fallback locale (senza LLM) – usato dal widget
 netlify/
   functions/
-    ask.js           # endpoint AI “online” (hardening: throttle, retry, 429/503)
+    ask.js         # endpoint AI online (hardening: throttle, retry, 429/503)
 package.json, vite.config.ts
 
-FILE/DATI CHIAVE
-/public/data/home.json (Comune; struttura diversa dagli esercenti)
+Dati chiave
+/public/data/home.json (Comune)
 
 cityName, logoUrl, heroTitle, heroSubtitle, heroImages
 
@@ -64,122 +64,161 @@ openData (link JSON/CSV esercenti)
 
 social, footer, theme (accent cobalto)
 
-assistant: enabled, label, panelTitle, slugForQA (“home”), initialMessage
+assistant: enabled, label, panelTitle, slugForQA: "home", initialMessage
 
 chat:
 
-quickReplies (bottoni rapidi)
+quickReplies: bottoni rapidi
 
-faq (Q/A fisse)
+faq: Q/A fisse
 
-ctas (array di link, es. Sito, Open Data) → mostrate nella chat
+ctas: array link (es. Sito, Open Data) → mostrate nella chat della home
 
-Nota: la home NON ha config.phone/whatsapp/mapUrl. I pulsanti “Chiama / Indicazioni / WhatsApp” compaiono solo se definiti esplicitamente in chat.ctas.
+municipal (aggiunta importante):
+
+hoursShort: riassunto orari uffici comunali
+
+address: indirizzo uffici
+
+contacts: telefono/whatsapp ecc. (chiavi accettate: phone, telefono, tel, mobile, cell, phoneNumber, whatsapp, wa)
+
+notes
+
+Nota: la home NON ha config.phone/whatsapp/mapUrl. I pulsanti “Chiama / Indicazioni / WhatsApp” sulla home compaiono solo se previsti in chat.ctas.
 
 /public/data/<slug>.json (Esercente)
 
 config: name, hours, address, phone, whatsapp, mapUrl, assistantLabel
 
-story: descrizione
+story: descrizione testo
 
-menu (inteso come “catalogo/servizi”, non solo ristorazione):
+menu (inteso come catalogo/servizi):
 
 specials (opz.)
 
 categories[].items[] con price/tags/fav
 
-chat: quickReplies, faq, ctas (opzionali)
+chat: quickReplies, faq, ctas (opz.)
 
-Se mancano chat.ctas, la chat ricava automaticamente CTA da config (Chiama/WhatsApp/Indicazioni).
+Se mancano chat.ctas, la chat deriva automaticamente le CTA da config (Chiama / WhatsApp / Indicazioni).
 
-COMPORTAMENTO CHAT (ONLINE/OFFLINE)
-Online (netlify/functions/ask.js)
+Comportamento chat: Online vs Offline
+1) Online (Netlify Function ask.js)
 
-Il widget chiama /.netlify/functions/ask.
+Il widget chiama /.netlify/functions/ask (o VITE_AI_ENDPOINT se impostato).
 
-La Function rileva profilo COMUNE vs ESERCENTE, compatta i dati JSON e istruisce il modello a usare SOLO i dati forniti.
-Se un’informazione non esiste nel JSON → “Non disponibile”.
+La Function rileva profilo (Comune vs Esercente), compatta i dati JSON e istruisce il modello a usare solo i dati forniti.
+Se un’informazione non esiste nel JSON → “Non disponibile” (no allucinazioni).
 
-Chiude con CTA coerenti:
-Comune: Sito/Open Data • Esercente: Chiama/WhatsApp/Indicazioni (o quelle in chat.ctas).
+Output conciso (circa 90 parole max), tono istituzionale, con CTA coerenti:
 
-Hardening anti-errori:
+Comune: CTA da home.json > chat.ctas (es. Sito, Open Data)
 
-Throttle per-IP (token bucket) per smorzare picchi;
+Esercente: CTA da config (o chat.ctas se presenti)
 
-Auto-retry su 429/5xx (con jitter);
+Hardening:
 
-Timeout hard al fetch dell’AI;
+Throttle per IP (token bucket)
 
-Cache in-memory dei JSON per 60s;
+Auto-retry su 429/5xx (con jitter)
 
-Mappatura errori: niente 500 “nudi”; restituisce 429 (rate limit) o 503 (indisponibile).
+Timeout fetch verso l’AI
+
+Cache in-memory dei JSON per 60s
+
+Mappatura errori → 429 (rate limit) / 503 (servizio indisponibile)
 Il widget, su !ok, ricade nel fallback locale (UI non si blocca).
 
-Offline (ChatWidget.tsx + ai/ask.ts)
+2) Offline (fallback locale in ChatWidget.tsx)
 
-Se l’endpoint non risponde, entra il fallback locale.
+Principio aggiornato: reliance 90% modello AI. Il locale interviene solo quando:
 
-Riconosce intent semplici (orari, indirizzo, contatti, storia/about, progetto, eventi, open data) e suggerisce categorie del catalogo (“menu” ≡ “catalogo/servizi”).
+l’endpoint fallisce / non risponde / è offline;
 
-Per saluti/domande generiche risponde con prompt di navigazione
-(es. “Prova con: Storia di Siano • Progetto AI • Esercenti aderenti”), senza inventare contenuti.
+per micro-fix deterministico sulla home per gli orari del Comune.
 
-Stile: bottoni/CTA in outline cobalto (pills) + bottone accent per WhatsApp; FAB, tab attivi e badge usano --accent (cobalto del tema).
+Cosa copre il fallback locale ora:
 
-COMPONENTI
+Comune (slug = "home")
+
+Orari uffici comunali:
+‣ micro-fix deterministico se l’utente chiede “orari/orario/apertura/chiusura” e menziona Comune/uffici (hoursShort da municipal)
+‣ regex intent aggiornata: orar? copre orari/orario
+
+Contatti/Telefono/WhatsApp: lettura da:
+
+home.json > municipal.contacts (chiavi elastiche, vedi sopra)
+
+fallback su config (se mai presente)
+
+Indirizzo: municipal.address (o fallback config.address se esistesse)
+
+Esercente
+
+Orari/indirizzo/contatti da config
+
+Catalogo: suggerimenti da menu.categories[].items[] (filtri semplici: es. “veg”, “senza lattosio”, “piccante”)
+
+Cosa NON copre più il deterministico (by design):
+
+Topic generici/ambigui non mappati: in offline risponde come “navigazione” (suggerisce chip/argomenti) senza inventare contenuti.
+
+Lingue: il fallback è semplice; la copertura multilingua è demandata soprattutto all’AI online.
+
+Componenti
 HomePage.tsx
 
-Carica home.json e venues.json.
+Carica home.json e venues.json
 
-Applica tema (blu cobalto), favicon, titolo.
+Applica tema (blu cobalto), favicon, titolo
 
-Tabs: “Siano”, “Progetto pilota”, “Esercenti”. Scroll stabile (header sticky misura altezza e imposta scroll-padding-top).
+Tabs: “Siano”, “Progetto pilota”, “Esercenti” (scroll-pad stabile)
 
-Galleria a card con hover dolce.
+Galleria a card con hover
 
-Festività: mostra 3 elementi; toggle “Mostra tutte/meno”; shuffle deterministico singolo se ≥6.
+Festività: mostra 3 elementi; toggle “tutte/meno”; shuffle singolo se ≥6
 
-Monta ChatWidget con slug="home".
+Monta ChatWidget con slug="home"
 
-SianoVenue.tsx (CUORE ESERCENTI)
+SianoVenue.tsx
 
-Prende lo slug (es. /il-pirata), carica /public/data/<slug>.json.
+Carica /data/<slug>.json
 
-Render intestazione (logo/nome), story/descrizione, catalogo (categorie+items).
+Render intestazione (logo/nome), story, catalogo (categorie+items)
 
-CTA “Chiama/WhatsApp/Indicazioni” da config o chat.ctas; stile coerente con ChatWidget.
+CTA “Chiama/WhatsApp/Indicazioni” da config o chat.ctas
 
-Monta ChatWidget con lo stesso slug.
+Monta ChatWidget con stesso slug
 
 ChatWidget.tsx
 
-Carica /data/<slug>.json in client.
+Carica /data/<slug>.json client-side
 
-Prova prima l’endpoint AI; se fallisce, fallback locale (topic/faq/orari/indirizzo/servizi).
+Prima tenta l’endpoint AI; se fallisce, fallback locale (stretto)
 
-Autoscroll automatico all’ultimo messaggio (user o assistant).
+Micro-fix home (orari Comune) + estrazione contatti robusta (municipal.contacts)
 
-CTA precedence: props.ctas → json.chat.ctas → (derivate da config) → [].
+Intent hours con orar? (copre orario/orari)
 
-Comune (slug="home"): mostra solo chat.ctas (Sito, Open Data).
-Esercente: se chat.ctas mancano, genera CTA da config.
+Autoscroll
 
-Uniforma colori a tema cobalto; quick replies come chips.
+CTA precedence: props.ctas → json.chat.ctas → (derivate da config) → []
+
+Comune (slug="home"): mostra solo chat.ctas
+
+Esercente: se chat.ctas mancano, CTA derivate da config
 
 netlify/functions/ask.js
 
-Endpoint AI “online”.
+Endpoint AI con hardening (throttle/retry/timeout/cache)
 
-Compatta i dati per COMUNE/ESERCENTE, costruisce il prompt, temperatura 0.2, max 90 parole.
+Prompt strictly “only local data”
 
-Vietato inventare fonti/contatti.
+Output conciso + CTA coerenti
 
-Hardening (come sopra): throttle, retry, timeout, cache JSON 60s, mapping errori 429/503.
+Error mapping 429/503 (il widget gestisce il fallback)
 
-In caso di errore HTTP, il widget ricade sul fallback locale (nessun blocco dell’UI).
-
-COMANDI (sviluppo/deploy)
+Comandi (sviluppo/deploy)
 
 Install: npm ci
 
@@ -197,99 +236,113 @@ Publish dir: dist
 
 Functions: netlify/functions
 
-Env opzionali:
+Env:
 
-VITE_AI_ENDPOINT (endpoint AI alternativo lato client)
+HF_TOKEN (Hugging Face)
 
-HF_TOKEN (chiave Hugging Face; scope “All contexts” consigliato)
+VITE_AI_ENDPOINT (opz.) per endpoint AI alternativo
 
 Dominio
 
-In pilot: *.netlify.app
+Pilot: *.netlify.app
 
-Produzione: dominio dedicato (es. digitale.comune.siano.sa.it o dominio terzo) → Domain Management su Netlify (CNAME + HTTPS automatico).
+Produzione: dominio dedicato (CNAME + HTTPS)
 
-UX/SCELTE
+UX/Linee guida
 
-Tono istituzionale, sintetico.
+Tono istituzionale, sintetico
 
-Cobalto uniforme su FAB, tab attivi, badge e bottoni accent.
+Cobalto uniforme su FAB, tab attivi, badge e bottoni accent
 
-Comune: CTA limitate a quelle esplicite nel JSON.
+Home: CTA limitate a quelle esplicite nel JSON
 
-Accessibilità: contrasto sufficiente, mobile-first, hit-area generose.
+Accessibilità: contrasto, mobile-first, hit-area generose
 
-Mobile: il launcher della chat non copre le CTA principali né il tasto “Invia”; rispetta le safe-area.
+Mobile: launcher chat non copre CTA principali; rispetto safe-area
 
-PRESENTAZIONE AL COMUNE (checklist)
+Troubleshooting rapido
 
-Demo online (Netlify) + QR.
+“Telefono non indicato” sulla home, ma è nel JSON
+→ Verifica che il numero sia in home.json > municipal.contacts con una delle chiavi supportate:
+phone, telefono, tel, mobile, cell, phoneNumber.
+Per WhatsApp: whatsapp, wa.
+Il fallback locale ora li legge correttamente anche offline.
 
-Slide 10–12: obiettivi; cosa fa la homepage; schede esercenti; chat; benefici (cittadini, esercenti, Comune); governance (chi aggiorna) e costi; roadmap (pilot → estensione).
+La chat dice sempre “Gli orari non sono indicati”
+→ Su home, la micro-fix risponde solo se la domanda è Hours-intent e cita Comune/uffici.
+Assicurati che municipal.hoursShort sia valorizzato e che la query menzioni comune/municip/uffic.
+Altrimenti, online risponderà l’AI (se l’upstream è ok).
 
-One-pager PDF non tecnico (riassunto + contatti).
+Endpoint AI in errore/timeout
+→ Il widget passa in modalità offline e mostra il badge “AI offline”.
+Riprova; alza tier HF o configura VITE_AI_ENDPOINT se necessario.
 
-Piano contenuti minimi (foto, testo, orari; 3–5 esercenti).
+CTA non compaiono sulla home
+→ La home non ha config.phone/whatsapp/mapUrl. Aggiungi CTA esplicite in home.json > chat.ctas.
 
-Linee guida chat (tono, disclaimer “solo dati locali”).
+Stile pulsanti diverso tra home/esercenti
+→ Assicurati che le CSS var di tema siano caricate; il widget usa outline cobalto e bottone accent coerenti.
 
-Open Data (venues.json/csv) per trasparenza/riuso.
+To-do (pilot)
 
-Accessibilità (mobile-first, contrasto, font).
+Ampliare home.json > chat.faq (orari/contatti uffici, link utili)
 
-Opzione co-finanziamento Comune–Esercenti (per onboarding diffuso).
+Sezione “Eventi” con JSON dedicato e card (mostra tutte/meno)
 
-TO-DO PER IL PILOT (dev)
+Script di validazione JSON (URL, campi obbligatori, prezzi numerici)
 
-Ampliare home.json > chat.faq (orari/contatti uffici, link utili).
+(Facolt.) Estrarre il fallback locale in modulo condiviso e riusarlo anche lato Function
 
-Sezione “Eventi” con JSON dedicato e card (Mostra tutte/meno).
+Dopo il pilot (scaling)
 
-Script di validazione JSON (URL, campi obbligatori, prezzi numerici).
+Onboarding esercenti: modello JSON + guida 1 pagina
 
-(Facolt.) Portare il fallback locale in un modulo condiviso e riusarlo anche lato Function.
+Mini-backoffice (anche Google Sheet → build statico)
 
-DOPO IL PILOT (scaling)
+Dominio/branding definitivo
 
-Onboarding esercenti: modello JSON + guida 1 pagina.
+Analytics privacy-first (Plausible/Umami)
 
-Mini-backoffice (anche Google Sheet → build statico).
+DPIA/Note privacy se la chat si estende a servizi con dati personali
 
-Dominio/branding comunale definitivo.
+Modalità ibrida (flag): consentire risposte generali con disclaimer e/o ricerca web con citazioni (valutare col Comune)
 
-Analytics privacy-first (Plausible/Umami).
+Hugging Face tier: considerare Inference Endpoints / Space dedicata
 
-DPIA/Note privacy se si estende la chat a servizi che trattano dati personali.
+Testing checklist (rapida)
 
-Opzione “modalità ibrida” (flag) per consentire risposte generali con disclaimer e/o ricerca web con citazioni (da valutare con il Comune).
+home.json:
 
-Hugging Face tier: valutare Inference Endpoints (a consumo) o Space dedicata a pagamento per ridurre rate-limit e cold-start.
+municipal.hoursShort, municipal.address, municipal.contacts.* presenti?
 
-TROUBLESHOOTING RAPIDO
+chat.ctas presenti? (home)
 
-I pulsanti “Chiama/Indicazioni/WhatsApp” compaiono sulla home?
-→ Verificare: la home non ha config.phone/whatsapp/mapUrl. Usare chat.ctas esplicite (es. {type:"link", label:"Sito", href:"…"}).
+<slug>.json esercente:
 
-La chat risponde “Non disponibile” su domande fuori dato (es. popolazione)?
-→ Corretto: la Function forza “solo dati locali”. Aggiungere i dati nel JSON o valutare in futuro il flag ibrido.
+config.{phone,whatsapp,mapUrl} compilati?
 
-Vedi 500 nello Network?
-→ Con l’hardening, la Function mappa gli errori in 429/503. Se compaiono 429/503 durante test pubblici: è rate-limit o upstream lento. Soluzioni:
+chat.ctas mancano? → derivazione automatica
 
-attendere e riprovare (il widget usa fallback);
+Online:
 
-alzare tier HF (Inference Endpoint/Space dedicata);
+ask.js risponde entro timeout? (controlla 429/503 nei log)
 
-verificare i logs Netlify (cold start, timeouts).
+Offline:
 
-Stile pulsanti diverso tra home ed esercenti?
-→ Assicurarsi che le var CSS di tema siano caricate e che il ChatWidget usi outline cobalto (già in codice).
+Home: “orari Comune/uffici” → usa hoursShort
 
-BRIEF RAPIDO PER NUOVA CHAT (incolla all’inizio)
+“telefono/whatsapp/contatti” → usa municipal.contacts
 
-“Sto lavorando al pilot ‘Siano AI’: React/TypeScript (Vite), ChatWidget e dati in JSON (home.json per il Comune; <slug>.json per ogni esercente). La home usa tabs con scroll stabile e tema cobalto; l’assistente legge i dati dal JSON dello slug e mostra CTA da chat.ctas (Comune) o da config (esercenti). Hosting Netlify + Functions per ‘ask’. Chiedo aiuto pratico (bugfix, UX, JSON, Netlify Functions) senza regressioni.”
+Esercente: ricade su config, catalogo suggerito ok
 
-OWNER/STATUS
+Brief rapido per nuova chat (incolla all’inizio)
 
-Owner: Dott. Davide Romano (Dottore in Ingegneria Informatica e dell’Automazione; Accenture, Milano).
-Stato: pilot online su Netlify. Prossimi step: presentazione al Comune, feedback, onboarding 3–5 esercenti.
+Sto lavorando al pilot “Siano AI”: React/TypeScript (Vite), ChatWidget e dati in JSON (home.json per il Comune; <slug>.json per ciascun esercente). La home usa tabs con scroll stabile e tema cobalto; l’assistente legge i dati dal JSON dello slug e mostra CTA da chat.ctas (Comune) o da config (esercenti). Hosting Netlify + Functions per ask.
+L’assistente si affida 90% al modello AI online; fallback locale stretto solo su errore/offline (incluse micro-fix: orari Comune e contatti da municipal.contacts). Chiedo aiuto pratico (bugfix, UX, JSON, Netlify Functions) senza regressioni.
+
+Owner / Status
+
+Owner: Dott. Davide Romano (Ingegneria Informatica e dell’Automazione; Accenture, Milano)
+
+Stato: pilot online su Netlify
+Prossimi step: presentazione al Comune, feedback, onboarding 3–5 esercenti
