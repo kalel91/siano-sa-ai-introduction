@@ -35,12 +35,19 @@ type MenuJson = {
   };
   menu?: { specials?: { title: string; price?: string }[]; categories?: Category[] };
   story?: { title?: string; text?: string } | null;
-  about?: { title?: string; text?: string } | null; // <— per la home comunale
+  about?: { title?: string; text?: string } | null; // home comunale
   chat?: {
     quickReplies?: string[];
     faq?: Record<string, string>;
     ctas?: CtaJson[];
   };
+  // dati per la home comunale
+  municipal?: {
+    hoursShort?: string;
+    address?: string;
+    contacts?: any;
+    notes?: string;
+  } | null;
 };
 
 type Props = {
@@ -82,7 +89,7 @@ function itemMatchesFilters(item: MenuItem, f: Filters): boolean {
 function buildCandidates(data: MenuJson, f: Filters, exclude: Set<string>): MenuItem[] {
   const cats = data?.menu?.categories || [];
   const all: MenuItem[] = [];
-  for (const c of cats) for (const it of c.items || []) if (itemMatchesFilters(it, f)) all.push(it);
+  for (const c of cats) for (const it of (c.items || [])) if (itemMatchesFilters(it, f)) all.push(it);
   const fresh = all.filter((it) => !exclude.has(it.name));
   if (!f.veg && !f.nolactose && !f.spicy) return fresh.sort((a, b) => Number(!!b.fav) - Number(!!a.fav) || a.name.localeCompare(b.name));
   return fresh.sort((a, b) => a.name.localeCompare(b.name) || (a.price ?? 0) - (b.price ?? 0));
@@ -99,24 +106,25 @@ function normalizeCtas(src?: CtaJson[]): CTA[] {
     .filter((c) => !!c.label);
 }
 
-/** -------- Intent helpers (precisi, anti-false-positive) -------- */
+/** -------- Intent helpers -------- */
 function isAddressIntent(q: string): boolean {
   const t = q.toLowerCase().trim();
-  if (/\bindirizz/.test(t)) return true;                           // indirizzo/indirizzi
-  if (/\bindicaz(ioni)?\b/.test(t)) return true;                   // indicazione/i
-  if (/\bcome\s+si\s+arriv/.test(t)) return true;                  // come si arriva
-  if (/\bdove\s+(siamo|siete|si\s+trova|vi\s+trov\w*)\b/.test(t)) return true; // dove siete/si trova/vi trovate
-  return false;                                                    // NOT "dove posso mangiare..."
+  if (/\bindirizz/.test(t)) return true;
+  if (/\bindicaz(ioni)?\b/.test(t)) return true;
+  if (/\bcome\s+si\s+arriv/.test(t)) return true;
+  if (/\bdove\s+(siamo|siete|si\s+trova|vi\s+trov\w*)\b/.test(t)) return true;
+  return false;
 }
 function isHoursIntent(q: string): boolean {
   const t = norm(q);
-  // orario/orari, apertura/aperture, chiusura/chiusure, frase esplicita
-  return /\b(orari?\w*|apertur\w*|chiusur\w*|quando\s+siete\s+aperti)\b/.test(t);
+  return /\b(orar?\w*|apertur\w*|chiusur\w*|quando\s+siete\s+aperti)\b/.test(t);
 }
 function isContactIntent(q: string): boolean {
   const t = norm(q);
-  // contatto/contatti/contattare, telefono/tel, chiamare/chiama, whatsapp
-  return /\b(contatt\w*|telefono|tel\.?|chiama\w*|whatsapp)\b/.test(t);
+  // aggiunte: cellulare/cell, recapiti, “numero (di) telefono/cellulare”
+  if (/\b(contatt\w*|telefono|tel\.?|chiama\w*|whatsapp|cellular\w*|cell|phone|telephone|recapit\w*)\b/.test(t)) return true;
+  if (/\bnumero(\s+di)?\s+(telefono|cellulare)\b/.test(t)) return true;
+  return false;
 }
 function isStoryIntent(q: string): boolean {
   const t = norm(q);
@@ -124,8 +132,48 @@ function isStoryIntent(q: string): boolean {
 }
 function isServicesIntent(q: string): boolean {
   const t = norm(q);
-  // servizi, servizio, prodotti, prodotto, catalogo/cataloghi, listino/listini, menu/menù
   return /\b(serviz\w*|prodott\w*|catalog\w*|listin\w*|menu|menu)\b/.test(t);
+}
+
+/** ---- Contacts extraction (config + municipal.contacts) ---- */
+function firstString(obj: any, keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+function extractContacts(data: MenuJson): { phone?: string; whatsapp?: string } {
+  const cfg = data?.config || {};
+  const muni = (data as any)?.municipal || {};
+  const mC = muni?.contacts || {};
+
+  // 1) chiavi note (incluse “switchboard/centralino”)
+  const phone =
+    cfg.phone ||
+    firstString(mC, [
+      "phone", "telefono", "tel", "mobile", "cell", "cellulare", "phoneNumber",
+      "switchboard", "centralino", "centralinoComune", "numeroTelefono", "numero"
+    ]) ||
+    // 2) fallback euristico: prendi il primo valore stringa che contenga ≥5 cifre
+    (() => {
+      try {
+        const vals = Object.values(mC) as any[];
+        for (const v of vals) {
+          if (typeof v === "string") {
+            const digits = v.replace(/\D/g, "");
+            if (digits.length >= 5) return v.trim();
+          }
+        }
+      } catch {}
+      return undefined;
+    })();
+
+  const whatsapp =
+    cfg.whatsapp ||
+    firstString(mC, ["whatsapp", "wa", "numeroWhatsapp", "whatsApp"]);
+
+  return { phone, whatsapp };
 }
 
 /** -------- Topic engine -------- */
@@ -142,12 +190,12 @@ function topicAnswer(topicRaw: string, data: MenuJson): string | null {
   if (isAddressIntent(topicRaw))
     return cfg.address ? `Indirizzo: ${cfg.address}. Per le indicazioni usa il pulsante qui sotto.` : "L'indirizzo non è indicato.";
   if (isContactIntent(topicRaw)) {
-    const p = cfg.phone ? `Telefono: ${cfg.phone}` : "Telefono non indicato.";
-    const w = (cfg as any).whatsapp ? ` WhatsApp: ${(cfg as any).whatsapp}` : "";
+    const { phone, whatsapp } = extractContacts(data);
+    const p = phone ? `Telefono: ${phone}` : "Telefono non indicato.";
+    const w = whatsapp ? ` WhatsApp: ${whatsapp}` : "";
     return p + w;
   }
   if (isStoryIntent(topicRaw)) {
-    // Fallback per la home comunale
     const desc = (data.story?.text ?? (data as any)?.about?.text)?.trim();
     return desc || "Al momento non è stata inserita una descrizione.";
   }
@@ -172,17 +220,37 @@ function offlineAnswer(
   const tAns = topicAnswer(q, data);
   if (tAns) return { text: tAns, used: [], exhausted: false };
 
+  // home comunale: orari / indirizzo anche in locale
   if (isHoursIntent(q)) {
-    const base = cfg.hours ? `Siamo aperti: ${cfg.hours}.` : "Gli orari non sono indicati.";
+    const muni = (data as any)?.municipal;
+    const base =
+      (muni && muni.hoursShort) ? `Uffici comunali — ${muni.hoursShort}.`
+      : (cfg.hours ? `Siamo aperti: ${cfg.hours}.` : "Gli orari non sono indicati.");
     const suffix = hints.length ? ` Prova uno dei tasti rapidi: ${hints.slice(0,3).join(" • ")}.` : "";
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
+
+  // contatti in locale (config + municipal.contacts)
+  if (isContactIntent(q)) {
+    const { phone, whatsapp } = extractContacts(data);
+    const parts: string[] = [];
+    if (phone) parts.push(`Telefono: ${phone}`);
+    if (whatsapp) parts.push(`WhatsApp: ${whatsapp}`);
+    const base = parts.length ? parts.join(" — ") : "I contatti non sono indicati.";
+    const suffix = hints.length ? ` Ti posso aiutare anche con: ${hints.slice(0,3).join(" • ")}.` : "";
+    return { text: base + suffix, used: [] as string[], exhausted: false };
+  }
+
   if (isAddressIntent(q)) {
-    const base = cfg.address ? `Ci trovi in ${cfg.address}.` : "L'indirizzo non è indicato.";
+    const muni = (data as any)?.municipal;
+    const base =
+      (muni && muni.address) ? `Uffici comunali: ${muni.address}.`
+      : (cfg.address ? `Ci trovi in ${cfg.address}.` : "L'indirizzo non è indicato.");
     const suffix = hints.length ? ` Vuoi altro? ${hints.slice(0,3).join(" • ")}.` : "";
     return { text: base + suffix, used: [] as string[], exhausted: false };
   }
 
+  // menu / catalogo
   const filters = parseFilters(q);
   const pool = buildCandidates(data, filters, already);
 
@@ -220,6 +288,26 @@ function offlineAnswer(
   return { text: "Ciao, per ora non ho altre proposte." + example, used: [], exhausted: true };
 }
 
+/** -------- PERSISTENZA SESSIONE (aggiunta minimale) -------- */
+const STORE_PREFIX = "sianoai_chat_";
+const MAX_TURNS = 20;
+
+function loadStored(slug: string): Msg[] {
+  try {
+    const raw = localStorage.getItem(STORE_PREFIX + slug);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.text === "string");
+  } catch { return []; }
+}
+function saveStored(slug: string, history: Msg[]) {
+  try {
+    const trimmed = history.slice(-MAX_TURNS);
+    localStorage.setItem(STORE_PREFIX + slug, JSON.stringify(trimmed));
+  } catch { /* ignore */ }
+}
+
 /** -------- Component -------- */
 export default function ChatWidget({
   slug, phone, mapsUrl, venueName, buttonLabel, panelTitle, quickReplies, ctas, whatsapp, whatsDefaultMsg,
@@ -253,6 +341,14 @@ export default function ChatWidget({
       .catch(() => {});
   }, [slug]);
 
+  // Ripristino chat salvata (se presente) e salvataggio continuo
+  React.useEffect(() => {
+    const stored = loadStored(slug);
+    if (stored.length) setHistory(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+  React.useEffect(() => { saveStored(slug, history); }, [slug, history]);
+
   function getAIEndpoint(): string {
     const env = (import.meta as any)?.env;
     return (env && env.VITE_AI_ENDPOINT) ? env.VITE_AI_ENDPOINT : "/.netlify/functions/ask";
@@ -283,7 +379,7 @@ export default function ChatWidget({
     return () => cancelAnimationFrame(id);
   }, [dataVersion]);
 
-  // ---------- FAB offset vs sticky CTA (definitivo) ----------
+  // ---------- FAB offset vs sticky CTA ----------
   const [fabBottomOffset, setFabBottomOffset] = React.useState<number>(16);
   React.useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -350,7 +446,20 @@ export default function ChatWidget({
          [])
     ) as string[];
 
-    const predefined = data ? topicAnswer(q, data) : null;
+    // --- MICRO-FIX: risposta deterministica sulla HOME per "orari Comune/uffici"
+    if (data && slug === "home" && isHoursIntent(q)) {
+      const t = norm(q);
+      const wantsMunicipal = /\b(comune|municip|uffic)\w*\b/.test(t);
+      const muni = (data as any)?.municipal;
+      if (wantsMunicipal && muni?.hoursShort) {
+        const txt = `Orari uffici comunali: ${muni.hoursShort}.`;
+        setHistory((h) => [...h, { role: "assistant", text: txt }]);
+        return;
+      }
+    }
+
+    // NON intercettare con topicAnswer sulla home: lasciare all'AI (tranne la micro-fix sopra)
+    const predefined = (data && slug !== "home") ? topicAnswer(q, data) : null;
     if (predefined) {
       setHistory((h) => [...h, { role: "assistant", text: predefined }]);
       return;
@@ -370,7 +479,10 @@ export default function ChatWidget({
     try {
       const endpoint = getAIEndpoint();
       const isNetlify = endpoint.includes("/.netlify/functions/");
-      const payload = isNetlify ? { slug, question: q } : { question: q, data };
+      // >>> PATCH MINIMA: aggiungo history (ultimi turni) nel payload <<<
+      const recent = history.slice(-MAX_TURNS).map(m => ({ role: m.role, text: m.text }));
+      const payload = isNetlify ? { slug, question: q, history: recent } : { question: q, data, history: recent };
+
       const resp = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
 
       if (!resp.ok) {
@@ -396,9 +508,9 @@ export default function ChatWidget({
         }
       }
     } catch {
-      const data = dataRef.current || { menu: { categories: [] } as any };
+      const dataLocal = dataRef.current || { menu: { categories: [] } as any };
       const more = MORE_RE.test(q);
-      const ans = offlineAnswer(q as any, data as any, cursor + (more ? 2 : 0), suggested, []);
+      const ans = offlineAnswer(q as any, dataLocal as any, cursor + (more ? 2 : 0), suggested, []);
       setCursor((v) => v + (more ? 2 : 1));
       if (ans.used.length) setSuggested((s) => new Set([...s, ...ans.used]));
       setHistory((h) => [...h, { role: "assistant", text: ans.text }]);
@@ -447,7 +559,6 @@ export default function ChatWidget({
     background: "var(--card)",
   };
 
-  // ---- style helper for quick replies ----
   const chipStyle: React.CSSProperties = {
     background: "color-mix(in_oklab, var(--accent) 12%, white)",
     borderColor: "color-mix(in_oklab, var(--accent), white 65%)",
@@ -456,7 +567,7 @@ export default function ChatWidget({
 
   return (
     <>
-      {/* FAB (hidden when panel is open; offset sopra la sticky CTA; hide near bottom) */}
+      {/* FAB */}
       {!open && (
         <button
           onClick={() => setOpen(true)}

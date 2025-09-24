@@ -6,35 +6,40 @@
     "logoUrl": "/pirata/pirate_logo_colored.png",
     "address": "Via Roma 12, Siano (SA)",
     "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
-    "accent": "#b91c1c"
+    "accent": "#b91c1c",
+    "hoursShort": "Lun/Dom 12:00/15:00 • 19:00/23:00 (chiuso Mar)"
   },
   {
     "name": "De Santis",
     "slug": "de-santis",
     "category": "Pasticceria artigianale",
     "logoUrl": "/desantis/desantis_favicon.svg",
-    "address": "Piazza Centrale 5, Siano (SA)"
+    "address": "Piazza Centrale 5, Siano (SA)",
+    "hoursShort": "Lun/Sab 07:00/20:00 • Dom 07:00/13:00"
   },
   {
     "name": "Marcello Barber Salon",
     "slug": "marcello-barber-salon",
     "category": "Barber • Grooming",
     "logoUrl": "/marcello/logo_1.png",
-    "address": "Corso Garibaldi 21, Siano (SA)"
+    "address": "Corso Garibaldi 21, Siano (SA)",
+    "hoursShort": "Mar/Sab 09:00/13:00 • 15:30/20:00 (chiuso Lun, Dom pomeriggio)"
   },
   {
     "name": "Zen Cafè",
     "slug": "zen-cafe",
     "category": "Bar • Pizzeria",
     "logoUrl": "/zen/zen_favicon.svg",
-    "address": "Via Tranquilla 12, Siano (SA)"
+    "address": "Via Tranquilla 12, Siano (SA)",
+    "hoursShort": "Tutti i giorni 07:00/14:30 • 18:00/23:30"
   },
   {
     "name": "Pasticceria Aliberti",
     "slug": "pasticceria-aliberti",
     "category": "Bar • Pasticceria",
     "logoUrl": "/aliberti/aliberti.webp",
-    "address": "Via Tranquilla 12, Siano (SA)"
+    "address": "Via Tranquilla 12, Siano (SA)",
+    "hoursShort": "Lun/Sab 07:00/20:00 • Dom 07:00/13:00"
   },
   {
     "name": "Pizzeria Rosticceria Frasci",
@@ -43,7 +48,8 @@
     "logoUrl": "/frasci/frasci_via_botta.jpg",
     "address": "Via Roma 12, Siano (SA)",
     "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
-    "accent": "#b91c1c"
+    "accent": "#b91c1c",
+    "hoursShort": "Lun/Dom 12:00/15:00 • 19:00/23:00 (chiuso Mar)"
   },
   {
     "name": "Asd Athena",
@@ -52,6 +58,7 @@
     "logoUrl": "/athena/athena.webp",
     "address": "Via Roma 12, Siano (SA)",
     "mapUrl": "https://maps.google.com/?q=Via+Roma+12+Siano",
-    "accent": "#b91c1c"
+    "accent": "#b91c1c",
+    "hoursShort": "Lun/Ven 08:00/23:00 • Sab 10:00/20:00 (chiuso Dom)"
   }
 ]

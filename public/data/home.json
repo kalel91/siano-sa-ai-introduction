@@ -91,6 +91,17 @@
     "instagram": "https://instagram.com/comuneSiano"
   },
 
+  "municipal": {
+  "address": "Piazza Sandro Pertini, Siano (SA)",
+  "hoursShort": "Lun–Ven 9–12; Mar e Gio 15–17",
+  "contacts": {
+    "switchboard": "081 000 000",
+    "email": "protocollo@comune.siano.sa.it",
+    "pec": "protocollo@pec.comune.siano.sa.it"
+  },
+  "notes": "Gli orari possono variare in caso di festività."
+},
+
   "footer": {
     "note": "Progetto promosso dal Comune di Siano — Innovazione digitale AI al servizio della comunità.",
     "updated": "2025-09-12"
