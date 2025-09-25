@@ -300,88 +300,91 @@ function saveStored(slug: string, history: Msg[]) {
   } catch { /* ignore */ }
 }
 
-/** -------- ANIMAZIONI FAB (CSS-only, zero dipendenze) -------- */
-const FAB_STYLE_ID = "sianoai-fab-anim-v3";
+/** -------- FAB animations: pill-aware ripples (synced) -------- */
+const FAB_STYLE_ID = "sianoai-fab-anim-pill-stable";
 function ensureFabStyleInjected() {
   if (typeof document === "undefined") return;
   if (document.getElementById(FAB_STYLE_ID)) return;
 
   const css = `
-  /* --- Keyframes potenziati --- */
+  /* Motion */
   @keyframes fab-breathe { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1.5px) scale(1.06); } }
-  @keyframes fab-pulse-ring-strong { 0% { opacity:.6; transform: scale(0.98); }
-                                     60% { opacity:.08; transform: scale(2.2); }
-                                     100% { opacity:0; transform: scale(2.25); } }
-  @keyframes fab-rotate { to { transform: rotate(360deg); } }
-  @keyframes fab-sheen { 0% { transform: translateX(-260%) skewX(-18deg); }
-                         100% { transform: translateX(260%) skewX(-18deg); } }
-
-  /* --- Wrappers --- */
-  .sianoai-fab-wrap { position: relative; display: inline-block; }
-  .sianoai-fab { position: relative; z-index: 3; }
-  .sianoai-fab-anim { animation: fab-breathe 4s ease-in-out infinite; will-change: transform; }
-
-  /* Glow forte */
-  .sianoai-fab-glow {
-    position:absolute; inset:0; border-radius:9999px; z-index:0; pointer-events:none;
-    box-shadow:
-      0 0 0 2px color-mix(in_oklab,var(--accent),transparent 80%),
-      0 8px 26px -8px color-mix(in_oklab,var(--accent),transparent 40%),
-      0 0 40px -6px color-mix(in_oklab,var(--accent),transparent 40%);
-    animation: fab-breathe 4s ease-in-out infinite;
+  @keyframes fab-sheen {
+    0%   { transform: translateX(-420%) skewX(-18deg); }
+    100% { transform: translateX( 420%) skewX(-18deg); }
   }
 
-  /* Triplo ripple (due + uno sfalsato) */
-  .sianoai-fab-ripples,
-  .sianoai-fab-rippleX { position:absolute; inset:0; border-radius:9999px; z-index:1; pointer-events:none; }
-  .sianoai-fab-ripples::before,
-  .sianoai-fab-ripples::after,
-  .sianoai-fab-rippleX::before {
-    content:""; position:absolute; inset:-10px; border-radius:9999px;
-    border: 3px solid color-mix(in_oklab,var(--accent),white 42%);
-    box-shadow: 0 0 12px color-mix(in_oklab,var(--accent),white 30%);
-    animation: fab-pulse-ring-strong 2.8s ease-out infinite;
-  }
-  .sianoai-fab-ripples::after { animation-delay: 1.1s; }
-  .sianoai-fab-rippleX::before { animation-delay: 2.0s; }
-
-  /* Halo rotante più evidente */
-  .sianoai-fab-halo {
-    position:absolute; inset:-10px; border-radius:9999px; z-index:2; pointer-events:none;
-    background: conic-gradient(from 0deg,
-      color-mix(in_oklab,var(--accent),white 34%) 0%,
-      transparent 12%,
-      transparent 35%,
-      color-mix(in_oklab,var(--accent),white 40%) 50%,
-      transparent 65%,
-      transparent 88%,
-      color-mix(in_oklab,var(--accent),white 34%) 100%);
-    filter: blur(0.6px);
-    opacity:.9;
-    animation: fab-rotate 6s linear infinite;
+  /* Ripple con pausa finale: visibile fino al 40%, poi invisibile fino al 100% */
+  @keyframes fab-ripple {
+    0%   { transform: scale(0.88); opacity:.75; }  /* inizio */
+    18%  { transform: scale(1.15); opacity:.40; }  /* espansione */
+    30%  { transform: scale(1.25); opacity:0;   }  /* sparisce */
+    100% { transform: scale(1.25); opacity:0;   }  /* pausa (invisibile) */
   }
 
-  /* Sheen perfettamente “da sinistra a destra” */
-  .sianoai-fab-sheen { position:absolute; inset:0; border-radius:9999px; overflow:hidden; z-index:4; pointer-events:none; }
-  .sianoai-fab-sheen::before {
-    content:""; position:absolute; top:0; bottom:0; width:46%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.48), transparent);
-    filter: blur(1.2px);
-    transform: translateX(-260%) skewX(-18deg);
+  /* Guard: confina gli effetti; usa currentColor per i ripple */
+  .sianoai-fab-guard{
+    position:relative; display:inline-block;
+    padding:20px 32px 20px 32px;
+    border-radius:9999px;
+    overflow:hidden;
+    color: var(--accent, #c0163a);
+     /* === controlli timing === */
+    --fab-cycle: 2.2s;      /* durata parte “attiva” dei ripple */
+    --fab-gap:   5s;        /* pausa globale desiderata */
+    --fab-total: calc(var(--fab-cycle) + var(--fab-gap));
+    --fab-stagger: calc(var(--fab-cycle) / 3); /* sfasamento solo sulla parte attiva */
+  }
+
+  /* Stage = dimensione bottone + respiro */
+  .sianoai-fab-stage{
+    position:relative; display:inline-block; border-radius:9999px;
+    padding-block: 5px;     /* ↑/↓ espansione verticale cerchi */
+    padding-inline: 5px;    /* ↑/↓ respiro laterale */
+  }
+  .sianoai-fab-stage *[data-layer]{ position:absolute; inset:-10px; border-radius:inherit; pointer-events:none; }
+
+  /* Z-order */
+  .sianoai-fab{ position:relative; z-index:6; }
+  .sianoai-fab-anim{ animation: fab-breathe 4s ease-in-out infinite; will-change: transform; }
+
+  /* RIPPLE (3 anelli sincronizzati) */
+  .sianoai-fab-ring,
+  .sianoai-fab-ringX{
+  z-index:7; box-sizing:border-box; border:3px solid rgba(255,255,255,.9);
+  border-color: currentColor;
+  box-shadow: 0 0 12px currentColor, inset 0 0 6px currentColor;
+  transform-origin: 50% 50%;
+  animation-name: fab-ripple;
+  animation-duration: var(--fab-total);     /* <-- totale = ciclo + pausa */
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+  }
+
+  /*sfasamento parte attiva*/
+  .sianoai-fab-ring[data-variant="1"]{ animation-delay: 0s; }
+  .sianoai-fab-ring[data-variant="2"]{ animation-delay: calc(-1 * var(--fab-stagger)); }
+  .sianoai-fab-ringX{                  animation-delay: calc(-2 * var(--fab-stagger)); }
+
+  /* SHEEN (opzionale, disattivato nel markup) */
+  .sianoai-fab-sheen{ position:absolute; inset:0; border-radius:9999px; overflow:hidden; z-index:9; pointer-events:none; }
+  .sianoai-fab-sheen::before{
+    content:""; position:absolute; top:0; bottom:0; width:56%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.60), transparent);
+    filter: blur(1px);
+    transform: translateX(-420%) skewX(-18deg);
     animation: fab-sheen 4.2s ease-in-out infinite;
-    opacity:.95;
   }
 
   .sianoai-fab:hover, .sianoai-fab:focus-visible { transform: translateY(-1px) scale(1.04); }
 
-  @media (prefers-reduced-motion: reduce) {
+  @media (prefers-reduced-motion: reduce){
     .sianoai-fab-anim,
-    .sianoai-fab-glow,
-    .sianoai-fab-ripples::before,
-    .sianoai-fab-ripples::after,
-    .sianoai-fab-rippleX::before,
-    .sianoai-fab-halo,
-    .sianoai-fab-sheen::before { animation: none !important; }
+    .sianoai-fab-ring,
+    .sianoai-fab-ringX,
+    .sianoai-fab-sheen::before{ animation:none !important; }
+    .sianoai-fab{ transition:none !important; }
   }`;
 
   const el = document.createElement("style");
@@ -431,7 +434,7 @@ export default function ChatWidget({
   }, [slug]);
   React.useEffect(() => { saveStored(slug, history); }, [slug, history]);
 
-  // Inietta il CSS per le animazioni
+  // Inietta CSS animazioni
   React.useEffect(() => { ensureFabStyleInjected(); }, []);
 
   function getAIEndpoint(): string {
@@ -632,49 +635,49 @@ export default function ChatWidget({
   }, [ctas, dataVersion, slug]);
 
   const outlineCobalt: React.CSSProperties = {
-    borderColor: "color-mix(in_oklab,var(--accent),white 72%)",
+    borderColor: "rgba(0,0,0,0.08)",
     color: "var(--accent)",
     background: "var(--card)",
   };
 
   const chipStyle: React.CSSProperties = {
-    background: "color-mix(in_oklab, var(--accent) 12%, white)",
-    borderColor: "color-mix(in_oklab, var(--accent), white 65%)",
-    color: "color-mix(in_oklab, var(--accent) 92%, black)",
+    background: "rgba(0,0,0,0.03)",
+    borderColor: "rgba(0,0,0,0.08)",
+    color: "var(--text)",
   };
 
   return (
     <>
-      {/* FAB con animazioni molto visibili */}
+      {/* FAB con effetti */}
       {!open && (
         <div
           className={`fixed right-4 z-[9999] ${hideFab ? "pointer-events-none opacity-0 translate-y-6" : "opacity-100 translate-y-0"}`}
           style={{ position: "fixed", bottom: `calc(env(safe-area-inset-bottom, 0px) + ${fabBottomOffset}px)` }}
         >
-          <div className="sianoai-fab-wrap">
-            {/* Ripples + Glow dietro */}
-            <span aria-hidden="true" className="sianoai-fab-ripples" />
-            <span aria-hidden="true" className="sianoai-fab-rippleX" />
-            <span aria-hidden="true" className="sianoai-fab-glow" />
-            {/* Halo radiale rotante (ghiera) */}
-            <span aria-hidden="true" className="sianoai-fab-halo" />
-            {/* Bottone vero */}
-            <button
-              onClick={() => setOpen(true)}
-              className="sianoai-fab sianoai-fab-anim inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200"
-              style={{
-                background: "var(--accent)",
-                color: "var(--accentText)",
-                borderColor: "color-mix(in_oklab,var(--accent),white 60%)",
-                transformOrigin: "center",
-              }}
-              aria-label={resolvedButtonLabel}
-            >
-              <MessageCircle className="inline w-5 h-5" />
-              {resolvedButtonLabel}
-              {/* Sheen in primo piano */}
-              <span aria-hidden="true" className="sianoai-fab-sheen" />
-            </button>
+          <div className="sianoai-fab-guard">
+            <div className="sianoai-fab-stage">
+              {/* Bottone */}
+              <button
+                onClick={() => setOpen(true)}
+                className="sianoai-fab sianoai-fab-anim inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-lg border transition-all duration-200"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accentText)",
+                  borderColor: "rgba(0,0,0,0.08)",
+                  transformOrigin: "center",
+                }}
+                aria-label={resolvedButtonLabel}
+              >
+                <MessageCircle className="inline w-5 h-5" />
+                {resolvedButtonLabel}
+                {/* sheen disabilitato */}
+                {/* <span aria-hidden="true" className="sianoai-fab-sheen" /> */}
+              </button>
+              {/* 3 ripple pill-shaped sincronizzati */}
+              <span aria-hidden="true" className="sianoai-fab-ring" data-layer data-variant="1" />
+              <span aria-hidden="true" className="sianoai-fab-ring" data-layer data-variant="2" />
+              <span aria-hidden="true" className="sianoai-fab-ringX" data-layer />
+            </div>
           </div>
         </div>
       )}
@@ -716,7 +719,7 @@ export default function ChatWidget({
                   className="px-3 py-1.5 rounded-full border text-sm hover:opacity-95 focus:outline-none focus:ring-2 transition-colors font-medium"
                   style={{ ...chipStyle, boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
                   onClick={() => { setInput(p); setTimeout(onSend, 0); }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px color-mix(in_oklab,var(--accent),white 70%)")}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(0,0,0,.08)")}
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02)")}
                 >
                   {p}
@@ -775,7 +778,7 @@ export default function ChatWidget({
                     return (
                       <a key={i} href={waHref(wa, whatsDefaultMsg || "")} target="_blank" rel="noreferrer"
                          className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm"
-                         style={{background:"var(--accent)", color:"var(--accentText)", boxShadow:"0 6px 24px -6px color-mix(in_oklab,var(--accent),transparent 70%)"}}>
+                         style={{background:"var(--accent)", color:"var(--accentText)", boxShadow:"0 6px 24px -6px rgba(0,0,0,0.25)"}}>
                         <MessageCircle className="w-4 h-4" /> {a.label}
                       </a>
                     );
