@@ -1,17 +1,17 @@
-// SianoVenue.tsx — ricerca + tab DOPO Hero e Story (social a tema, desktop+mobile) + abbellimenti robusti (parallax + ambient spotlight)
 import React from "react";
-import ChatWidget from "./ChatWidget";
 import { motion, AnimatePresence } from "framer-motion";
+import ChatWidget from "./ChatWidget";
 import {
   Phone,
   MessageCircle,
   MapPin,
   Clock,
-  Search,
   Star,
-  UtensilsCrossed,
-  BookOpenText,
   ExternalLink,
+  Bot,
+  Sparkles,
+  ShieldCheck,
+  ArrowUpRight,
   Instagram,
   Facebook,
 } from "lucide-react";
@@ -109,7 +109,7 @@ function applyFavicon(url?: string) {
   apple.href = url;
 }
 
-/** Tema → CSS vars (+ glass adattivo) */
+/** Tema → CSS vars */
 function applyTheme(t?: Config["theme"]) {
   const mode = t?.mode || "light";
   const root = document.documentElement;
@@ -117,30 +117,29 @@ function applyTheme(t?: Config["theme"]) {
 
   st.setProperty("--accent", t?.accent || "#0f766e");
   st.setProperty("--accentText", t?.accentText || "#ffffff");
-  st.setProperty("--radius", t?.radius || "16px");
+  st.setProperty("--radius", t?.radius || "18px");
 
   const setDefaults = () => {
-    st.setProperty("--bgFrom", t?.bgFrom || (mode === "dark" ? "#0f0f12" : "#f8fafc"));
-    st.setProperty("--bgTo", t?.bgTo || (mode === "dark" ? "#121417" : "#ffffff"));
-    st.setProperty("--accent-20", "color-mix(in_oklab, var(--accent), white 80%)");
-    st.setProperty("--accent-10", "color-mix(in_oklab, var(--accent), white 90%)");
-    st.setProperty("--accent-05", "color-mix(in_oklab, var(--accent), white 95%)");
-    st.setProperty("--chromeTint", "var(--accent-05)");
+    st.setProperty("--bgFrom", t?.bgFrom || (mode === "dark" ? "#08090c" : "#eff6ff"));
+    st.setProperty("--bgTo", t?.bgTo || (mode === "dark" ? "#10131a" : "#ffffff"));
+    st.setProperty("--accent-15", "color-mix(in_oklab, var(--accent), white 85%)");
+    st.setProperty("--accent-08", "color-mix(in_oklab, var(--accent), white 92%)");
+    st.setProperty("--accent-04", "color-mix(in_oklab, var(--accent), white 96%)");
 
     if (mode === "dark") {
       st.setProperty("--text", "#e5e7eb");
       st.setProperty("--textSoft", "#cbd5e1");
-      st.setProperty("--card", "#111214");
-      st.setProperty("--muted", "#0e0f11");
-      st.setProperty("--border", "rgba(255,255,255,0.08)");
-      st.setProperty("--glass", "linear-gradient(180deg, rgba(24,24,27,.92), rgba(24,24,27,.84))");
+      st.setProperty("--card", "#14161d");
+      st.setProperty("--muted", "#10131a");
+      st.setProperty("--border", "rgba(148,163,184,0.18)");
+      st.setProperty("--glass", "linear-gradient(160deg, rgba(20,22,29,.88), rgba(20,22,29,.72))");
     } else {
       st.setProperty("--text", "#0f172a");
       st.setProperty("--textSoft", "#475569");
       st.setProperty("--card", "#ffffff");
       st.setProperty("--muted", "#f8fafc");
-      st.setProperty("--border", "#e5e7eb");
-      st.setProperty("--glass", "linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74))");
+      st.setProperty("--border", "rgba(15,23,42,0.08)");
+      st.setProperty("--glass", "linear-gradient(160deg, rgba(255,255,255,.86), rgba(255,255,255,.74))");
     }
   };
 
@@ -160,19 +159,13 @@ function applyTheme(t?: Config["theme"]) {
       const maybeThemeVars = [
         "--bgFrom",
         "--bgTo",
-        "--glass",
         "--card",
         "--muted",
         "--border",
-        "--accent-20",
-        "--accent-10",
-        "--accent-05",
-        "--chromeTint",
         "--text",
         "--textSoft",
       ];
       const comp = getComputedStyle(root);
-
       for (const v of maybeThemeVars) {
         const fromTheme = comp.getPropertyValue(v).trim();
         if (fromTheme) st.removeProperty(v);
@@ -221,7 +214,7 @@ function makeAskLabel(venueName: string): string {
 function resolveBadgeLabel(label?: string | null): string | null {
   if (label === null) return null;
   if (label === "") return null;
-  return label ?? "Menu online";
+  return label ?? "Studio digitale";
 }
 
 /** Data loader */
@@ -265,269 +258,552 @@ function useVenueData() {
   return { cfg, men, story, err };
 }
 
-/** UI helpers */
-const glowShadow =
-  "0 10px 30px 0 color-mix(in_oklab, var(--accent), transparent 80%)";
-
-/** Iniezione CSS per sheen card, tab indicator e spotlight */
-const VENUE_UI_STYLE_ID = "venue-ui-extras-v2";
-function ensureVenueUiStyle() {
-  if (typeof document === "undefined") return;
-  if (document.getElementById(VENUE_UI_STYLE_ID)) return;
-  const css = `
-  @keyframes cardSheen {
-    0%   { transform: translateX(-120%) skewX(-18deg); opacity: .0; }
-    35%  { opacity: .45; }
-    100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
-  }
-  .vfx-card { position: relative; }
-  .vfx-card .vfx-sheen {
-    pointer-events:none; content:""; position:absolute; inset:0; overflow:hidden; border-radius:inherit;
-  }
-  .vfx-card .vfx-sheen::before{
-    content:""; position:absolute; top:0; bottom:0; width:55%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
-    filter: blur(1px);
-    transform: translateX(-120%) skewX(-18deg);
-  }
-  .vfx-card:hover .vfx-sheen::before { animation: cardSheen 1.2s ease; }
-
-  .vfx-tab { position: relative; }
-  .vfx-tab--active::after{
-    content:""; position:absolute; left:10%; right:10%; bottom:-6px; height:3px; border-radius:3px;
-    background: linear-gradient(90deg, color-mix(in_oklab,var(--accent),white 10%), var(--accent));
-    box-shadow: 0 4px 12px color-mix(in_oklab,var(--accent), transparent 60%);
-  }
-
-  .no-scrollbar::-webkit-scrollbar{ display:none; } .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
-
-  /* Ambient spotlight (segue il mouse) */
-  .vfx-spotlight {
-    position: fixed; inset: 0; pointer-events: none; z-index: 20;
-    background:
-      radial-gradient(240px 180px at var(--spot-x, -999px) var(--spot-y, -999px),
-        color-mix(in_oklab, var(--accent), transparent 80%), transparent 70%);
-    transition: background-position .08s linear;
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .vfx-card:hover .vfx-sheen::before { animation: none !important; }
-  }
-  `;
-  const el = document.createElement("style");
-  el.id = VENUE_UI_STYLE_ID;
-  el.appendChild(document.createTextNode(css));
-  document.head.appendChild(el);
+/** Helpers */
+function formatPrice(value: number) {
+  return value.toFixed(2).replace(".", ",");
 }
 
-/** ITEM CARD (card cliccabile se item.url esiste) */
-function ItemCard({ item }: { item: MenuItem }) {
-  const CardInner = (
-    <div
-      className="group overflow-hidden rounded-[calc(var(--radius)-1px)] border vfx-card"
-      style={{ borderColor: "var(--border)", background: "var(--card)" }}
-    >
-      {item.img && (
-        <div className="h-44 w-full overflow-hidden">
-          <img
-            src={item.img}
-            alt={item.name}
-            loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
-        </div>
+const sectionClass = "mx-auto w-full max-w-5xl px-4";
+
+function SectionTitle({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="mb-6 max-w-3xl">
+      {eyebrow && (
+        <span
+          className="text-xs uppercase tracking-[0.28em] text-[color:var(--accent)]"
+          style={{ letterSpacing: "0.28em" }}
+        >
+          {eyebrow}
+        </span>
       )}
+      <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--text)" }}>
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="mt-2 text-base" style={{ color: "var(--textSoft)" }}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
 
-      <div
-        className="absolute right-3 top-3 rounded-full px-3 py-1 text-sm font-semibold shadow"
-        style={{
-          background: "var(--accent)",
-          color: "var(--accentText)",
-          boxShadow: glowShadow,
-        }}
-      >
-        {item.price.toFixed(2).replace(".", ",")} €
-      </div>
+function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
+  const images = React.useMemo(() => cfg.heroImages?.filter(Boolean) ?? [], [cfg.heroImages]);
+  const [idx, setIdx] = React.useState(0);
 
-      <div className="p-4 flex items-start gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold" style={{ color: "var(--text)" }}>
-              {item.name}
-            </h3>
-            {item.fav && (
+  React.useEffect(() => {
+    if (images.length <= 1) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % images.length), 6000);
+    return () => clearInterval(id);
+  }, [images.length]);
+
+  return (
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(circle at 10% 20%, color-mix(in_oklab,var(--accent),white 40%), transparent 55%)," +
+          "radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),white 15%), transparent 60%)," +
+          "linear-gradient(140deg, var(--bgFrom), var(--bgTo))",
+      }}
+    >
+      <div className="absolute inset-0 bg-[rgba(15,23,42,0.08)] mix-blend-multiply" aria-hidden="true" />
+      <div className={`${sectionClass} relative z-10 py-16 lg:py-20`}>
+        <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
+          <div className="space-y-6">
+            {badgeLabel && (
               <span
-                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full"
-                style={{ background: "var(--accent-10)", color: "var(--accent)" }}
+                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur"
+                style={{
+                  color: "var(--accent)",
+                  background: "color-mix(in_oklab,var(--accent),transparent 82%)",
+                  borderColor: "color-mix(in_oklab,var(--accent),transparent 65%)",
+                }}
               >
-                <Star className="w-3 h-3" /> Best seller
+                <Sparkles className="h-3.5 w-3.5" /> {badgeLabel}
               </span>
             )}
+
+            <div className="flex items-center gap-4">
+              {cfg.logoUrl ? (
+                <div
+                  className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[var(--radius)] border bg-[var(--card)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <img
+                    src={cfg.logoUrl}
+                    alt={`Logo ${cfg.name}`}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--text)" }}>
+                  {cfg.name}
+                </h1>
+                {cfg.tagline && (
+                  <p className="mt-2 text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                    {cfg.tagline}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="rounded-[var(--radius)] border p-4 shadow-sm"
+              style={{
+                borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)",
+                background: "color-mix(in_oklab,var(--accent),white 90%)",
+              }}
+            >
+              <div className="flex items-start gap-3 text-sm text-slate-700">
+                <Bot className="h-5 w-5 flex-none text-[color:var(--accent)]" />
+                <div>
+                  <p className="font-medium text-[color:var(--text)]">
+                    {cfg.assistantLabel || "Assistente AI dedicato"}
+                  </p>
+                  <p className="mt-1 text-[color:var(--textSoft)]">
+                    Risposte immediate su servizi, disponibilità, preventivi e follow-up. L’assistente AI attinge solo
+                    dalle informazioni pubblicate da {cfg.name}, così i tuoi clienti hanno sempre un punto di contatto
+                    affidabile, 24/7.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              {cfg.phone && (
+                <a
+                  href={telHref(cfg.phone)}
+                  className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-[var(--card)] px-4 py-3 text-sm font-medium shadow-sm transition hover:shadow-md"
+                  style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+                >
+                  <Phone className="h-4 w-4" /> Chiama subito
+                </a>
+              )}
+              {cfg.whatsapp && (
+                <a
+                  href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
+                  className="inline-flex items-center gap-2 rounded-[var(--radius)] px-4 py-3 text-sm font-medium text-[color:var(--accentText)] shadow-sm transition hover:shadow-lg"
+                  style={{ background: "var(--accent)" }}
+                >
+                  <MessageCircle className="h-4 w-4" /> WhatsApp diretto
+                </a>
+              )}
+              {cfg.mapUrl && (
+                <a
+                  href={cfg.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius)] border px-4 py-3 text-sm font-medium transition hover:shadow-md"
+                  style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                >
+                  <MapPin className="h-4 w-4" /> Indicazioni
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
+
+            <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
+              {cfg.hours && (
+                <div className="flex items-start gap-2" style={{ color: "var(--textSoft)" }}>
+                  <Clock className="mt-0.5 h-4 w-4 text-[color:var(--accent)]" />
+                  <div>
+                    <dt className="text-[color:var(--text)] font-medium">Orari</dt>
+                    <dd>{cfg.hours}</dd>
+                  </div>
+                </div>
+              )}
+              {cfg.address && (
+                <div className="flex items-start gap-2" style={{ color: "var(--textSoft)" }}>
+                  <MapPin className="mt-0.5 h-4 w-4 text-[color:var(--accent)]" />
+                  <div>
+                    <dt className="text-[color:var(--text)] font-medium">Studio</dt>
+                    <dd>{cfg.address}</dd>
+                  </div>
+                </div>
+              )}
+            </dl>
+
+            {(cfg.instagramUrl || cfg.facebookUrl) && (
+              <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: "var(--textSoft)" }}>
+                <span>Ci trovi anche su</span>
+                {cfg.instagramUrl && (
+                  <a
+                    href={cfg.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition hover:bg-[var(--card)]"
+                    style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                  >
+                    <Instagram className="h-4 w-4" /> Instagram
+                  </a>
+                )}
+                {cfg.facebookUrl && (
+                  <a
+                    href={cfg.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition hover:bg-[var(--card)]"
+                    style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                  >
+                    <Facebook className="h-4 w-4" /> Facebook
+                  </a>
+                )}
+              </div>
+            )}
           </div>
+
+          <div className="relative">
+            <div
+              className="absolute -inset-6 -z-10 rounded-[calc(var(--radius)*1.6)] opacity-60"
+              style={{
+                background:
+                  "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--accent),transparent 40%), transparent 70%)",
+                boxShadow: "0 60px 120px rgba(15,23,42,0.22)",
+              }}
+              aria-hidden="true"
+            />
+
+            <div
+              className="overflow-hidden rounded-[calc(var(--radius)*1.2)] border shadow-2xl"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
+            >
+              {images.length ? (
+                <div className="relative aspect-[4/5] w-full">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={idx}
+                      src={images[idx]}
+                      alt={`Gallery ${idx + 1}`}
+                      loading="eager"
+                      className="h-full w-full object-cover"
+                      initial={{ opacity: 0.2, scale: 1.04 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.02 }}
+                      transition={{ duration: 0.6 }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </AnimatePresence>
+                  {images.length > 1 && (
+                    <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2">
+                      {images.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setIdx(i)}
+                          className={`h-2.5 w-2.5 rounded-full transition ${
+                            idx === i ? "bg-white" : "bg-white/50"
+                          }`}
+                          aria-label={`Mostra immagine ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="flex aspect-[4/5] w-full items-center justify-center bg-[var(--muted)]"
+                  style={{ color: "var(--textSoft)" }}
+                >
+                  Nessuna immagine disponibile
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StorySection({ story }: { story: Story }) {
+  if (!story) return null;
+  return (
+    <section className={`${sectionClass} py-14`}>
+      <div className="grid gap-6 lg:grid-cols-[0.5fr_1fr]">
+        <div>
+          <SectionTitle
+            eyebrow="identità"
+            title={story.title || "Una storia costruita sul territorio"}
+            subtitle="Mettiamo in evidenza la visione e la metodologia professionale, perché clienti e partner possano capire da subito l’approccio dello studio."
+          />
+        </div>
+        <div>
+          <div
+            className="rounded-[var(--radius)] border bg-[var(--card)] p-6 shadow-sm"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+              {story.text}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined }) {
+  if (!specials?.length) return null;
+  return (
+    <section className={`${sectionClass} pb-6`}>
+      <SectionTitle
+        eyebrow="focus"
+        title="In evidenza oggi"
+        subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        {specials.map((spec, idx) => (
+          <div
+            key={idx}
+            className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm transition hover:shadow-lg"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">
+                  {spec.badge || "Novità"}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
+                  {spec.title}
+                </h3>
+              </div>
+              <span
+                className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)]"
+              >
+                {spec.price}
+              </span>
+            </div>
+            <p className="mt-3 text-sm" style={{ color: "var(--textSoft)" }}>
+              L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”.
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ServiceCard({ item }: { item: MenuItem }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.4 }}
+      className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+      style={{ borderColor: "var(--border)" }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+            {item.name}
+          </h3>
           {item.desc && (
-            <p className="text-sm mt-1" style={{ color: "var(--textSoft)" }}>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
               {item.desc}
             </p>
           )}
-
-          {!!item.tags?.length && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {item.tags!.map((t, i) => (
-                <span
-                  key={i}
-                  className="text-[10px] px-2 py-0.5 rounded-full border"
-                  style={{
-                    background: "var(--muted)",
-                    color: "var(--textSoft)",
-                    borderColor: "var(--border)",
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {item.url && (
-            <span
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full"
-              style={{
-                background: "var(--accent-10)",
-                color: "var(--accent)",
-              }}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Apri scheda
-            </span>
-          )}
+        </div>
+        <div className="text-right">
+          <div className="inline-flex items-center gap-1 rounded-full bg-[var(--muted)] px-3 py-1 text-xs font-medium" style={{ color: "var(--textSoft)" }}>
+            {item.fav && <Star className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
+            <span>{formatPrice(item.price)} €</span>
+          </div>
         </div>
       </div>
 
-      {/* sheen */}
-      <span aria-hidden="true" className="vfx-sheen" />
-    </div>
-  );
+      {!!item.tags?.length && (
+        <div className="mt-4 flex flex-wrap gap-2 text-[11px]" style={{ color: "var(--textSoft)" }}>
+          {item.tags!.map((tag, i) => (
+            <span key={i} className="rounded-full border px-3 py-1" style={{ borderColor: "var(--border)" }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    item.url ? (
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block focus:outline-none focus-visible:ring-2 rounded-[calc(var(--radius)-1px)]"
-        aria-label={`Apri scheda: ${item.name}`}
-      >
-        {children}
-      </a>
-    ) : (
-      <>{children}</>
-    );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      whileHover={{ y: -2, scale: 1.01 }}
-      transition={{ type: "spring", stiffness: 250, damping: 22 }}
-      className="relative rounded-[var(--radius)]"
-      style={{
-        padding: "1px",
-        background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))",
-        boxShadow: glowShadow,
-      }}
-    >
-      <Wrapper>{CardInner}</Wrapper>
+      {item.url && (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--accent)]"
+        >
+          Approfondisci
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      )}
     </motion.div>
   );
 }
 
-/** HERO con parallax morbido */
-function Hero({ images }: { images: string[] }) {
-  const [idx, setIdx] = React.useState(0);
-  const wrapRef = React.useRef<HTMLDivElement | null>(null);
+function ServicesSection({ categories }: { categories: Category[] }) {
+  if (!categories.length) return null;
+  return (
+    <section className={`${sectionClass} py-14`}>
+      <SectionTitle
+        eyebrow="servizi"
+        title="Soluzioni guidate dall’esperienza"
+        subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
+      />
+      <div className="space-y-10">
+        {categories.map((category) => (
+          <div key={category.name} className="space-y-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
+                {category.name}
+              </h3>
+              <span className="text-xs" style={{ color: "var(--textSoft)" }}>
+                {category.items.length} {category.items.length === 1 ? "proposta" : "proposte"}
+              </span>
+            </div>
+            {category.items.length ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {category.items.map((item, idx) => (
+                  <ServiceCard key={`${category.name}-${idx}`} item={item} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+                Al momento non sono presenti servizi in questa categoria.
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-  // ciclo immagini
-  React.useEffect(() => {
-    const id = setInterval(() => setIdx((i) => (i + 1) % images.length), 4500);
-    return () => clearInterval(id);
-  }, [images.length]);
+function AssistantSection() {
+  return (
+    <section className={`${sectionClass} py-14`}>
+      <div className="grid gap-6 lg:grid-cols-[0.55fr_1fr]">
+        <div>
+          <SectionTitle
+            eyebrow="assistente"
+            title="Dai voce digitale al tuo studio"
+            subtitle="Integra il widget AI sul tuo sito, condividi il QR code con la clientela e ricevi conversazioni che si trasformano in appuntamenti."
+          />
+        </div>
+        <div className="grid gap-4">
+          <div
+            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <ShieldCheck className="h-5 w-5 text-[color:var(--accent)]" />
+            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+              Risposte controllate: l’assistente consulta esclusivamente i dati forniti nel tuo spazio digitale. Nessuna
+              improvvisazione, zero allucinazioni.
+            </p>
+          </div>
+          <div
+            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Bot className="h-5 w-5 text-[color:var(--accent)]" />
+            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+              Conversazioni omnicanale: dalla chat web puoi passare alla telefonata o a WhatsApp con un tap. Il bot propone
+              sempre la call to action più adatta.
+            </p>
+          </div>
+          <div
+            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Sparkles className="h-5 w-5 text-[color:var(--accent)]" />
+            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+              Aggiornabile in autonomia: carica nuovi servizi, brochure e FAQ nel JSON dedicato e il tuo assistente AI sarà
+              subito allineato.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-  // parallax leggero (rispettando prefers-reduced-motion)
-  React.useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const prefersReduced =
-      typeof window !== "undefined" &&
-      "matchMedia" in window &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReduced) return;
-
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const rect = el.getBoundingClientRect();
-        // offset dentro viewport: quando è centrato, shift minore
-        const center = window.innerHeight / 2;
-        const delta = (rect.top + rect.height / 2) - center;
-        const shift = Math.max(-12, Math.min(12, -delta * 0.03)); // clamp ±12px
-        el.style.transform = `translateY(${shift}px)`;
-      });
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-      el.style.transform = "";
-    };
-  }, []);
-
-  if (!images.length) return null;
+function DetailsFooter({ cfg }: { cfg: Config }) {
+  if (!cfg.footerNote && !cfg.lastUpdated && !cfg.allergenNotice?.text) return null;
+  const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
+  const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-3" ref={wrapRef}>
+    <section className={`${sectionClass} pb-24 pt-4`}>
+      <div className="flex flex-col gap-2 text-xs" style={{ color: "var(--textSoft)" }}>
+        {cfg.footerNote && <div>{cfg.footerNote}</div>}
+        {(cfg.lastUpdated || showAllergen) && (
+          <div>
+            {cfg.lastUpdated && <span>Aggiornato il {cfg.lastUpdated}</span>}
+            {cfg.lastUpdated && showAllergen && <span> • </span>}
+            {showAllergen && <span>{allergenText}</span>}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function StickyActions({ cfg }: { cfg: Config }) {
+  const hasPhone = Boolean(cfg.phone);
+  const hasWhatsapp = Boolean(cfg.whatsapp);
+  const hasMap = Boolean(cfg.mapUrl);
+  if (!hasPhone && !hasWhatsapp && !hasMap) return null;
+
+  const cols = [hasPhone, hasWhatsapp, hasMap].filter(Boolean).length;
+  const gridClass =
+    cols === 3 ? "grid-cols-3" : cols === 2 ? "grid-cols-2" : cols === 1 ? "grid-cols-1" : "grid-cols-2";
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 p-3 sm:hidden">
       <div
-        className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border shadow-sm"
-        style={{ borderColor: "var(--border)", background: "var(--muted)" }}
+        className={`mx-auto max-w-md ${gridClass} grid gap-2 rounded-[calc(var(--radius)*1.1)] border bg-[var(--glass)] p-3 backdrop-blur shadow-lg`}
+        style={{ borderColor: "var(--border)" }}
       >
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={idx}
-            src={images[idx]}
-            alt="hero"
-            loading="eager"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.opacity = "0";
-            }}
-            initial={{ opacity: 0, scale: 1.03 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7 }}
-            className="h-full w-full object-cover"
-          />
-        </AnimatePresence>
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 to-transparent" />
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIdx(i)}
-              aria-label={`slide ${i + 1}`}
-              className={`h-2.5 w-2.5 rounded-full transition ${
-                i === idx ? "bg-white" : "bg-white/70"
-              }`}
-            />
-          ))}
-        </div>
+        {hasPhone && (
+          <a
+            href={telHref(cfg.phone)}
+            className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-[var(--card)] py-3 text-sm font-medium"
+            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+          >
+            <Phone className="h-4 w-4" /> Chiama
+          </a>
+        )}
+        {hasWhatsapp && (
+          <a
+            href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
+            className="flex items-center justify-center gap-2 rounded-[var(--radius)] py-3 text-sm font-medium text-[color:var(--accentText)]"
+            style={{ background: "var(--accent)" }}
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp
+          </a>
+        )}
+        {hasMap && (
+          <a
+            href={cfg.mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-[var(--card)] py-3 text-sm font-medium"
+            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+          >
+            <MapPin className="h-4 w-4" /> Indicazioni
+          </a>
+        )}
       </div>
     </div>
   );
@@ -536,73 +812,9 @@ function Hero({ images }: { images: string[] }) {
 export default function SianoVenue() {
   const { cfg, men, story, err } = useVenueData();
 
-  // inietta CSS extra sicuro
-  React.useEffect(() => { ensureVenueUiStyle(); }, []);
-
-  // ambient spotlight: segue il mouse (solo pointer fine)
-  const spotRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
-    const el = spotRef.current;
-    if (!el) return;
-    const hasMM = typeof window !== "undefined" && "matchMedia" in window;
-    const prefersReduced = hasMM && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pointerFine = hasMM && window.matchMedia("(pointer: fine)").matches;
-    if (prefersReduced || !pointerFine) return;
-
-    const onMove = (e: MouseEvent) => {
-      el.style.setProperty("--spot-x", `${e.clientX}px`);
-      el.style.setProperty("--spot-y", `${e.clientY}px`);
-    };
-    window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
+    document.body.style.backgroundColor = "var(--bgTo)";
   }, []);
-
-  // progress bar scroll
-  const [scrollPct, setScrollPct] = React.useState(0);
-  React.useEffect(() => {
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - doc.clientHeight;
-      const p = max > 0 ? (window.scrollY / max) * 100 : 0;
-      setScrollPct(Math.max(0, Math.min(100, p)));
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const [query, setQuery] = React.useState("");
-  const [debouncedQuery, setDebouncedQuery] = React.useState("");
-  React.useEffect(() => {
-    const id = setTimeout(() => setDebouncedQuery(query), 120);
-    return () => clearTimeout(id);
-  }, [query]);
-
-  const categories: Category[] = React.useMemo(() => men?.categories ?? [], [men]);
-  const catNames = React.useMemo(() => categories.map((c) => c.name), [categories]);
-  const [activeCat, setActiveCat] = React.useState<string>("");
-
-  React.useEffect(() => {
-    if (!activeCat && catNames.length) setActiveCat(catNames[0]);
-    if (activeCat && !catNames.includes(activeCat) && catNames.length)
-      setActiveCat(catNames[0]);
-  }, [catNames, activeCat]);
-
-  const filtered = React.useMemo(
-    () =>
-      categories.map((c) => ({
-        ...c,
-        items: c.items.filter((it) => {
-          const q = debouncedQuery.trim().toLowerCase();
-          return (
-            !q ||
-            it.name.toLowerCase().includes(q) ||
-            (it.desc || "").toLowerCase().includes(q)
-          );
-        }),
-      })),
-    [categories, debouncedQuery]
-  );
 
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men)
@@ -613,377 +825,28 @@ export default function SianoVenue() {
     );
 
   const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
-  const searchPH = cfg.searchPlaceholder || "Cerca piatto o ingrediente…";
   const badgeLabel = resolveBadgeLabel(cfg.onlineBadgeLabel);
-  const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
-  const showAllergen =
-    (cfg.allergenNotice?.enabled !== false) && allergenText !== "";
 
   return (
     <div
-      className="min-h-screen relative"
+      className="min-h-screen"
       style={{
         color: "var(--text)",
-        backgroundImage: `
-          radial-gradient(1200px 800px at 80% -10%, var(--bgFrom), var(--bgTo)),
-          radial-gradient(600px 400px at -10% 20%, var(--chromeTint), transparent),
-          radial-gradient(700px 500px at 110% 80%, var(--chromeTint), transparent)
-        `,
+        background:
+          "linear-gradient(180deg, var(--bgFrom) 0%, color-mix(in_oklab,var(--bgFrom),var(--bgTo) 60%) 35%, var(--bgTo) 100%)",
       }}
     >
-      {/* ambient spotlight overlay */}
-      <div ref={spotRef} className="vfx-spotlight" aria-hidden="true" />
-
-      {/* HEADER GLASS */}
-      <div
-        className="sticky top-0 z-40 backdrop-blur border-b"
-        style={{
-          background: "var(--glass)",
-          borderColor: "transparent",
-          boxShadow: "0 10px 30px rgba(0,0,0,.12)",
-        }}
-      >
-        {/* progress bar di scroll */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 0,
-            bottom: 0,
-            height: "2px",
-            width: `${scrollPct}%`,
-            background:
-              "linear-gradient(90deg, color-mix(in_oklab,var(--accent),white 15%), var(--accent))",
-            transition: "width .1s linear",
-          }}
-        />
-
-        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-3">
-          {cfg.logoUrl ? (
-            <div
-              className="w-11 h-11 rounded-[var(--radius)] overflow-hidden ring-1"
-              style={{
-                borderColor: "var(--border)",
-                background: "var(--card)",
-                boxShadow: "0 4px 20px rgba(0,0,0,.06)",
-              }}
-            >
-              <img
-                src={cfg.logoUrl}
-                alt={`${cfg.name} logo`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              className="w-11 h-11 rounded-[var(--radius)] bg-[var(--muted)] flex items-center justify-center ring-1"
-              style={{ borderColor: "var(--border)"}}
-            >
-              <UtensilsCrossed className="w-5 h-5" style={{ color: "var(--textSoft)" }} />
-            </div>
-          )}
-
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-                {cfg.name}
-              </h1>
-              {badgeLabel && (
-                <span
-                  className="text-[11px] px-2 py-0.5 rounded-full"
-                  style={{ background: "var(--accent-10)", color: "var(--accent)" }}
-                >
-                  {badgeLabel}
-                </span>
-              )}
-            </div>
-            {cfg.tagline && (
-              <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-                {cfg.tagline}
-              </p>
-            )}
-          </div>
-
-          {/* Social desktop */}
-          {(cfg.instagramUrl || cfg.facebookUrl) && (
-            <div className="hidden sm:flex items-center gap-2 mr-2">
-              {cfg.instagramUrl && (
-                <a
-                  href={cfg.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  title="Instagram"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors
-                             bg-[var(--card)] text-[var(--text)]
-                             hover:bg-[var(--accent)] hover:text-[var(--accentText)] hover:border-transparent"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <Instagram className="w-[18px] h-[18px]" />
-                </a>
-              )}
-              {cfg.facebookUrl && (
-                <a
-                  href={cfg.facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Facebook"
-                  title="Facebook"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors
-                             bg-[var(--card)] text-[var(--text)]
-                             hover:bg-[var(--accent)] hover:text-[var(--accentText)] hover:border-transparent"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <Facebook className="w-[18px] h-[18px]" />
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Call/WA desktop */}
-          <div className="hidden sm:flex gap-2">
-            <a
-              href={telHref(cfg.phone)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border hover:opacity-90 bg-[var(--card)] text-[var(--text)]"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <Phone className="w-4 h-4" /> Chiama
-            </a>
-            <a
-              href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] text-[var(--accentText)]"
-              style={{ background: "var(--accent)", boxShadow: glowShadow }}
-            >
-              <MessageCircle className="w-4 h-4" /> WhatsApp
-            </a>
-          </div>
-
-          {/* Social mobile */}
-          {(cfg.instagramUrl || cfg.facebookUrl) && (
-            <div className="flex sm:hidden items-center gap-2 ml-auto">
-              {cfg.instagramUrl && (
-                <a
-                  href={cfg.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  title="Instagram"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors
-                             bg-[var(--card)] text-[var(--text)]
-                             hover:bg-[var(--accent)] hover:text-[var(--accentText)] hover:border-transparent"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <Instagram className="w-[18px] h-[18px]" />
-                </a>
-              )}
-              {cfg.facebookUrl && (
-                <a
-                  href={cfg.facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Facebook"
-                  title="Facebook"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border transition-colors
-                             bg-[var(--card)] text-[var(--text)]
-                             hover:bg-[var(--accent)] hover:text-[var(--accentText)] hover:border-transparent"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <Facebook className="w-[18px] h-[18px]" />
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* INFO ROW */}
-        <div
-          className="mx-auto max-w-3xl px-4 -mt-2 pb-3 text-sm flex flex-wrap items-center gap-4"
-          style={{ color: "var(--textSoft)" }}
-        >
-          {cfg.address && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              <a href={cfg.mapUrl} target="_blank" className="underline decoration-dotted">
-                {cfg.address}
-              </a>
-            </span>
-          )}
-          {cfg.hours && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="w-4 h-4" /> {cfg.hours}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* HERO */}
-      <Hero images={cfg.heroImages || []} />
-
-      {/* STORY */}
-      {story && (
-        <div className="mx-auto max-w-3xl px-4 mt-6">
-          <div
-            className="rounded-[var(--radius)] p-[1px]"
-            style={{
-              background: "linear-gradient(135deg, var(--accent-20), var(--accent-05))",
-              boxShadow: glowShadow,
-            }}
-          >
-            <div
-              className="rounded-[calc(var(--radius)-1px)] p-4 sm:p-5 border"
-              style={{ background: "var(--glass)", borderColor: "var(--border)" }}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className="shrink-0 rounded-full p-2"
-                  style={{ background: "var(--accent-10)", color: "var(--accent)" }}
-                >
-                  <BookOpenText className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-semibold" style={{ color: "var(--text)" }}>
-                    {story.title || "La nostra storia"}
-                  </div>
-                  {story.text && (
-                    <p className="text-sm mt-1" style={{ color: "var(--textSoft)" }}>
-                      {story.text}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* === RICERCA + TABS (SPOSTATI QUI) === */}
-      <div className="mx-auto max-w-3xl px-4 mt-6">
-        <div className="relative">
-          <Search
-            className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2"
-            style={{ color: "var(--textSoft)" }}
-          />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-[var(--radius)] border outline-none transition"
-            style={{
-              borderColor: "var(--border)",
-              background: "var(--card)",
-              color: "var(--text)",
-              boxShadow: "0 0 0 0 rgba(0,0,0,0)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = `0 0 0 5px var(--accent-05)`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
-            }}
-            placeholder={searchPH}
-            aria-label={searchPH}
-          />
-        </div>
-
-        <div className="mt-3 overflow-x-auto no-scrollbar">
-          <div className="flex gap-2 min-w-max">
-            {categories.map((c) => {
-              const isAct = activeCat === c.name;
-              return (
-                <button
-                  key={c.name}
-                  onClick={() => setActiveCat(c.name)}
-                  className={`px-3 py-1.5 rounded-full border text-sm transition active:scale-[.98] vfx-tab ${isAct ? "vfx-tab--active" : ""}`}
-                  aria-pressed={isAct}
-                  style={
-                    isAct
-                      ? {
-                          background: "var(--accent)",
-                          color: "var(--accentText)",
-                          borderColor: "var(--accent)",
-                          boxShadow: glowShadow,
-                        }
-                      : {
-                          background: "var(--muted)",
-                          color: "var(--text)",
-                          borderColor: "var(--border)",
-                        }
-                  }
-                >
-                  {c.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* MENU */}
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        {filtered.map((cat) => (
-          <section key={cat.name} className={`${activeCat === cat.name ? "block" : "hidden"} mb-8`}>
-            <div className="flex items-baseline justify-between mb-3">
-              <h2 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
-                {cat.name}
-              </h2>
-              <span className="text-xs" style={{ color: "var(--textSoft)" }}>
-                {cat.items.length === 0
-                  ? "Nessun elemento"
-                  : `${cat.items.length} ${cat.items.length === 1 ? "elemento" : "elementi"}`}
-              </span>
-            </div>
-
-            {cat.items.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {cat.items.map((it, i) => (
-                  <ItemCard key={i} item={it} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm" style={{ color: "var(--textSoft)" }}>
-                Nessun elemento corrisponde alla ricerca.
-              </div>
-            )}
-          </section>
-        ))}
-
-        <footer className="mt-12 mb-28 text-xs space-y-1" style={{ color: "var(--textSoft)" }}>
-          {cfg.footerNote && <div>{cfg.footerNote}</div>}
-          {showAllergen && (
-            <div>
-              {cfg.lastUpdated ? <>Aggiornato: {cfg.lastUpdated} • </> : null}
-              {allergenText}
-            </div>
-          )}
-        </footer>
+      <Hero cfg={cfg} badgeLabel={badgeLabel} />
+      <main>
+        <StorySection story={story} />
+        <AssistantSection />
+        <SpecialsShowcase specials={men.specials} />
+        <ServicesSection categories={men.categories} />
+        <DetailsFooter cfg={cfg} />
       </main>
 
-      {/* STICKY CTA (mobile) — marcata per calcolo offset FAB */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden p-3" data-sticky-cta>
-        <div
-          className="mx-auto max-w-md grid grid-cols-2 gap-2 backdrop-blur border rounded-[var(--radius)] shadow-lg"
-          style={{ background: "var(--glass)", borderColor: "var(--border)" }}
-        >
-          <a
-            href={telHref(cfg.phone)}
-            className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)]"
-            style={{ color: "var(--text)" }}
-          >
-            <Phone className="w-5 h-5" /> Chiama
-          </a>
-          <a
-            href={waHref(cfg.whatsapp, cfg.whatsDefaultMsg || "")}
-            className="flex items-center justify-center gap-2 py-3 rounded-[var(--radius)] text-[var(--accentText)]"
-            style={{ background: "var(--accent)", boxShadow: glowShadow }}
-          >
-            <MessageCircle className="w-5 h-5" /> WhatsApp
-          </a>
-        </div>
-      </div>
+      <StickyActions cfg={cfg} />
 
-      {/* CHAT */}
       <ChatWidget
         slug={getSlug()}
         phone={cfg.phone}
