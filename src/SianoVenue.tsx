@@ -320,6 +320,38 @@ function extractStoryHighlight(story: Story): string | null {
   return text.split(/[.!?]/)[0]?.trim() || null;
 }
 
+const sectionTitleContainer = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: "easeOut",
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const sectionTitleItem = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const sectionTitleUnderline = {
+  hidden: { opacity: 0, scaleX: 0 },
+  visible: {
+    opacity: 1,
+    scaleX: 1,
+    transition: { duration: 0.45, ease: "easeOut" },
+  },
+};
+
 function SectionTitle({
   eyebrow,
   title,
@@ -330,32 +362,49 @@ function SectionTitle({
   subtitle?: string;
 }) {
   return (
-    <div className="mb-6 max-w-3xl space-y-4">
+    <motion.div
+      className="mb-6 max-w-3xl space-y-4"
+      variants={sectionTitleContainer}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-80px" }}
+    >
       {eyebrow && (
-        <span
+        <motion.span
+          variants={sectionTitleItem}
           className="text-xs uppercase tracking-[0.28em] text-[color:var(--accent)]"
           style={{ letterSpacing: "0.28em" }}
         >
           {eyebrow}
-        </span>
+        </motion.span>
       )}
-      <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--text)" }}>
+      <motion.h2
+        variants={sectionTitleItem}
+        className="mt-2 text-2xl font-semibold"
+        style={{ color: "var(--text)" }}
+      >
         {title}
-      </h2>
+      </motion.h2>
       {subtitle && (
-        <p className="mt-2 text-base" style={{ color: "var(--textSoft)" }}>
+        <motion.p
+          variants={sectionTitleItem}
+          className="mt-2 text-base"
+          style={{ color: "var(--textSoft)" }}
+        >
           {subtitle}
-        </p>
+        </motion.p>
       )}
-      <span
+      <motion.span
+        variants={sectionTitleUnderline}
         className="inline-flex h-1 w-16 rounded-full"
         style={{
+          transformOrigin: "left",
           background:
             "linear-gradient(90deg, color-mix(in_oklab,var(--accent),transparent 10%) 0%, color-mix(in_oklab,var(--accent),transparent 35%) 45%, transparent 100%)",
         }}
         aria-hidden="true"
       />
-    </div>
+    </motion.div>
   );
 }
 
