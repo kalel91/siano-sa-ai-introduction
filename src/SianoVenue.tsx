@@ -330,7 +330,7 @@ function SectionTitle({
   subtitle?: string;
 }) {
   return (
-    <div className="mb-6 max-w-3xl">
+    <div className="mb-6 max-w-3xl space-y-4">
       {eyebrow && (
         <span
           className="text-xs uppercase tracking-[0.28em] text-[color:var(--accent)]"
@@ -347,6 +347,14 @@ function SectionTitle({
           {subtitle}
         </p>
       )}
+      <span
+        className="inline-flex h-1 w-16 rounded-full"
+        style={{
+          background:
+            "linear-gradient(90deg, color-mix(in_oklab,var(--accent),transparent 10%) 0%, color-mix(in_oklab,var(--accent),transparent 35%) 45%, transparent 100%)",
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
@@ -587,22 +595,66 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
 
 function StorySection({ story }: { story: Story }) {
   if (!story) return null;
+  const highlightSentence = story.text?.split(/[.!?]/).find((sentence) => sentence.trim().length > 0)?.trim();
   return (
     <section className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.5fr_1fr]">
-        <div>
-          <SectionTitle
-            eyebrow="identità"
-            title={story.title || "Una storia costruita sul territorio"}
-            subtitle="Mettiamo in evidenza la visione e la metodologia professionale, perché clienti e partner possano capire da subito l’approccio dello studio."
-          />
-        </div>
-        <div>
+        <div className="relative">
           <div
-            className="rounded-[var(--radius)] border bg-[var(--card)] p-6 shadow-sm"
-            style={{ borderColor: "var(--border)" }}
+            className="pointer-events-none absolute -inset-8 -z-10 opacity-60 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle at 10% 10%, color-mix(in_oklab,var(--accent),transparent 45%) 0%, transparent 60%), radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),transparent 65%) 0%, transparent 70%)",
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
+            style={{
+              background:
+                "linear-gradient(140deg, color-mix(in_oklab,var(--accent),transparent 20%) 0%, color-mix(in_oklab,var(--accent),transparent 75%) 65%, transparent 100%)",
+            }}
           >
-            <p className="text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+            <div
+              className="relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/90 p-6 backdrop-blur-sm"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
+            >
+              <SectionTitle
+                eyebrow="identità"
+                title={story.title || "Una storia costruita sul territorio"}
+                subtitle="Mettiamo in evidenza la visione e la metodologia professionale, perché clienti e partner possano capire da subito l’approccio dello studio."
+              />
+              {highlightSentence && (
+                <blockquote
+                  className="rounded-[calc(var(--radius)*0.75)] border-l-4 border-[color:var(--accent)] bg-[color:var(--accent-08)] p-4 text-sm font-medium leading-relaxed text-[color:var(--accent)]"
+                >
+                  “{highlightSentence}”
+                </blockquote>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="relative">
+          <div
+            className="pointer-events-none absolute inset-0 -translate-y-6 opacity-70 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle at 20% 0%, color-mix(in_oklab,var(--accent),transparent 55%) 0%, transparent 65%), radial-gradient(circle at 85% 20%, color-mix(in_oklab,var(--accent),transparent 65%) 0%, transparent 70%)",
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)]/95 p-6 shadow-xl"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 72%)" }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
+              style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 88%) 100%)",
+              }}
+            />
+            <p className="relative text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
               {story.text}
             </p>
           </div>
@@ -1017,26 +1069,47 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
   return (
     <section className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.55fr_1fr]">
-        <div>
-          <SectionTitle
-            eyebrow={eyebrow}
-            title={title}
-            subtitle={subtitle}
+        <div className="relative">
+          <div
+            className="pointer-events-none absolute -inset-10 -z-10 opacity-60 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle at 5% 20%, color-mix(in_oklab,var(--accent),transparent 40%) 0%, transparent 60%), radial-gradient(circle at 95% 10%, color-mix(in_oklab,var(--accent),transparent 70%) 0%, transparent 75%)",
+            }}
+            aria-hidden="true"
           />
-          {description && (
-            <p className="mt-4 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-              {description}
-            </p>
-          )}
+          <div
+            className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 18%) 0%, color-mix(in_oklab,var(--accent),transparent 65%) 55%, transparent 100%)",
+            }}
+          >
+            <div
+              className="relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/92 p-6 backdrop-blur-sm"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
+            >
+              <SectionTitle
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
+              />
+              {description && (
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
         <div className="grid gap-4">
           {highlights.map(({ Icon, text, title: bulletTitle }, idx) => (
             <div
               key={idx}
-              className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+              className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)]/95 p-5 shadow-lg"
               style={{
-                borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)",
-                boxShadow: "0 30px 60px -30px rgba(15,23,42,0.35)",
+                borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)",
+                boxShadow: "0 30px 70px -35px rgba(15,23,42,0.45)",
               }}
             >
               <div
