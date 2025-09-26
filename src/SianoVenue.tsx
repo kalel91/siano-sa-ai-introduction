@@ -329,14 +329,24 @@ function SectionTitle({
   title: string;
   subtitle?: string;
 }) {
+  const normalizedEyebrow = React.useMemo(() => {
+    if (!eyebrow) return "";
+    const compact = eyebrow.trim().replace(/\s+/g, " ");
+    return compact.toUpperCase();
+  }, [eyebrow]);
+
   return (
     <div className="mb-6 max-w-3xl space-y-4">
-      {eyebrow && (
-        <span
-          className="text-xs uppercase tracking-[0.28em] text-[color:var(--accent)]"
-          style={{ letterSpacing: "0.28em" }}
-        >
-          {eyebrow}
+      {normalizedEyebrow && (
+        <span className="inline-flex items-center gap-3 text-[11px] font-semibold tracking-[0.32em] text-[color:var(--accent)]">
+          <span
+            aria-hidden="true"
+            className="h-[1px] w-10 bg-[color:var(--accent-08)]"
+            style={{ background: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+          />
+          <span className="uppercase" style={{ letterSpacing: "0.32em" }}>
+            {normalizedEyebrow}
+          </span>
         </span>
       )}
       <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--text)" }}>
