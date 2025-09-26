@@ -320,38 +320,6 @@ function extractStoryHighlight(story: Story): string | null {
   return text.split(/[.!?]/)[0]?.trim() || null;
 }
 
-const sectionTitleContainer = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: "easeOut",
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
-    },
-  },
-};
-
-const sectionTitleItem = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
-const sectionTitleUnderline = {
-  hidden: { opacity: 0, scaleX: 0 },
-  visible: {
-    opacity: 1,
-    scaleX: 1,
-    transition: { duration: 0.45, ease: "easeOut" },
-  },
-};
-
 function SectionTitle({
   eyebrow,
   title,
@@ -362,90 +330,31 @@ function SectionTitle({
   subtitle?: string;
 }) {
   return (
-    <motion.div
-      className="mb-6 max-w-3xl space-y-4"
-      variants={sectionTitleContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-80px" }}
-    >
+    <div className="mb-6 max-w-3xl space-y-4">
       {eyebrow && (
-        <motion.span
-          variants={sectionTitleItem}
+        <span
           className="text-xs uppercase tracking-[0.28em] text-[color:var(--accent)]"
           style={{ letterSpacing: "0.28em" }}
         >
           {eyebrow}
-        </motion.span>
+        </span>
       )}
-      <motion.h2
-        variants={sectionTitleItem}
-        className="mt-2 text-2xl font-semibold"
-        style={{ color: "var(--text)" }}
-      >
+      <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--text)" }}>
         {title}
-      </motion.h2>
+      </h2>
       {subtitle && (
-        <motion.p
-          variants={sectionTitleItem}
-          className="mt-2 text-base"
-          style={{ color: "var(--textSoft)" }}
-        >
+        <p className="mt-2 text-base" style={{ color: "var(--textSoft)" }}>
           {subtitle}
-        </motion.p>
+        </p>
       )}
-      <motion.span
-        variants={sectionTitleUnderline}
+      <span
         className="inline-flex h-1 w-16 rounded-full"
         style={{
-          transformOrigin: "left",
           background:
             "linear-gradient(90deg, color-mix(in_oklab,var(--accent),transparent 10%) 0%, color-mix(in_oklab,var(--accent),transparent 35%) 45%, transparent 100%)",
         }}
         aria-hidden="true"
       />
-    </motion.div>
-  );
-}
-
-function GradientPanel({
-  children,
-  className = "",
-  innerClassName = "",
-  showHoverOverlay = false,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  innerClassName?: string;
-  showHoverOverlay?: boolean;
-}) {
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px] ${className}`}
-      style={{
-        background:
-          "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 18%) 0%, color-mix(in_oklab,var(--accent),transparent 65%) 55%, transparent 100%)",
-      }}
-    >
-      <div
-        className={`relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/92 p-6 backdrop-blur-sm transition-shadow duration-500 ${innerClassName}`}
-        style={{
-          borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)",
-          boxShadow: "0 35px 80px -45px rgba(15,23,42,0.55)",
-        }}
-      >
-        {showHoverOverlay && (
-          <div
-            className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
-            style={{
-              background:
-                "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 88%) 100%)",
-            }}
-            aria-hidden="true"
-          />
-        )}
-        <div className="relative">{children}</div>
-      </div>
     </div>
   );
 }
@@ -759,45 +668,39 @@ function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined
   if (!specials?.length) return null;
   return (
     <section className={`${sectionClass} pb-6`}>
-      <GradientPanel innerClassName="md:p-8" showHoverOverlay>
-        <SectionTitle
-          eyebrow="focus"
-          title="In evidenza oggi"
-          subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
-        />
-        <div className="grid gap-4 md:grid-cols-2">
-          {specials.map((spec, idx) => (
-            <div
-              key={idx}
-              className="rounded-[var(--radius)] border bg-[var(--card)]/95 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[color:var(--accent)]">
-                    {spec.badge || "Novità"}
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
-                    {spec.title}
-                  </h3>
-                </div>
-                <span
-                  className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)] shadow-sm"
-                  style={{
-                    boxShadow:
-                      "0 18px 35px -22px color-mix(in_oklab,var(--accent),transparent 40%)",
-                  }}
-                >
-                  {spec.price}
-                </span>
+      <SectionTitle
+        eyebrow="focus"
+        title="In evidenza oggi"
+        subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        {specials.map((spec, idx) => (
+          <div
+            key={idx}
+            className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm transition hover:shadow-lg"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">
+                  {spec.badge || "Novità"}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
+                  {spec.title}
+                </h3>
               </div>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-                L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”
-              </p>
+              <span
+                className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)]"
+              >
+                {spec.price}
+              </span>
             </div>
-          ))}
-        </div>
-      </GradientPanel>
+            <p className="mt-3 text-sm" style={{ color: "var(--textSoft)" }}>
+              L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”.
+            </p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -1175,18 +1078,29 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
             }}
             aria-hidden="true"
           />
-          <GradientPanel innerClassName="md:p-8">
-            <SectionTitle
-              eyebrow={eyebrow}
-              title={title}
-              subtitle={subtitle}
-            />
-            {description && (
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-                {description}
-              </p>
-            )}
-          </GradientPanel>
+          <div
+            className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 18%) 0%, color-mix(in_oklab,var(--accent),transparent 65%) 55%, transparent 100%)",
+            }}
+          >
+            <div
+              className="relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/92 p-6 backdrop-blur-sm"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
+            >
+              <SectionTitle
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
+              />
+              {description && (
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
         <div className="grid gap-4">
           {highlights.map(({ Icon, text, title: bulletTitle }, idx) => (
@@ -1229,72 +1143,21 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
 }
 
 function DetailsFooter({ cfg }: { cfg: Config }) {
-  const footerNote = cfg.footerNote?.trim();
-  const lastUpdated = cfg.lastUpdated?.trim();
-  const allergenText = cfg.allergenNotice?.text?.trim();
-  const showAllergen = cfg.allergenNotice?.enabled !== false && Boolean(allergenText);
-
-  if (!footerNote && !lastUpdated && !showAllergen) return null;
-
-  const sections: { key: string; icon: React.ReactNode; title: string; content: string }[] = [];
-
-  if (footerNote) {
-    sections.push({
-      key: "note",
-      icon: <MessageCircle className="h-4 w-4" />,
-      title: "Note",
-      content: footerNote,
-    });
-  }
-
-  if (lastUpdated) {
-    sections.push({
-      key: "updated",
-      icon: <Clock className="h-4 w-4" />,
-      title: "Ultimo aggiornamento",
-      content: `Aggiornato il ${lastUpdated}`,
-    });
-  }
-
-  if (showAllergen && allergenText) {
-    sections.push({
-      key: "allergen",
-      icon: <ShieldCheck className="h-4 w-4" />,
-      title: "Informazioni allergeni",
-      content: allergenText,
-    });
-  }
-
-  const colsClass =
-    sections.length >= 3
-      ? "sm:grid-cols-3"
-      : sections.length === 2
-        ? "sm:grid-cols-2"
-        : "sm:grid-cols-1";
+  if (!cfg.footerNote && !cfg.lastUpdated && !cfg.allergenNotice?.text) return null;
+  const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
+  const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
 
   return (
     <section className={`${sectionClass} pb-24 pt-4`}>
-      <div className="rounded-[calc(var(--radius)*1.15)] bg-gradient-to-r from-[color:var(--accent-15)] via-transparent to-[color:var(--accent-04)] p-[1px]">
-        <div
-          className={`rounded-[calc(var(--radius)*1.1)] border bg-[color:var(--card)]/85 p-4 shadow-sm backdrop-blur`}
-          style={{ borderColor: "var(--border)", color: "var(--text)" }}
-        >
-          <div className={`grid grid-cols-1 gap-4 ${colsClass}`}>
-            {sections.map(({ key, icon, title, content }) => (
-              <div key={key} className="flex items-start gap-3">
-                <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--accent-08)] text-[color:var(--accent)]">
-                  {icon}
-                </span>
-                <div className="space-y-1 text-sm leading-relaxed">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-wide" style={{ color: "var(--textSoft)" }}>
-                    {title}
-                  </p>
-                  <p>{content}</p>
-                </div>
-              </div>
-            ))}
+      <div className="flex flex-col gap-2 text-xs" style={{ color: "var(--textSoft)" }}>
+        {cfg.footerNote && <div>{cfg.footerNote}</div>}
+        {(cfg.lastUpdated || showAllergen) && (
+          <div>
+            {cfg.lastUpdated && <span>Aggiornato il {cfg.lastUpdated}</span>}
+            {cfg.lastUpdated && showAllergen && <span> • </span>}
+            {showAllergen && <span>{allergenText}</span>}
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
