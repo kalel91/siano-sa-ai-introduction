@@ -265,6 +265,34 @@ function formatPrice(value: number) {
 
 const sectionClass = "mx-auto w-full max-w-5xl px-4";
 
+function extractMenuHighlight(menu?: Menu | null): string | null {
+  if (!menu) return null;
+  const special = menu.specials?.find((item) => item?.title?.trim());
+  if (special?.title) return special.title.trim();
+
+  for (const category of menu.categories || []) {
+    const candidate = category.items.find((item) => item?.name?.trim());
+    if (candidate?.name) return candidate.name.trim();
+  }
+
+  return null;
+}
+
+function extractStoryHighlight(story: Story): string | null {
+  if (!story) return null;
+  const title = story.title?.trim();
+  const text = story.text?.trim();
+
+  if (title && text) {
+    const firstSentence = text.split(/[.!?]/)[0]?.trim();
+    return firstSentence ? `${title}: ${firstSentence}` : title;
+  }
+
+  if (title) return title;
+  if (!text) return null;
+  return text.split(/[.!?]/)[0]?.trim() || null;
+}
+
 function SectionTitle({
   eyebrow,
   title,
@@ -690,48 +718,61 @@ function ServicesSection({ categories }: { categories: Category[] }) {
   );
 }
 
-function AssistantSection() {
+function AssistantSection({ cfg, menu, story }: { cfg: Config; menu: Menu | null; story: Story }) {
+  const venueName = cfg.name?.trim() || "il tuo locale";
+  const tagline = cfg.tagline?.trim();
+  const menuHighlight = extractMenuHighlight(menu);
+  const storyHighlight = extractStoryHighlight(story);
+
+  const title = cfg.name?.trim() ? `L’assistente AI di ${cfg.name}` : "Assistente AI dedicato";
+  const subtitle = tagline
+    ? `Risponde con il tono di “${tagline}” e accompagna chi cerca informazioni su ${venueName}.`
+    : `Offre risposte puntuali a chi contatta ${venueName} e li guida verso il canale migliore.`;
+
+  const bullets = [
+    {
+      icon: ShieldCheck,
+      text: tagline
+        ? `Mantiene la promessa di “${tagline}”, garantendo risposte coerenti con ${venueName}.`
+        : `Mantiene allineate le risposte alle informazioni ufficiali di ${venueName}.`,
+    },
+    {
+      icon: Bot,
+      text: menuHighlight
+        ? `Suggerisce ${menuHighlight} quando i clienti chiedono cosa provare o prenotare.`
+        : `Propone servizi e appuntamenti su misura in base alle richieste dei clienti.`,
+    },
+    {
+      icon: Sparkles,
+      text: storyHighlight
+        ? `Racconta ${storyHighlight}, trasformando la curiosità in relazioni durature.`
+        : `Valorizza storia e offerte del locale per conquistare nuovi clienti.`,
+    },
+  ];
+
   return (
     <section className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.55fr_1fr]">
         <div>
           <SectionTitle
             eyebrow="assistente"
-            title="Dai voce digitale al tuo studio"
-            subtitle="Integra il widget AI sul tuo sito, condividi il QR code con la clientela e ricevi conversazioni che si trasformano in appuntamenti."
+            title={title}
+            subtitle={subtitle}
           />
         </div>
         <div className="grid gap-4">
-          <div
-            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <ShieldCheck className="h-5 w-5 text-[color:var(--accent)]" />
-            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-              Risposte controllate: l’assistente consulta esclusivamente i dati forniti nel tuo spazio digitale. Nessuna
-              improvvisazione, zero allucinazioni.
-            </p>
-          </div>
-          <div
-            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <Bot className="h-5 w-5 text-[color:var(--accent)]" />
-            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-              Conversazioni omnicanale: dalla chat web puoi passare alla telefonata o a WhatsApp con un tap. Il bot propone
-              sempre la call to action più adatta.
-            </p>
-          </div>
-          <div
-            className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <Sparkles className="h-5 w-5 text-[color:var(--accent)]" />
-            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-              Aggiornabile in autonomia: carica nuovi servizi, brochure e FAQ nel JSON dedicato e il tuo assistente AI sarà
-              subito allineato.
-            </p>
-          </div>
+          {bullets.map(({ icon: Icon, text }, idx) => (
+            <div
+              key={idx}
+              className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <Icon className="h-5 w-5 text-[color:var(--accent)]" />
+              <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+                {text}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -839,7 +880,7 @@ export default function SianoVenue() {
       <Hero cfg={cfg} badgeLabel={badgeLabel} />
       <main>
         <StorySection story={story} />
-        <AssistantSection />
+        <AssistantSection cfg={cfg} menu={men} story={story} />
         <SpecialsShowcase specials={men.specials} />
         <ServicesSection categories={men.categories} />
         <DetailsFooter cfg={cfg} />
