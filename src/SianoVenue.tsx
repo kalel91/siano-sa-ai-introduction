@@ -678,38 +678,52 @@ function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined
   if (!specials?.length) return null;
   return (
     <section className={`${sectionClass} pb-6`}>
-      <SectionTitle
-        eyebrow="focus"
-        title="In evidenza oggi"
-        subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
-      />
-      <div className="grid gap-4 md:grid-cols-2">
-        {specials.map((spec, idx) => (
-          <div
-            key={idx}
-            className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm transition hover:shadow-lg"
-            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">
-                  {spec.badge || "Novità"}
-                </p>
-                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
-                  {spec.title}
-                </h3>
-              </div>
-              <span
-                className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)]"
+      <div
+        className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
+        style={{
+          background:
+            "linear-gradient(140deg, color-mix(in_oklab,var(--accent),transparent 22%) 0%, color-mix(in_oklab,var(--accent),transparent 78%) 65%, transparent 100%)",
+          boxShadow: "0 40px 120px -80px rgba(15,23,42,0.45)",
+        }}
+      >
+        <div
+          className="relative rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/95 p-6 shadow-sm"
+          style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
+        >
+          <SectionTitle
+            eyebrow="focus"
+            title="In evidenza oggi"
+            subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
+          />
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {specials.map((spec, idx) => (
+              <div
+                key={idx}
+                className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm transition hover:shadow-lg"
+                style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
               >
-                {spec.price}
-              </span>
-            </div>
-            <p className="mt-3 text-sm" style={{ color: "var(--textSoft)" }}>
-              L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”.
-            </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">
+                      {spec.badge || "Novità"}
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
+                      {spec.title}
+                    </h3>
+                  </div>
+                  <span
+                    className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)]"
+                  >
+                    {spec.price}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm" style={{ color: "var(--textSoft)" }}>
+                  L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”.
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </section>
   );
@@ -883,80 +897,93 @@ function ServicesSection({
               "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--accent),transparent 78%) 0%, transparent 55%), radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),transparent 82%) 0%, transparent 60%)",
           }}
         />
-
-        <SectionTitle
-          eyebrow="servizi"
-          title="Soluzioni guidate dall’esperienza"
-          subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
-        />
-
-        <div className="mb-10 space-y-4">
+        <div
+          className="relative mb-10 overflow-hidden rounded-[calc(var(--radius)*1.12)] p-[1.5px]"
+          style={{
+            background:
+              "linear-gradient(140deg, color-mix(in_oklab,var(--accent),transparent 20%) 0%, color-mix(in_oklab,var(--accent),transparent 75%) 60%, transparent 100%)",
+            boxShadow: "0 40px 120px -80px rgba(15,23,42,0.45)",
+          }}
+        >
           <div
-            className="group relative overflow-hidden rounded-[calc(var(--radius)*1.4)] p-[1.5px]"
-            style={{
-              background: isFocused || query
-                ? "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 20%) 0%, color-mix(in_oklab,var(--accent),transparent 70%) 45%, transparent 100%)"
-                : "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 82%) 0%, transparent 90%)",
-              boxShadow: isFocused || query
-                ? "0 45px 120px -60px rgba(15,23,42,0.55)"
-                : "0 30px 80px -60px rgba(15,23,42,0.35)",
-            }}
+            className="relative rounded-[calc(var(--radius)*1.08)] border bg-[var(--card)]/95 p-6 shadow-xl sm:p-8"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 76%)" }}
           >
-            <div
-              className="relative flex items-center gap-3 rounded-[calc(var(--radius)*1.35)] border bg-[var(--card)] px-4 py-3 transition"
-              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
-            >
-              <div
-                className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
-                style={{
-                  background:
-                    "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 84%) 0%, transparent 55%, color-mix(in_oklab,var(--accent),transparent 90%) 100%)",
-                }}
-                aria-hidden="true"
-              />
+            <SectionTitle
+              eyebrow="servizi"
+              title="Soluzioni guidate dall’esperienza"
+              subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
+            />
 
-              <Search
-                className="relative h-5 w-5 flex-none text-[color:var(--accent)]"
-                strokeWidth={2.2}
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder={placeholderText}
-                className="relative w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--textSoft)]"
-                aria-label="Cerca un servizio"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="relative inline-flex items-center rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] transition hover:bg-[color:var(--accent-15)]"
+            <div className="mt-6 space-y-4">
+              <div
+                className="group relative overflow-hidden rounded-[calc(var(--radius)*1.4)] p-[1.5px]"
+                style={{
+                  background: isFocused || query
+                    ? "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 20%) 0%, color-mix(in_oklab,var(--accent),transparent 70%) 45%, transparent 100%)"
+                    : "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 82%) 0%, transparent 90%)",
+                  boxShadow: isFocused || query
+                    ? "0 45px 120px -60px rgba(15,23,42,0.55)"
+                    : "0 30px 80px -60px rgba(15,23,42,0.35)",
+                }}
+              >
+                <div
+                  className="relative flex items-center gap-3 rounded-[calc(var(--radius)*1.35)] border bg-[var(--card)] px-4 py-3 transition"
+                  style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
                 >
-                  Reset
-                </button>
+                  <div
+                    className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 84%) 0%, transparent 55%, color-mix(in_oklab,var(--accent),transparent 90%) 100%)",
+                    }}
+                    aria-hidden="true"
+                  />
+
+                  <Search
+                    className="relative h-5 w-5 flex-none text-[color:var(--accent)]"
+                    strokeWidth={2.2}
+                  />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder={placeholderText}
+                    className="relative w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--textSoft)]"
+                    aria-label="Cerca un servizio"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      className="relative inline-flex items-center rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] transition hover:bg-[color:var(--accent-15)]"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <p
+                className="text-xs uppercase tracking-[0.24em] text-[color:var(--textSoft)]"
+                style={{ letterSpacing: "0.24em" }}
+              >
+                {showAll
+                  ? `Esplora ${totalServices} soluzioni professionali`
+                  : resultCount
+                  ? `${resultCount} ${resultCount === 1 ? "risultato" : "risultati"} per “${query}”`
+                  : `Nessun risultato per “${query}”`}
+              </p>
+              {!showAll && resultCount > 0 && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--accent)]">
+                  <Sparkles className="h-3.5 w-3.5" /> Ricerca attiva
+                </span>
               )}
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p
-              className="text-xs uppercase tracking-[0.24em] text-[color:var(--textSoft)]"
-              style={{ letterSpacing: "0.24em" }}
-            >
-              {showAll
-                ? `Esplora ${totalServices} soluzioni professionali`
-                : resultCount
-                ? `${resultCount} ${resultCount === 1 ? "risultato" : "risultati"} per “${query}”`
-                : `Nessun risultato per “${query}”`}
-            </p>
-            {!showAll && resultCount > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--accent)]">
-                <Sparkles className="h-3.5 w-3.5" /> Ricerca attiva
-              </span>
-            )}
           </div>
         </div>
 
@@ -973,31 +1000,31 @@ function ServicesSection({
         ) : null}
 
         {resultCount || showAll ? (
-        <div className="space-y-10">
-          {(showAll ? categories : filteredCategories).map((category) => (
-            <div key={category.name} className="space-y-4">
-              <div className="flex items-baseline justify-between gap-4">
-                <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
-                  {category.name}
-                </h3>
-                <span className="text-xs" style={{ color: "var(--textSoft)" }}>
-                  {category.items.length} {category.items.length === 1 ? "proposta" : "proposte"}
-                </span>
-              </div>
-              {category.items.length ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {category.items.map((item, idx) => (
-                    <ServiceCard key={`${category.name}-${idx}`} item={item} />
-                  ))}
+          <div className="space-y-10">
+            {(showAll ? categories : filteredCategories).map((category) => (
+              <div key={category.name} className="space-y-4">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
+                    {category.name}
+                  </h3>
+                  <span className="text-xs" style={{ color: "var(--textSoft)" }}>
+                    {category.items.length} {category.items.length === 1 ? "proposta" : "proposte"}
+                  </span>
                 </div>
-              ) : (
-                <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-                  Al momento non sono presenti servizi in questa categoria.
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+                {category.items.length ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {category.items.map((item, idx) => (
+                      <ServiceCard key={`${category.name}-${idx}`} item={item} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+                    Al momento non sono presenti servizi in questa categoria.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         ) : null}
       </div>
     </section>
