@@ -90,6 +90,29 @@
       }
     ]
   },
+  "assistant": {
+    "eyebrow": "assistente",
+    "title": "Assistente digitale dello Studio Aurora",
+    "subtitle": "Accompagna i pazienti tra visite, igiene e percorsi specialistici.",
+    "description": "Offre informazioni aggiornate su preventivi, tecnologie e disponibilità, inoltrando le richieste allo staff.",
+    "highlights": [
+      {
+        "icon": "shield",
+        "title": "Informazioni accurate",
+        "text": "Spiega protocolli di prevenzione, implantologia e ortodonzia seguendo le linee guida dello studio."
+      },
+      {
+        "icon": "bot",
+        "title": "Prenotazioni smart",
+        "text": "Raccoglie dati per prima visita, igiene e controlli proponendo gli slot disponibili."
+      },
+      {
+        "icon": "message",
+        "title": "Supporto post-visita",
+        "text": "Ricorda documenti, piani di pagamento e recapiti per gestire eventuali urgenze."
+      }
+    ]
+  },
   "story": {
     "title": "Cura, tecnologia e sorriso",
     "text": "Da oltre 10 anni ci occupiamo di prevenzione, implantologia e ortodonzia con tecnologie digitali (radiologia 3D, scanner intraorale). L’approccio è personalizzato e centrato sul comfort del paziente."

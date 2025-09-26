@@ -94,5 +94,28 @@
         ]
       }
     ]
+  },
+  "assistant": {
+    "eyebrow": "assistente",
+    "title": "Il Pirata sempre con te",
+    "subtitle": "Consiglia impasti, fritti e brace gestendo richieste e prenotazioni in tempo reale.",
+    "description": "Parla con il tono della pizzeria e usa solo informazioni ufficiali per guidare gli ospiti tra pizze, fritti e carne alla brace.",
+    "highlights": [
+      {
+        "icon": "sparkles",
+        "title": "Consigli del giorno",
+        "text": "Ricorda le proposte speciali come la Margherita XL o i tagli di brace disponibili la sera."
+      },
+      {
+        "icon": "bot",
+        "title": "Ordini su misura",
+        "text": "Gestisce richieste senza lattosio o vegetariane e suggerisce gli abbinamenti migliori."
+      },
+      {
+        "icon": "map",
+        "title": "Assistenza clienti",
+        "text": "Invia orari, indicazioni e contatti per prenotare tavoli o organizzare il ritiro."
+      }
+    ]
   }
 }

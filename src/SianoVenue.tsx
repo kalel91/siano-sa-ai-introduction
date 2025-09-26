@@ -20,6 +20,30 @@ import {
 type CTAType = "call" | "directions" | "whatsapp" | "link";
 type CTA = { type: CTAType; label: string; url?: string };
 
+type AssistantIconKey =
+  | "shield"
+  | "bot"
+  | "sparkles"
+  | "star"
+  | "clock"
+  | "message"
+  | "phone"
+  | "map";
+
+type AssistantHighlight = {
+  icon?: AssistantIconKey;
+  title?: string;
+  text: string;
+};
+
+type AssistantContent = {
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  highlights?: AssistantHighlight[];
+};
+
 type Config = {
   name: string;
   tagline?: string;
@@ -222,6 +246,7 @@ function useVenueData() {
   const [cfg, setCfg] = React.useState<Config | null>(null);
   const [men, setMen] = React.useState<Menu | null>(null);
   const [story, setStory] = React.useState<Story>(null);
+  const [assistant, setAssistant] = React.useState<AssistantContent | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -243,6 +268,7 @@ function useVenueData() {
         setCfg(c);
         setMen(m);
         setStory((json.story as Story) ?? null);
+        setAssistant((json.assistant as AssistantContent) ?? null);
         applyTheme(c.theme);
         applyFavicon(c.logoUrl);
 
@@ -255,7 +281,7 @@ function useVenueData() {
       });
   }, []);
 
-  return { cfg, men, story, err };
+  return { cfg, men, story, assistant, err };
 }
 
 /** Helpers */
@@ -627,16 +653,70 @@ function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined
 }
 
 function ServiceCard({ item }: { item: MenuItem }) {
+  const hasImage = Boolean(item.img);
+  const [imageFailed, setImageFailed] = React.useState(false);
+  const showImage = hasImage && !imageFailed;
+
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6 }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.4 }}
-      className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-      style={{ borderColor: "var(--border)" }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+      style={{
+        borderColor: "color-mix(in_oklab,var(--accent),transparent 82%)",
+        boxShadow: "0 45px 85px -60px rgba(15,23,42,0.55)",
+      }}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="relative overflow-hidden rounded-[calc(var(--radius)*0.9)] border bg-[var(--muted)]"
+        style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}>
+        {showImage ? (
+          <motion.img
+            src={item.img}
+            alt={item.name}
+            className="h-44 w-full object-cover"
+            loading="lazy"
+            initial={{ scale: 1.05 }}
+            whileHover={{ scale: 1.12 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div
+            className="flex h-44 items-center justify-center text-[11px] uppercase tracking-[0.24em]"
+            style={{ color: "var(--textSoft)" }}
+          >
+            Immagine in arrivo
+          </div>
+        )}
+
+        <div
+          className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--accent),transparent 65%) 0%, transparent 55%), linear-gradient(135deg, transparent 35%, color-mix(in_oklab,var(--accent),transparent 80%) 100%)",
+          }}
+        />
+
+        <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2 text-xs font-medium">
+          {item.fav && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[color:var(--accent)]"
+            >
+              <Star className="h-3.5 w-3.5" /> Preferito
+            </span>
+          )}
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--card)] px-3 py-1 text-[color:var(--text)] shadow-sm"
+          >
+            {formatPrice(item.price)} €
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-3">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
             {item.name}
@@ -647,36 +727,34 @@ function ServiceCard({ item }: { item: MenuItem }) {
             </p>
           )}
         </div>
-        <div className="text-right">
-          <div className="inline-flex items-center gap-1 rounded-full bg-[var(--muted)] px-3 py-1 text-xs font-medium" style={{ color: "var(--textSoft)" }}>
-            {item.fav && <Star className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
-            <span>{formatPrice(item.price)} €</span>
+
+        {!!item.tags?.length && (
+          <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: "var(--textSoft)" }}>
+            {item.tags?.map((tag, i) => (
+              <span
+                key={i}
+                className="rounded-full border px-3 py-1"
+                style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
-        </div>
+        )}
+
+        {item.url && (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[color:var(--accent)] transition hover:gap-3"
+          >
+            Approfondisci
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
       </div>
-
-      {!!item.tags?.length && (
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px]" style={{ color: "var(--textSoft)" }}>
-          {item.tags!.map((tag, i) => (
-            <span key={i} className="rounded-full border px-3 py-1" style={{ borderColor: "var(--border)" }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {item.url && (
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--accent)]"
-        >
-          Approfondisci
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      )}
-    </motion.div>
+    </motion.article>
   );
 }
 
@@ -684,93 +762,170 @@ function ServicesSection({ categories }: { categories: Category[] }) {
   if (!categories.length) return null;
   return (
     <section className={`${sectionClass} py-14`}>
-      <SectionTitle
-        eyebrow="servizi"
-        title="Soluzioni guidate dall’esperienza"
-        subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
-      />
-      <div className="space-y-10">
-        {categories.map((category) => (
-          <div key={category.name} className="space-y-4">
-            <div className="flex items-baseline justify-between gap-4">
-              <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
-                {category.name}
-              </h3>
-              <span className="text-xs" style={{ color: "var(--textSoft)" }}>
-                {category.items.length} {category.items.length === 1 ? "proposta" : "proposte"}
-              </span>
-            </div>
-            {category.items.length ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {category.items.map((item, idx) => (
-                  <ServiceCard key={`${category.name}-${idx}`} item={item} />
-                ))}
+      <div className="relative">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-[-5%] -top-24 bottom-[-120px] -z-10 rounded-[calc(var(--radius)*2.4)] opacity-60 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--accent),transparent 78%) 0%, transparent 55%), radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),transparent 82%) 0%, transparent 60%)",
+          }}
+        />
+
+        <SectionTitle
+          eyebrow="servizi"
+          title="Soluzioni guidate dall’esperienza"
+          subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
+        />
+        <div className="space-y-10">
+          {categories.map((category) => (
+            <div key={category.name} className="space-y-4">
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
+                  {category.name}
+                </h3>
+                <span className="text-xs" style={{ color: "var(--textSoft)" }}>
+                  {category.items.length} {category.items.length === 1 ? "proposta" : "proposte"}
+                </span>
               </div>
-            ) : (
-              <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-                Al momento non sono presenti servizi in questa categoria.
-              </p>
-            )}
-          </div>
-        ))}
+              {category.items.length ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {category.items.map((item, idx) => (
+                    <ServiceCard key={`${category.name}-${idx}`} item={item} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+                  Al momento non sono presenti servizi in questa categoria.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-function AssistantSection({ cfg, menu, story }: { cfg: Config; menu: Menu | null; story: Story }) {
+type AssistantSectionProps = {
+  cfg: Config;
+  menu: Menu | null;
+  story: Story;
+  assistant: AssistantContent | null;
+};
+
+const assistantIcons: Record<AssistantIconKey, React.ComponentType<React.ComponentProps<typeof ShieldCheck>>> = {
+  shield: ShieldCheck,
+  bot: Bot,
+  sparkles: Sparkles,
+  star: Star,
+  clock: Clock,
+  message: MessageCircle,
+  phone: Phone,
+  map: MapPin,
+};
+
+function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps) {
   const venueName = cfg.name?.trim() || "il tuo locale";
   const tagline = cfg.tagline?.trim();
   const menuHighlight = extractMenuHighlight(menu);
   const storyHighlight = extractStoryHighlight(story);
 
-  const title = cfg.name?.trim() ? `L’assistente AI di ${cfg.name}` : "Assistente AI dedicato";
-  const subtitle = tagline
+  const fallbackTitle = cfg.name?.trim() ? `L’assistente AI di ${cfg.name}` : "Assistente AI dedicato";
+  const fallbackSubtitle = tagline
     ? `Risponde con il tono di “${tagline}” e accompagna chi cerca informazioni su ${venueName}.`
     : `Offre risposte puntuali a chi contatta ${venueName} e li guida verso il canale migliore.`;
 
-  const bullets = [
+  const fallbackHighlights = [
     {
-      icon: ShieldCheck,
+      Icon: ShieldCheck,
+      title: tagline ? "Coerenza" : undefined,
       text: tagline
         ? `Mantiene la promessa di “${tagline}”, garantendo risposte coerenti con ${venueName}.`
         : `Mantiene allineate le risposte alle informazioni ufficiali di ${venueName}.`,
     },
     {
-      icon: Bot,
+      Icon: Bot,
+      title: menuHighlight ? "Suggerimenti immediati" : undefined,
       text: menuHighlight
         ? `Suggerisce ${menuHighlight} quando i clienti chiedono cosa provare o prenotare.`
         : `Propone servizi e appuntamenti su misura in base alle richieste dei clienti.`,
     },
     {
-      icon: Sparkles,
+      Icon: Sparkles,
+      title: storyHighlight ? "Storytelling" : undefined,
       text: storyHighlight
         ? `Racconta ${storyHighlight}, trasformando la curiosità in relazioni durature.`
         : `Valorizza storia e offerte del locale per conquistare nuovi clienti.`,
     },
   ];
 
+  const resolvedHighlights = (assistant?.highlights || [])
+    .map((item) => {
+      const text = item?.text?.trim();
+      if (!text) return null;
+      const Icon = item.icon ? assistantIcons[item.icon] || Sparkles : Sparkles;
+      return {
+        Icon,
+        title: item.title?.trim(),
+        text,
+      };
+    })
+    .filter(Boolean) as { Icon: typeof ShieldCheck; title?: string; text: string }[];
+
+  const highlights = resolvedHighlights.length ? resolvedHighlights : fallbackHighlights;
+  const eyebrow = assistant?.eyebrow?.trim() || "assistente";
+  const title = assistant?.title?.trim() || fallbackTitle;
+  const subtitle = assistant?.subtitle?.trim() || fallbackSubtitle;
+  const description = assistant?.description?.trim();
+
   return (
     <section className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.55fr_1fr]">
         <div>
           <SectionTitle
-            eyebrow="assistente"
+            eyebrow={eyebrow}
             title={title}
             subtitle={subtitle}
           />
+          {description && (
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+              {description}
+            </p>
+          )}
         </div>
         <div className="grid gap-4">
-          {bullets.map(({ icon: Icon, text }, idx) => (
+          {highlights.map(({ Icon, text, title: bulletTitle }, idx) => (
             <div
               key={idx}
-              className="flex items-start gap-3 rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-              style={{ borderColor: "var(--border)" }}
+              className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+              style={{
+                borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)",
+                boxShadow: "0 30px 60px -30px rgba(15,23,42,0.35)",
+              }}
             >
-              <Icon className="h-5 w-5 text-[color:var(--accent)]" />
-              <p className="text-sm" style={{ color: "var(--textSoft)" }}>
-                {text}
-              </p>
+              <div
+                className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100"
+                style={{
+                  background:
+                    "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 85%) 100%)",
+                }}
+              />
+              <div className="relative flex gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--accent-08)]">
+                  <Icon className="h-5 w-5 text-[color:var(--accent)]" />
+                </span>
+                <div>
+                  {bulletTitle && (
+                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                      {bulletTitle}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                    {text}
+                  </p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -851,7 +1006,7 @@ function StickyActions({ cfg }: { cfg: Config }) {
 }
 
 export default function SianoVenue() {
-  const { cfg, men, story, err } = useVenueData();
+  const { cfg, men, story, assistant, err } = useVenueData();
 
   React.useEffect(() => {
     document.body.style.backgroundColor = "var(--bgTo)";
@@ -880,7 +1035,7 @@ export default function SianoVenue() {
       <Hero cfg={cfg} badgeLabel={badgeLabel} />
       <main>
         <StorySection story={story} />
-        <AssistantSection cfg={cfg} menu={men} story={story} />
+        <AssistantSection cfg={cfg} menu={men} story={story} assistant={assistant} />
         <SpecialsShowcase specials={men.specials} />
         <ServicesSection categories={men.categories} />
         <DetailsFooter cfg={cfg} />

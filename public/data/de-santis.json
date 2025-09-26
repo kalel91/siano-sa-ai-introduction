@@ -87,5 +87,28 @@
         ]
       }
     ]
+  },
+  "assistant": {
+    "eyebrow": "assistente",
+    "title": "La pasticceria digitale di De Santis",
+    "subtitle": "Risponde subito su dolci, ordini personalizzati e disponibilità giornaliera.",
+    "description": "Utilizza il listino aggiornato per consigliare cornetti, torte e buffet, raccogliendo le richieste per eventi e ricorrenze.",
+    "highlights": [
+      {
+        "icon": "sparkles",
+        "title": "Vetrina del giorno",
+        "text": "Comunica cosa esce dal forno e segnala i prodotti più richiesti dalla clientela."
+      },
+      {
+        "icon": "message",
+        "title": "Ordini su misura",
+        "text": "Raccoglie gusti, dimensioni e date per torte e buffet e inoltra subito la richiesta al laboratorio."
+      },
+      {
+        "icon": "phone",
+        "title": "Supporto rapido",
+        "text": "Indica orari, contatti e modalità di ritiro o consegna quando serve una risposta immediata."
+      }
+    ]
   }
 }
