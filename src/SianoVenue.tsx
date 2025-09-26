@@ -1143,21 +1143,72 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
 }
 
 function DetailsFooter({ cfg }: { cfg: Config }) {
-  if (!cfg.footerNote && !cfg.lastUpdated && !cfg.allergenNotice?.text) return null;
-  const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
-  const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
+  const footerNote = cfg.footerNote?.trim();
+  const lastUpdated = cfg.lastUpdated?.trim();
+  const allergenText = cfg.allergenNotice?.text?.trim();
+  const showAllergen = cfg.allergenNotice?.enabled !== false && Boolean(allergenText);
+
+  if (!footerNote && !lastUpdated && !showAllergen) return null;
+
+  const sections: { key: string; icon: React.ReactNode; title: string; content: string }[] = [];
+
+  if (footerNote) {
+    sections.push({
+      key: "note",
+      icon: <MessageCircle className="h-4 w-4" />,
+      title: "Note",
+      content: footerNote,
+    });
+  }
+
+  if (lastUpdated) {
+    sections.push({
+      key: "updated",
+      icon: <Clock className="h-4 w-4" />,
+      title: "Ultimo aggiornamento",
+      content: `Aggiornato il ${lastUpdated}`,
+    });
+  }
+
+  if (showAllergen && allergenText) {
+    sections.push({
+      key: "allergen",
+      icon: <ShieldCheck className="h-4 w-4" />,
+      title: "Informazioni allergeni",
+      content: allergenText,
+    });
+  }
+
+  const colsClass =
+    sections.length >= 3
+      ? "sm:grid-cols-3"
+      : sections.length === 2
+        ? "sm:grid-cols-2"
+        : "sm:grid-cols-1";
 
   return (
     <section className={`${sectionClass} pb-24 pt-4`}>
-      <div className="flex flex-col gap-2 text-xs" style={{ color: "var(--textSoft)" }}>
-        {cfg.footerNote && <div>{cfg.footerNote}</div>}
-        {(cfg.lastUpdated || showAllergen) && (
-          <div>
-            {cfg.lastUpdated && <span>Aggiornato il {cfg.lastUpdated}</span>}
-            {cfg.lastUpdated && showAllergen && <span> • </span>}
-            {showAllergen && <span>{allergenText}</span>}
+      <div className="rounded-[calc(var(--radius)*1.15)] bg-gradient-to-r from-[color:var(--accent-15)] via-transparent to-[color:var(--accent-04)] p-[1px]">
+        <div
+          className={`rounded-[calc(var(--radius)*1.1)] border bg-[color:var(--card)]/85 p-4 shadow-sm backdrop-blur`}
+          style={{ borderColor: "var(--border)", color: "var(--text)" }}
+        >
+          <div className={`grid grid-cols-1 gap-4 ${colsClass}`}>
+            {sections.map(({ key, icon, title, content }) => (
+              <div key={key} className="flex items-start gap-3">
+                <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--accent-08)] text-[color:var(--accent)]">
+                  {icon}
+                </span>
+                <div className="space-y-1 text-sm leading-relaxed">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-wide" style={{ color: "var(--textSoft)" }}>
+                    {title}
+                  </p>
+                  <p>{content}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
