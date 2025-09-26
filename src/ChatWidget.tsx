@@ -362,12 +362,12 @@ function ensureFabStyleInjected() {
   will-change: transform, opacity;
   }
 
-  /*sfasamento parte attiva*/
+  /* sfasamento parte attiva */
   .sianoai-fab-ring[data-variant="1"]{ animation-delay: 0s; }
   .sianoai-fab-ring[data-variant="2"]{ animation-delay: calc(-1 * var(--fab-stagger)); }
   .sianoai-fab-ringX{                  animation-delay: calc(-2 * var(--fab-stagger)); }
 
-  /* SHEEN (opzionale, disattivato nel markup) */
+  /* SHEEN (luce che attraversa il bottone) */
   .sianoai-fab-sheen{ position:absolute; inset:0; border-radius:9999px; overflow:hidden; z-index:9; pointer-events:none; }
   .sianoai-fab-sheen::before{
     content:""; position:absolute; top:0; bottom:0; width:56%;
@@ -670,8 +670,8 @@ export default function ChatWidget({
               >
                 <MessageCircle className="inline w-5 h-5" />
                 {resolvedButtonLabel}
-                {/* sheen disabilitato */}
-                {/* <span aria-hidden="true" className="sianoai-fab-sheen" /> */}
+                {/* sheen riattivato */}
+                <span aria-hidden="true" className="sianoai-fab-sheen" />
               </button>
               {/* 3 ripple pill-shaped sincronizzati */}
               <span aria-hidden="true" className="sianoai-fab-ring" data-layer data-variant="1" />

@@ -8,6 +8,8 @@
     "phone": "+39 333 1234567",
     "whatsapp": "+39 333 1234567",
     "whatsDefaultMsg": "Ciao Il Pirata, vorrei info sul menu 🙂",
+    "instagramUrl": "https://instagram.com/tua_pagina",
+    "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/pirata/pirate_logo_colored.png",
     "heroImages": ["/pirata/ilpirata-6.jpg", "/pirata/ilpirata-7.jpg", "/pirata/ilpirata-8.jpg"],
     "assistantLabel": "Chiedi al Pirata",

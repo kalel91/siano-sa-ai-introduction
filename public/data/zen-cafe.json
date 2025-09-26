@@ -8,6 +8,8 @@
     "phone": "+39 333 111 2222",
     "whatsapp": "+39 333 111 2222",
     "whatsDefaultMsg": "Ciao Zen Cafè, vorrei info su menu e aperitivi 🙂",
+    "instagramUrl": "https://instagram.com/tua_pagina",
+    "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/zen/zen_logo_transparent.svg",
     "heroImages": ["/zen/zen-1.jpg", "/zen/zen-2.jpg", "/zen/zen-3.jpg"],
     "assistantLabel": "Chiedi allo Zen Cafè",

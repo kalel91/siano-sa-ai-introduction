@@ -1,0 +1,179 @@
+{
+  "config": {
+    "name": "Assicurazioni Russo",
+    "tagline": "Consulenza su misura per famiglie, professionisti e imprese",
+    "address": "Corso Garibaldi 12, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Corso+Garibaldi+12,+Siano",
+    "hours": "Lun–Ven 09:00–13:00 • 15:30–18:30",
+    "phone": "+39 081 654 3210",
+    "whatsapp": "+39 320 222 4455",
+    "whatsDefaultMsg": "Ciao! Vorrei un preventivo per una polizza.",
+    "logoUrl": "/nellorussohdi/hdi_logo.webp",
+    "heroImages": [
+      "/nellorussohdi/hdi_image_01.png",
+      "/nellorussohdi/hdi_image_02.jpg"
+    ],
+    "lastUpdated": "2025-09-05",
+    "footerNote": "Premi indicativi ‘da’: il premio effettivo dipende da profilo, garanzie e condizioni.",
+    "assistantLabel": "Chiedi a Assicurazioni Russo",
+    "instagramUrl": "https://www.instagram.com/assicurazioniverdi",
+    "facebookUrl": "https://www.facebook.com/assicurazioniverdi",
+    "onlineBadgeLabel": "Preventivi rapidi",
+    "searchPlaceholder": "Cerca prodotto (auto, casa, infortuni, RC professionale…)",
+    "theme": {
+      "mode": "light",
+      "accent": "#0e7490",
+      "accentText": "#ffffff",
+      "radius": "16px"
+    },
+    "chat": {
+      "quickReplies": [
+        "RC Auto",
+        "Casa e famiglia",
+        "Infortuni",
+        "Viaggio",
+        "RC Professionale",
+        "Assistenza stradale"
+      ],
+      "ctas": [
+        { "type": "call", "label": "Chiama" },
+        { "type": "whatsapp", "label": "WhatsApp" },
+        { "type": "directions", "label": "Vieni in agenzia" }
+      ],
+      "initialMessage": "Ciao! Posso guidarti al miglior preventivo per auto, casa, salute, infortuni o professione. Da dove partiamo?"
+    }
+  },
+  "menu": {
+    "specials": [
+      { "title": "RC Auto con scatola nera", "price": "da 250,00 €", "badge": "Sconto guida sicura" },
+      { "title": "Casa completa furto & responsabilità", "price": "da 120,00 €/anno" }
+    ],
+    "categories": [
+      {
+        "name": "Auto & Moto",
+        "items": [
+          {
+            "name": "RC Auto",
+            "desc": "Responsabilità civile obbligatoria con massimali personalizzabili.",
+            "price": 250,
+            "tags": ["bonus-malus", "scatola nera"],
+            "fav": true,
+            "url": "https://www.hdiassicurazioni.it/auto/rc-auto",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          },
+          {
+            "name": "Kasko / Collisione",
+            "desc": "Danni al proprio veicolo anche con torto.",
+            "price": 180,
+            "tags": ["facoltativa"],
+            "url": "https://www.unipolsai.it/auto/garanzie/kasko",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          },
+          {
+            "name": "Assistenza stradale",
+            "desc": "Soccorso H24, traino e auto sostitutiva dove previsto.",
+            "price": 40,
+            "tags": ["H24"],
+            "url": "https://www.europ-assistance.it/assistenza-stradale",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          }
+        ]
+      },
+      {
+        "name": "Casa & Famiglia",
+        "items": [
+          {
+            "name": "Polizza Casa",
+            "desc": "Incendio, furto, RC del capofamiglia e tutela legale a scelta.",
+            "price": 120,
+            "tags": ["modulare"],
+            "fav": true,
+            "url": "https://www.realemutua.it/assicurazioni/casa",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          },
+          {
+            "name": "Infortuni 360",
+            "desc": "Invalidità permanente, diaria e rimborso spese mediche.",
+            "price": 99,
+            "tags": ["sport inclusi"],
+            "url": "https://www.allianz.it/persona/infortuni.html",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          }
+        ]
+      },
+      {
+        "name": "Persona & Salute",
+        "items": [
+          {
+            "name": "Sanitaria rimborsi",
+            "desc": "Rimborso ticket, visite specialistiche, ricoveri.",
+            "price": 150,
+            "tags": ["rete convenzionata"],
+            "url": "https://www.unipolsai.it/salute",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          },
+          {
+            "name": "Tutela vita (TCM)",
+            "desc": "Capitale in caso di premorienza per proteggere i tuoi cari.",
+            "price": 110,
+            "tags": ["detraibile"],
+            "url": "https://www.axa.it/assicurazione-vita",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          }
+        ]
+      },
+      {
+        "name": "Professionisti",
+        "items": [
+          {
+            "name": "RC Professionale",
+            "desc": "Responsabilità civile per errori e omissioni (medici, tecnici, consulenti).",
+            "price": 180,
+            "tags": ["ADEMP. OBBL."],
+            "fav": true,
+            "url": "https://www.hdiassicurazioni.it/professionisti/rc-professionale",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          },
+          {
+            "name": "Tutela legale lavoro",
+            "desc": "Spese legali e peritali in ambito professionale.",
+            "price": 80,
+            "tags": ["arbitrato incluso"],
+            "url": "https://www.legge3.it/tutela-legale-assicurazione/",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          }
+        ]
+      },
+      {
+        "name": "Viaggio",
+        "items": [
+          {
+            "name": "Assicurazione Viaggio",
+            "desc": "Spese mediche, bagaglio e annullamento su richiesta.",
+            "price": 25,
+            "tags": ["Schengen/Worldwide"],
+            "url": "https://www.europ-assistance.it/viaggi",
+            "img": "/nellorussohdi/hdi_image_01.png"
+          }
+        ]
+      }
+    ]
+  },
+  "story": {
+    "title": "Dal preventivo alla gestione del sinistro",
+    "text": "Siamo consulenti, non solo venditori: analizziamo i rischi reali e cuciamo le garanzie su misura. Assistiamo i clienti anche in caso di sinistro per accorciare tempi e burocrazia."
+  },
+  "chat": {
+    "quickReplies": ["Preventivo RC Auto", "Polizza Casa", "RC Professionale", "Salute", "Infortuni", "Sinistri"],
+    "faq": {
+      "documenti": "Per il preventivo auto servono: targa, data di nascita, attestato di rischio e CAP di residenza.",
+      "sinistro": "In caso di sinistro chiamaci subito: ti indicheremo assistenza stradale e perizia. WhatsApp h24 per apertura pratica.",
+      "pagamento": "Carta, bonifico o addebito SEPA. Possibilità di frazionamento in più rate secondo condizioni di compagnia."
+    },
+    "ctas": [
+      { "type": "call", "label": "Parla con un consulente" },
+      { "type": "whatsapp", "label": "Preventivo su WhatsApp" },
+      { "type": "directions", "label": "Indicazioni per l’agenzia" }
+    ]
+  }
+}
