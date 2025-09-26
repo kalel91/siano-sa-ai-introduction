@@ -359,6 +359,48 @@ function SectionTitle({
   );
 }
 
+function GradientPanel({
+  children,
+  className = "",
+  innerClassName = "",
+  showHoverOverlay = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  innerClassName?: string;
+  showHoverOverlay?: boolean;
+}) {
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px] ${className}`}
+      style={{
+        background:
+          "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 18%) 0%, color-mix(in_oklab,var(--accent),transparent 65%) 55%, transparent 100%)",
+      }}
+    >
+      <div
+        className={`relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/92 p-6 backdrop-blur-sm transition-shadow duration-500 ${innerClassName}`}
+        style={{
+          borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)",
+          boxShadow: "0 35px 80px -45px rgba(15,23,42,0.55)",
+        }}
+      >
+        {showHoverOverlay && (
+          <div
+            className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 88%) 100%)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+        <div className="relative">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
   const images = React.useMemo(() => cfg.heroImages?.filter(Boolean) ?? [], [cfg.heroImages]);
   const [idx, setIdx] = React.useState(0);
@@ -668,39 +710,45 @@ function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined
   if (!specials?.length) return null;
   return (
     <section className={`${sectionClass} pb-6`}>
-      <SectionTitle
-        eyebrow="focus"
-        title="In evidenza oggi"
-        subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
-      />
-      <div className="grid gap-4 md:grid-cols-2">
-        {specials.map((spec, idx) => (
-          <div
-            key={idx}
-            className="rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm transition hover:shadow-lg"
-            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]">
-                  {spec.badge || "Novità"}
-                </p>
-                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
-                  {spec.title}
-                </h3>
+      <GradientPanel innerClassName="md:p-8" showHoverOverlay>
+        <SectionTitle
+          eyebrow="focus"
+          title="In evidenza oggi"
+          subtitle="Una selezione rapida di soluzioni e promozioni pensate per rispondere alle richieste più frequenti."
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          {specials.map((spec, idx) => (
+            <div
+              key={idx}
+              className="rounded-[var(--radius)] border bg-[var(--card)]/95 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[color:var(--accent)]">
+                    {spec.badge || "Novità"}
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text)" }}>
+                    {spec.title}
+                  </h3>
+                </div>
+                <span
+                  className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)] shadow-sm"
+                  style={{
+                    boxShadow:
+                      "0 18px 35px -22px color-mix(in_oklab,var(--accent),transparent 40%)",
+                  }}
+                >
+                  {spec.price}
+                </span>
               </div>
-              <span
-                className="rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--accentText)]"
-              >
-                {spec.price}
-              </span>
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”
+              </p>
             </div>
-            <p className="mt-3 text-sm" style={{ color: "var(--textSoft)" }}>
-              L’assistente AI può descriverti modalità, benefit e requisiti di questa proposta: chiedi “Parlami di {spec.title}”.
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </GradientPanel>
     </section>
   );
 }
@@ -1078,29 +1126,18 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
             }}
             aria-hidden="true"
           />
-          <div
-            className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
-            style={{
-              background:
-                "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 18%) 0%, color-mix(in_oklab,var(--accent),transparent 65%) 55%, transparent 100%)",
-            }}
-          >
-            <div
-              className="relative h-full rounded-[calc(var(--radius)*1.05)] border bg-[var(--card)]/92 p-6 backdrop-blur-sm"
-              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
-            >
-              <SectionTitle
-                eyebrow={eyebrow}
-                title={title}
-                subtitle={subtitle}
-              />
-              {description && (
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-                  {description}
-                </p>
-              )}
-            </div>
-          </div>
+          <GradientPanel innerClassName="md:p-8">
+            <SectionTitle
+              eyebrow={eyebrow}
+              title={title}
+              subtitle={subtitle}
+            />
+            {description && (
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                {description}
+              </p>
+            )}
+          </GradientPanel>
         </div>
         <div className="grid gap-4">
           {highlights.map(({ Icon, text, title: bulletTitle }, idx) => (
