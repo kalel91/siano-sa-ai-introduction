@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   Instagram,
   Facebook,
+  Search,
 } from "lucide-react";
 
 /** Types */
@@ -758,7 +759,56 @@ function ServiceCard({ item }: { item: MenuItem }) {
   );
 }
 
-function ServicesSection({ categories }: { categories: Category[] }) {
+function ServicesSection({
+  categories,
+  placeholder,
+}: {
+  categories: Category[];
+  placeholder?: string;
+}) {
+  const [query, setQuery] = React.useState("");
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filteredCategories = React.useMemo(() => {
+    if (!normalizedQuery) return categories;
+    return categories
+      .map((category) => {
+        const items = category.items.filter((item) => {
+          const haystack = [
+            item.name,
+            item.desc,
+            ...(item.tags || []),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(normalizedQuery);
+        });
+        return { ...category, items };
+      })
+      .filter((category) => category.items.length > 0);
+  }, [categories, normalizedQuery]);
+
+  const totalServices = React.useMemo(
+    () => categories.reduce((acc, category) => acc + category.items.length, 0),
+    [categories],
+  );
+
+  const resultCount = React.useMemo(
+    () =>
+      filteredCategories.reduce(
+        (acc, category) => acc + category.items.length,
+        0,
+      ),
+    [filteredCategories],
+  );
+
+  const showAll = normalizedQuery === "";
+  const placeholderText =
+    placeholder?.trim() || "Cerca un servizio, una keyword o un tag…";
+
   if (!categories.length) return null;
   return (
     <section className={`${sectionClass} py-14`}>
@@ -777,8 +827,92 @@ function ServicesSection({ categories }: { categories: Category[] }) {
           title="Soluzioni guidate dall’esperienza"
           subtitle="Ogni categoria rappresenta un ambito di intervento. L’assistente AI aiuta a scegliere l’opzione più adatta e può raccogliere richieste di appuntamento."
         />
+
+        <div className="mb-10 space-y-4">
+          <div
+            className="group relative overflow-hidden rounded-[calc(var(--radius)*1.4)] p-[1.5px]"
+            style={{
+              background: isFocused || query
+                ? "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 20%) 0%, color-mix(in_oklab,var(--accent),transparent 70%) 45%, transparent 100%)"
+                : "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 82%) 0%, transparent 90%)",
+              boxShadow: isFocused || query
+                ? "0 45px 120px -60px rgba(15,23,42,0.55)"
+                : "0 30px 80px -60px rgba(15,23,42,0.35)",
+            }}
+          >
+            <div
+              className="relative flex items-center gap-3 rounded-[calc(var(--radius)*1.35)] border bg-[var(--card)] px-4 py-3 transition"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
+            >
+              <div
+                className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 84%) 0%, transparent 55%, color-mix(in_oklab,var(--accent),transparent 90%) 100%)",
+                }}
+                aria-hidden="true"
+              />
+
+              <Search
+                className="relative h-5 w-5 flex-none text-[color:var(--accent)]"
+                strokeWidth={2.2}
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder={placeholderText}
+                className="relative w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--textSoft)]"
+                aria-label="Cerca un servizio"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="relative inline-flex items-center rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] transition hover:bg-[color:var(--accent-15)]"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p
+              className="text-xs uppercase tracking-[0.24em] text-[color:var(--textSoft)]"
+              style={{ letterSpacing: "0.24em" }}
+            >
+              {showAll
+                ? `Esplora ${totalServices} soluzioni professionali`
+                : resultCount
+                ? `${resultCount} ${resultCount === 1 ? "risultato" : "risultati"} per “${query}”`
+                : `Nessun risultato per “${query}”`}
+            </p>
+            {!showAll && resultCount > 0 && (
+              <span className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--accent)]">
+                <Sparkles className="h-3.5 w-3.5" /> Ricerca attiva
+              </span>
+            )}
+          </div>
+        </div>
+
+        {!resultCount && !showAll ? (
+          <div
+            className="rounded-[var(--radius)] border bg-[var(--card)] p-8 text-center shadow-sm"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 78%)" }}
+          >
+            <p className="text-sm" style={{ color: "var(--textSoft)" }}>
+              Nessun servizio corrisponde alla ricerca. Prova con un’altra keyword o contatta l’assistente AI per ricevere
+              suggerimenti immediati.
+            </p>
+          </div>
+        ) : null}
+
+        {resultCount || showAll ? (
         <div className="space-y-10">
-          {categories.map((category) => (
+          {(showAll ? categories : filteredCategories).map((category) => (
             <div key={category.name} className="space-y-4">
               <div className="flex items-baseline justify-between gap-4">
                 <h3 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
@@ -802,6 +936,7 @@ function ServicesSection({ categories }: { categories: Category[] }) {
             </div>
           ))}
         </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1037,7 +1172,7 @@ export default function SianoVenue() {
         <StorySection story={story} />
         <AssistantSection cfg={cfg} menu={men} story={story} assistant={assistant} />
         <SpecialsShowcase specials={men.specials} />
-        <ServicesSection categories={men.categories} />
+        <ServicesSection categories={men.categories} placeholder={cfg.searchPlaceholder} />
         <DetailsFooter cfg={cfg} />
       </main>
 
