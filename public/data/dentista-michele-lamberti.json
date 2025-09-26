@@ -1,0 +1,110 @@
+{
+  "config": {
+    "name": "Studio Dentistico Aurora",
+    "tagline": "Odontoiatria conservativa, implantologia e ortodonzia estetica",
+    "address": "Via dei Tigli 24, Siano (SA)",
+    "mapUrl": "https://maps.google.com/?q=Via+dei+Tigli+24,+Siano",
+    "hours": "Lun–Ven 09:00–13:00 • 15:30–19:30 | Sab 09:00–12:30",
+    "phone": "+39 081 123 4567",
+    "whatsapp": "+39 333 987 6543",
+    "whatsDefaultMsg": "Buongiorno, vorrei informazioni su una visita di controllo.",
+    "logoUrl": "/img/venues/dentista-aurora-logo.png",
+    "heroImages": [
+      "/img/venues/dentista-aurora-1.jpg",
+      "/img/venues/dentista-aurora-2.jpg",
+      "/img/venues/dentista-aurora-3.jpg"
+    ],
+    "lastUpdated": "2025-09-05",
+    "footerNote": "Tariffe indicative: il preventivo è sempre personalizzato dopo visita e diagnosi.",
+    "assistantLabel": "Chiedi allo Studio Aurora",
+    "instagramUrl": "https://www.instagram.com/studiodentisticoaurora",
+    "facebookUrl": "https://www.facebook.com/studiodentisticoaurora",
+    "onlineBadgeLabel": "Prenota o chiedi info",
+    "searchPlaceholder": "Cerca prestazione (igiene, sbiancamento, ortodonzia…)",
+    "theme": {
+      "mode": "light",
+      "accent": "#b91c1c",
+      "accentText": "#ffffff",
+      "bgFrom": "#fafafa",
+      "bgTo": "#ffffff",
+      "radius": "18px"
+    },
+    "chat": {
+      "quickReplies": [
+        "Tariffe e preventivi",
+        "Prima visita",
+        "Igiene e sbiancamento",
+        "Implantologia",
+        "Ortodonzia",
+        "Pagamenti e rate"
+      ],
+      "ctas": [
+        { "type": "call", "label": "Chiama" },
+        { "type": "whatsapp", "label": "WhatsApp" },
+        { "type": "directions", "label": "Come arrivare" }
+      ],
+      "initialMessage": "Ciao! Posso aiutarti con visite, preventivi, igiene, sbiancamento, ortodonzia o implantologia. Vuoi fissare un appuntamento?"
+    }
+  },
+  "menu": {
+    "specials": [
+      { "title": "Prima visita + panoramica", "price": "da 40,00 €", "badge": "Welcome" },
+      { "title": "Igiene orale professionale", "price": "da 60,00 €" }
+    ],
+    "categories": [
+      {
+        "name": "Prevenzione",
+        "items": [
+          { "name": "Visita di controllo", "desc": "Anamnesi, valutazione clinica e piano di cura.", "price": 40, "tags": ["preventivo incluso"], "fav": true },
+          { "name": "Igiene orale professionale", "desc": "Rimozione tartaro, levigatura e istruzioni domiciliari.", "price": 60, "tags": ["richiamo 6 mesi"] },
+          { "name": "Sbiancamento dentale", "desc": "Trattamento in studio con gel professionale e lampada LED.", "price": 180, "tags": ["estetica"] }
+        ]
+      },
+      {
+        "name": "Conservativa & Endodonzia",
+        "items": [
+          { "name": "Otturazione composita", "desc": "Ripristino estetico-funzionale del dente cariato.", "price": 90, "tags": ["composito", "estetica"] },
+          { "name": "Devitalizzazione monoradicolare", "desc": "Terapia canalare con diga e strumenti rotanti.", "price": 180, "tags": ["microscopio se necessario"] }
+        ]
+      },
+      {
+        "name": "Protesi & Estetica",
+        "items": [
+          { "name": "Faccetta in ceramica", "desc": "Restauro estetico minimo-invasivo.", "price": 450, "tags": ["ceramica", "estetica"], "fav": true },
+          { "name": "Corona in zirconia", "desc": "Resistenza ed estetica per denti posteriori e anteriori.", "price": 420, "tags": ["CAD/CAM"] }
+        ]
+      },
+      {
+        "name": "Implantologia",
+        "items": [
+          { "name": "Impianto singolo (fixture)", "desc": "Impianto in titanio di marca certificata.", "price": 700, "tags": ["garanzia 5 anni"] },
+          { "name": "Carico immediato (per caso idoneo)", "desc": "Provvisorio entro 24–48h in selezione casi.", "price": 350, "tags": ["protesi provvisoria"] }
+        ]
+      },
+      {
+        "name": "Ortodonzia",
+        "items": [
+          { "name": "Apparecchio trasparente (allineatori)", "desc": "Trattamento estetico con mascherine su misura.", "price": 1500, "tags": ["estetica", "adulti"], "fav": true },
+          { "name": "Contenzione finale", "desc": "Mantenimento del risultato a fine terapia.", "price": 150, "tags": ["retainer"] }
+        ]
+      }
+    ]
+  },
+  "story": {
+    "title": "Cura, tecnologia e sorriso",
+    "text": "Da oltre 10 anni ci occupiamo di prevenzione, implantologia e ortodonzia con tecnologie digitali (radiologia 3D, scanner intraorale). L’approccio è personalizzato e centrato sul comfort del paziente."
+  },
+  "chat": {
+    "quickReplies": ["Listino", "Prima visita", "Sbiancamento", "Allineatori", "Impianti", "Come arrivare"],
+    "faq": {
+      "pagamenti": "Accettiamo contanti, carte, bancomat e piani rateali con partner finanziari (soggetti ad approvazione).",
+      "prima visita": "La prima visita dura circa 20–30 minuti. Se necessario, effettuiamo Rx o panoramica digitale.",
+      "urgenze": "Per urgenze proviamo a riceverti in giornata: scrivici su WhatsApp o chiama subito lo studio."
+    },
+    "ctas": [
+      { "type": "call", "label": "Chiama lo studio" },
+      { "type": "whatsapp", "label": "Prenota su WhatsApp" },
+      { "type": "directions", "label": "Indicazioni" }
+    ]
+  }
+}

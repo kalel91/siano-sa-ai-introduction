@@ -8,6 +8,8 @@
     "phone": "+39 333 444 5555",
     "whatsapp": "+39 333 444 5555",
     "whatsDefaultMsg": "Ciao De Santis, vorrei info su dolci e torte 🙂",
+    "instagramUrl": "https://instagram.com/tua_pagina",
+    "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/desantis/desantis_favicon.svg",
     "heroImages": ["/desantis/de-santis-1.jpg", "/desantis/de-santis-2.jpg"],
     "assistantLabel": "Chiedi a De Santis",

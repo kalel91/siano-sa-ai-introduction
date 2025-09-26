@@ -8,6 +8,8 @@
     "phone": "+39 333 4455667",
     "whatsapp": "+39 333 4455667",
     "whatsDefaultMsg": "Ciao Marcello, vorrei informazioni e disponibilità per un taglio/barba 🙂",
+    "instagramUrl": "https://instagram.com/tua_pagina",
+    "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/marcello/logo_1.png",
     "heroImages": ["/marcello/marcello-1.jpg", "/marcello/marcello-2.jpg", "/marcello/marcello-3.jpg"],
     "onlineBadgeLabel": "Catalogo Online",
