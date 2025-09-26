@@ -96,5 +96,28 @@
         ]
       }
     ]
+  },
+  "assistant": {
+    "eyebrow": "assistente digitale",
+    "title": "Il barber assistant di Marcello",
+    "subtitle": "Ti accompagna tra tagli sartoriali, barba e prodotti da portare a casa.",
+    "description": "Raccoglie richieste di appuntamento e propone look coerenti con lo stile del salone, ricordando promozioni e prodotti professionali.",
+    "highlights": [
+      {
+        "icon": "sparkles",
+        "title": "Consigli di stile",
+        "text": "Suggerisce i tagli e le combinazioni più richieste spiegando come mantenerle dopo il servizio."
+      },
+      {
+        "icon": "bot",
+        "title": "Agenda smart",
+        "text": "Registra la richiesta con giorno e servizio preferito e inoltra il riepilogo per la conferma."
+      },
+      {
+        "icon": "phone",
+        "title": "Cura continua",
+        "text": "Indica prodotti consigliati, prezzi e modalità di ritiro direttamente in salone."
+      }
+    ]
   }
 }

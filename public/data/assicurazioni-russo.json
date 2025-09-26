@@ -159,6 +159,29 @@
       }
     ]
   },
+  "assistant": {
+    "eyebrow": "assistente digitale",
+    "title": "Il consulente digitale di Assicurazioni Russo",
+    "subtitle": "Disponibile 24/7 per orientarti tra preventivi e richieste di sinistro.",
+    "description": "Raccoglie le informazioni che ci invii online, le inoltra al team e ti suggerisce il canale più veloce per completare la pratica.",
+    "highlights": [
+      {
+        "icon": "shield",
+        "title": "Profilo protetto",
+        "text": "Analizza le esigenze di guida, casa o professione e propone le coperture più adatte."
+      },
+      {
+        "icon": "bot",
+        "title": "Preventivi in tempo reale",
+        "text": "Pre-compila il preventivo RC Auto, casa, salute o professionale e ti aggiorna su documenti e scadenze."
+      },
+      {
+        "icon": "message",
+        "title": "Supporto sinistri",
+        "text": "Ti guida nell'apertura del sinistro e inoltra subito il riepilogo al nostro staff."
+      }
+    ]
+  },
   "story": {
     "title": "Dal preventivo alla gestione del sinistro",
     "text": "Siamo consulenti, non solo venditori: analizziamo i rischi reali e cuciamo le garanzie su misura. Assistiamo i clienti anche in caso di sinistro per accorciare tempi e burocrazia."

@@ -94,5 +94,28 @@
         ]
       }
     ]
+  },
+  "assistant": {
+    "eyebrow": "assistente digitale",
+    "title": "L’assistente di Zen Cafè",
+    "subtitle": "Sempre pronto a raccontarti colazioni, aperitivi e pizze leggere.",
+    "description": "Risponde con il tono rilassato del locale e suggerisce abbinamenti partendo dal menu aggiornato.",
+    "highlights": [
+      {
+        "icon": "sparkles",
+        "title": "Mood del momento",
+        "text": "Segnala le proposte speciali come l’Aperitivo Zen o le pizze gourmet disponibili."
+      },
+      {
+        "icon": "message",
+        "title": "Scelte personalizzate",
+        "text": "Propone alternative senza lattosio o vegetariane e ti indirizza verso ciò che cerchi."
+      },
+      {
+        "icon": "map",
+        "title": "Assistenza continua",
+        "text": "Condivide orari, contatti e come raggiungerci per una pausa o un take-away."
+      }
+    ]
   }
 }
