@@ -485,7 +485,7 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
                 <div className="flex items-start gap-2" style={{ color: "var(--textSoft)" }}>
                   <MapPin className="mt-0.5 h-4 w-4 text-[color:var(--accent)]" />
                   <div>
-                    <dt className="text-[color:var(--text)] font-medium">Studio</dt>
+                    <dt className="text-[color:var(--text)] font-medium">Location</dt>
                     <dd>{cfg.address}</dd>
                   </div>
                 </div>
