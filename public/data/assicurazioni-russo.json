@@ -75,6 +75,7 @@
             "price": 250,
             "tags": ["bonus-malus", "scatola nera"],
             "fav": true,
+            "accentColor": "#0ea5e9",
             "url": "https://www.hdiassicurazioni.it/auto/rc-auto",
             "img": "/nellorussohdi/hdi_image_01.png"
           },
@@ -105,6 +106,7 @@
             "price": 120,
             "tags": ["modulare"],
             "fav": true,
+            "accentColor": "#f97316",
             "url": "https://www.realemutua.it/assicurazioni/casa",
             "img": "/nellorussohdi/hdi_image_01.png"
           },
@@ -148,6 +150,7 @@
             "price": 180,
             "tags": ["ADEMP. OBBL."],
             "fav": true,
+            "accentColor": "#22c55e",
             "url": "https://www.hdiassicurazioni.it/professionisti/rc-professionale",
             "img": "/nellorussohdi/hdi_image_01.png"
           },
