@@ -3,10 +3,12 @@ import {
   motion,
   AnimatePresence,
   useMotionValue,
+  useScroll,
   useSpring,
   useTransform,
   useReducedMotion,
   useMotionTemplate,
+  useMotionValueEvent,
   type MotionValue,
   type MotionStyle,
 } from "framer-motion";
@@ -650,6 +652,7 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
 
   return (
     <section
+      id="hero"
       className="relative overflow-hidden"
       style={{
         background:
@@ -1064,7 +1067,7 @@ function StorySection({ story }: { story: Story }) {
   if (!story) return null;
   const highlightSentence = story.text?.split(/[.!?]/).find((sentence) => sentence.trim().length > 0)?.trim();
   return (
-    <section className={`${sectionClass} py-14`}>
+    <section id="story" className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.5fr_1fr]">
         <div className="relative">
           <div
@@ -1134,7 +1137,7 @@ function StorySection({ story }: { story: Story }) {
 function SpecialsShowcase({ specials }: { specials: Menu["specials"] | undefined }) {
   if (!specials?.length) return null;
   return (
-    <section className={`${sectionClass} pb-6`}>
+    <section id="specials" className={`${sectionClass} pb-6`}>
       <div
         className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
         style={{
@@ -1344,7 +1347,7 @@ function ServicesSection({
 
   if (!categories.length) return null;
   return (
-    <section className={`${sectionClass} py-14`}>
+    <section id="services" className={`${sectionClass} py-14`}>
       <div className="relative">
         <div
           aria-hidden="true"
@@ -1561,7 +1564,7 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
   const description = assistant?.description?.trim();
 
   return (
-    <section className={`${sectionClass} py-14`}>
+    <section id="assistant" className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.55fr_1fr]">
         <div className="relative">
           <div
@@ -1642,7 +1645,7 @@ function DetailsFooter({ cfg }: { cfg: Config }) {
   const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
 
   return (
-    <section className={`${sectionClass} pb-24 pt-4`}>
+    <section id="details" className={`${sectionClass} pb-24 pt-4`}>
       <div className="flex flex-col gap-2 text-xs" style={{ color: "var(--textSoft)" }}>
         {cfg.footerNote && <div>{cfg.footerNote}</div>}
         {(cfg.lastUpdated || showAllergen) && (
@@ -1654,6 +1657,228 @@ function DetailsFooter({ cfg }: { cfg: Config }) {
         )}
       </div>
     </section>
+  );
+}
+
+type FloatingSectionNavProps = {
+  sections: { id: string; label: string }[];
+  phone?: string;
+  whatsapp?: string;
+  whatsDefaultMsg?: string;
+};
+
+function FloatingSectionNav({ sections, phone, whatsapp, whatsDefaultMsg }: FloatingSectionNavProps) {
+  const reduceMotion = useReducedMotion();
+  const { scrollY, scrollYProgress } = useScroll();
+  const progressSpring = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 32,
+    mass: 0.9,
+  });
+  const progress = React.useMemo(
+    () => (reduceMotion ? scrollYProgress : progressSpring),
+    [reduceMotion, scrollYProgress, progressSpring],
+  );
+  const [activeSection, setActiveSection] = React.useState<string | null>(sections[0]?.id ?? null);
+  const activeRef = React.useRef<string | null>(sections[0]?.id ?? null);
+  const [isPastFold, setIsPastFold] = React.useState(false);
+  const sectionRects = React.useRef<{ id: string; top: number; bottom: number }[]>([]);
+  const heroObserved = React.useRef(false);
+
+  const updateSectionRects = React.useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!sections.length) {
+      sectionRects.current = [];
+      return;
+    }
+
+    sectionRects.current = sections
+      .map(({ id }) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        const top = rect.top + window.scrollY;
+        const bottom = top + rect.height;
+        return { id, top, bottom };
+      })
+      .filter(Boolean) as { id: string; top: number; bottom: number }[];
+  }, [sections]);
+
+  React.useEffect(() => {
+    updateSectionRects();
+
+    if (!sections.length) {
+      setActiveSection(null);
+      activeRef.current = null;
+      return;
+    }
+
+    const hasActive = sections.some((section) => section.id === activeRef.current);
+    if (!hasActive && sections[0]) {
+      activeRef.current = sections[0].id;
+      setActiveSection(sections[0].id);
+    }
+  }, [sections, updateSectionRects]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => updateSectionRects();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateSectionRects]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const heroEl = document.getElementById("hero");
+    if (!heroEl) {
+      heroObserved.current = false;
+      setIsPastFold(true);
+      return;
+    }
+
+    heroObserved.current = true;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const leavingTop = entry.boundingClientRect.top < 0;
+        setIsPastFold(!entry.isIntersecting && leavingTop);
+      },
+      {
+        root: null,
+        threshold: [0, 0.05, 1],
+        rootMargin: "-64px 0px 0px 0px",
+      },
+    );
+
+    observer.observe(heroEl);
+    return () => observer.disconnect();
+  }, []);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    if (typeof window === "undefined") return;
+
+    if (!heroObserved.current) {
+      setIsPastFold(latest > window.innerHeight * 0.55);
+    }
+
+    if (!sectionRects.current.length) return;
+    const viewportProbe = latest + window.innerHeight * 0.3;
+    const current =
+      sectionRects.current.find((section) => viewportProbe >= section.top && viewportProbe < section.bottom) ||
+      (viewportProbe >= sectionRects.current[sectionRects.current.length - 1].bottom
+        ? sectionRects.current[sectionRects.current.length - 1]
+        : sectionRects.current[0]);
+
+    if (current && current.id !== activeRef.current) {
+      activeRef.current = current.id;
+      setActiveSection(current.id);
+    }
+  });
+
+  const scrollToSection = React.useCallback(
+    (id: string) => {
+      if (typeof window === "undefined") return;
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    },
+    [reduceMotion],
+  );
+
+  const quickLinks = React.useMemo(() => {
+    const items: { id: string; label: string; href: string; Icon: typeof Phone }[] = [];
+    if (phone) {
+      items.push({ id: "call", label: "Chiama ora", href: telHref(phone), Icon: Phone });
+    }
+    if (whatsapp) {
+      items.push({
+        id: "whatsapp",
+        label: "Scrivi su WhatsApp",
+        href: waHref(whatsapp, whatsDefaultMsg || ""),
+        Icon: MessageCircle,
+      });
+    }
+    return items;
+  }, [phone, whatsapp, whatsDefaultMsg]);
+
+  const shouldRender = isPastFold && sections.length > 0;
+
+  return (
+    <AnimatePresence>
+      {shouldRender && (
+        <motion.aside
+          key="floating-nav"
+          className="pointer-events-none fixed right-4 top-[clamp(96px,18vh,220px)] z-40 hidden md:block lg:right-6"
+          initial={reduceMotion ? false : { opacity: 0, x: 32 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 32 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
+          <motion.div
+            className="pointer-events-auto w-64 max-w-[75vw] rounded-[calc(var(--radius)*1.1)] border bg-[var(--card)]/90 p-4 shadow-2xl backdrop-blur"
+            style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+          <nav role="navigation" aria-label="Navigazione sezioni" className="flex flex-col gap-4">
+            <div className="relative pl-6">
+              <div
+                aria-hidden="true"
+                className="absolute left-2 top-2 bottom-2 w-px rounded-full bg-[color:var(--border)]"
+              />
+              <motion.div
+                aria-hidden="true"
+                className="absolute left-2 top-2 bottom-2 w-px rounded-full bg-[color:var(--accent)]"
+                style={{ scaleY: progress, transformOrigin: "top center" }}
+              />
+              <ul className="flex flex-col gap-1">
+                {sections.map((section) => {
+                  const isActive = section.id === activeSection;
+                  return (
+                    <li key={section.id}>
+                      <button
+                        type="button"
+                        onClick={() => scrollToSection(section.id)}
+                        className={`w-full rounded-[calc(var(--radius)*0.85)] px-3 py-2 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                          isActive
+                            ? "bg-[color:var(--accent-08)] text-[color:var(--accent)] shadow-sm"
+                            : "text-[color:var(--textSoft)] hover:bg-[color:var(--accent-04)] hover:text-[color:var(--text)]"
+                        }`}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        {section.label}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            {quickLinks.length > 0 && (
+              <div className="mt-2 border-t border-[color:var(--border)] pt-4">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--textSoft)]">
+                  Contatti rapidi
+                </span>
+                <div className="mt-3 flex flex-col gap-2">
+                  {quickLinks.map(({ id, label, href, Icon }) => (
+                    <a
+                      key={id}
+                      href={href}
+                      className="inline-flex items-center gap-2 rounded-[calc(var(--radius)*0.85)] border px-3 py-2 text-sm font-medium text-[color:var(--text)] transition hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                      style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
+                    >
+                      <Icon className="h-4 w-4" /> {label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </nav>
+        </motion.div>
+      </motion.aside>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -1724,6 +1949,28 @@ export default function SianoVenue() {
 
   const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
   const badgeLabel = resolveBadgeLabel(cfg.onlineBadgeLabel);
+  const showDetailsFooter = React.useMemo(() => {
+    const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
+    const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
+    return Boolean(cfg.footerNote || cfg.lastUpdated || showAllergen);
+  }, [cfg.allergenNotice, cfg.footerNote, cfg.lastUpdated]);
+  const navSections = React.useMemo(() => {
+    const sectionsList: { id: string; label: string }[] = [];
+    if (story) {
+      sectionsList.push({ id: "story", label: "La nostra storia" });
+    }
+    sectionsList.push({ id: "assistant", label: "Assistente AI" });
+    if (men.specials?.length) {
+      sectionsList.push({ id: "specials", label: "In evidenza" });
+    }
+    if (men.categories?.length) {
+      sectionsList.push({ id: "services", label: "Servizi" });
+    }
+    if (showDetailsFooter) {
+      sectionsList.push({ id: "details", label: "Dettagli" });
+    }
+    return sectionsList;
+  }, [men.categories?.length, men.specials?.length, showDetailsFooter, story]);
 
   return (
     <div
@@ -1735,6 +1982,12 @@ export default function SianoVenue() {
       }}
     >
       <Hero cfg={cfg} badgeLabel={badgeLabel} />
+      <FloatingSectionNav
+        sections={navSections}
+        phone={cfg.phone}
+        whatsapp={cfg.whatsapp}
+        whatsDefaultMsg={cfg.whatsDefaultMsg}
+      />
       <main>
         <StorySection story={story} />
         <AssistantSection cfg={cfg} menu={men} story={story} assistant={assistant} />
