@@ -64,7 +64,7 @@
     "heroStats": [
       { "value": "Dal 1998", "label": "Tradizione di quartiere" },
       { "value": "48h", "label": "Lievitazione degli impasti" },
-      { "label": "Brace accesa ogni sera" }
+      { "label": "Brace accesa ogni sera", "sublabel": "Specialità di carne alla griglia ogni notte" }
     ]
   },
   "story": {
