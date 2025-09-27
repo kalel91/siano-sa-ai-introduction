@@ -13,6 +13,7 @@
     "logoUrl": "/zen/zen_logo_transparent.svg",
     "heroImages": ["/zen/zen-1.jpg", "/zen/zen-2.jpg", "/zen/zen-3.jpg"],
     "assistantLabel": "Chiedi allo Zen Cafè",
+    "assistantHeroDescription": "L’assistente dello Zen Cafè ti suggerisce combo colazione, aperitivi e pizze del giorno con info su allergeni e prenotazioni rapide per il tuo tavolo.",
     "footerNote": "Impasti leggeri 48h e caffetteria selezionata.",
     "lastUpdated": "2025-09-05",
     "searchPlaceholder": "Cerca pizza o ingrediente…",

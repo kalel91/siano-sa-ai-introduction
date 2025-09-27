@@ -61,6 +61,7 @@ type Config = {
   lastUpdated?: string;
   footerNote?: string;
   assistantLabel?: string;
+  assistantHeroDescription?: string;
 
   /** personalizzazioni UI */
   onlineBadgeLabel?: string | null;
@@ -289,10 +290,16 @@ function useVenueData() {
           ? primaryCtaCandidate
           : undefined;
 
+        const assistantHeroDescription =
+          typeof c.assistantHeroDescription === "string" && c.assistantHeroDescription.trim()
+            ? c.assistantHeroDescription.trim()
+            : undefined;
+
         const sanitizedConfig: Config = {
           ...c,
           heroStats,
           primaryCta,
+          assistantHeroDescription,
         };
         const m = (json.menu || {}) as Menu;
         m.categories = Array.isArray(m.categories) ? m.categories : [];
@@ -457,6 +464,9 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
   }, [cfg.primaryCta, cfg.whatsapp, cfg.whatsDefaultMsg, cfg.phone]);
   const primaryCtaUrl = primaryCta.url || "#";
   const primaryCtaIsExternal = /^https?:/i.test(primaryCtaUrl);
+  const assistantHeroDescription =
+    cfg.assistantHeroDescription ||
+    `Risposte immediate su servizi, disponibilità, preventivi e follow-up. L’assistente AI attinge solo dalle informazioni pubblicate da ${cfg.name}, così i tuoi clienti hanno sempre un punto di contatto affidabile, 24/7.`;
 
   React.useEffect(() => {
     if (images.length <= 1) return;
@@ -594,11 +604,7 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
                   <p className="font-medium text-[color:var(--text)]">
                     {cfg.assistantLabel || "Assistente AI dedicato"}
                   </p>
-                  <p className="mt-1 text-[color:var(--textSoft)]">
-                    Risposte immediate su servizi, disponibilità, preventivi e follow-up. L’assistente AI attinge solo
-                    dalle informazioni pubblicate da {cfg.name}, così i tuoi clienti hanno sempre un punto di contatto
-                    affidabile, 24/7.
-                  </p>
+                  <p className="mt-1 text-[color:var(--textSoft)]">{assistantHeroDescription}</p>
                 </div>
               </div>
             </div>
