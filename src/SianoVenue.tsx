@@ -117,6 +117,43 @@ type Category = { name: string; items: MenuItem[] };
 type Menu = { specials?: { title: string; price: string; badge?: string }[]; categories: Category[] };
 type Story = { title?: string; text?: string } | null;
 
+function splitStoryIntoScenes(text?: string): string[] {
+  if (!text) return [];
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (paragraphs.length > 1) return paragraphs;
+
+  const sentences = normalized
+    .split(/(?<=[.!?])\s+(?=[A-ZÀ-Ü0-9“"'])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (sentences.length <= 1) return [normalized];
+
+  const scenes: string[] = [];
+  let buffer = "";
+  const targetLength = 240;
+  sentences.forEach((sentence) => {
+    if (!buffer) {
+      buffer = sentence;
+      return;
+    }
+    if ((buffer + " " + sentence).length > targetLength) {
+      scenes.push(buffer);
+      buffer = sentence;
+    } else {
+      buffer = `${buffer} ${sentence}`;
+    }
+  });
+  if (buffer) scenes.push(buffer);
+
+  return scenes.length ? scenes : [normalized];
+}
+
 /** Utils */
 function telHref(t?: string) {
   return t ? `tel:${t.replace(/\s|\+/g, "").trim()}` : "#";
@@ -1065,19 +1102,42 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
 
 function StorySection({ story }: { story: Story }) {
   if (!story) return null;
-  const highlightSentence = story.text?.split(/[.!?]/).find((sentence) => sentence.trim().length > 0)?.trim();
+  const prefersReducedMotion = useReducedMotion() ?? false;
+  const isMotionEnabled = !prefersReducedMotion;
+  const scenes = React.useMemo(() => splitStoryIntoScenes(story.text), [story?.text]);
+  const highlightSentence = scenes[0]?.split(/[.!?]/).find((sentence) => sentence.trim().length > 0)?.trim();
+  const timelineRef = React.useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress: storyProgress } = useScroll({
+    target: timelineRef,
+    offset: ["start 75%", "end 20%"],
+  });
+  const heroOpacity = useTransform(storyProgress, [0, 1], [0.45, 0.95]);
+  const heroClipPath = useTransform(storyProgress, [0, 1], ["inset(30% 35% 30% 0%)", "inset(0% 0% 0% 0%)"]);
+  const heroScale = useTransform(storyProgress, [0, 1], [1.08, 1]);
+  const heroStyle: MotionStyle = isMotionEnabled
+    ? { opacity: heroOpacity, clipPath: heroClipPath, scale: heroScale }
+    : { opacity: 0.88, clipPath: "inset(0% 0% 0% 0%)", scale: 1 };
+
   return (
     <section id="story" className={`${sectionClass} py-14`}>
       <div className="grid gap-6 lg:grid-cols-[0.5fr_1fr]">
         <div className="relative">
-          <div
-            className="pointer-events-none absolute -inset-8 -z-10 opacity-60 blur-3xl"
-            style={{
-              background:
-                "radial-gradient(circle at 10% 10%, color-mix(in_oklab,var(--accent),transparent 45%) 0%, transparent 60%), radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),transparent 65%) 0%, transparent 70%)",
-            }}
+          <motion.div
+            className="pointer-events-none absolute -inset-10 -z-10 rounded-[calc(var(--radius)*1.2)]"
+            style={heroStyle}
             aria-hidden="true"
-          />
+          >
+            <div
+              className="h-full w-full rounded-[inherit]"
+              style={{
+                backgroundImage:
+                  "url('/overlays/aurora-veils.svg'), radial-gradient(circle at 10% 10%, color-mix(in_oklab,var(--accent),transparent 35%) 0%, transparent 65%)",
+                backgroundSize: "cover, 220%",
+                backgroundPosition: "center",
+                mixBlendMode: "screen",
+              }}
+            />
+          </motion.div>
           <div
             className="relative overflow-hidden rounded-[calc(var(--radius)*1.08)] p-[1.5px]"
             style={{
@@ -1124,13 +1184,114 @@ function StorySection({ story }: { story: Story }) {
                   "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 88%) 100%)",
               }}
             />
-            <p className="relative text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
-              {story.text}
-            </p>
+            <div ref={timelineRef} className="relative">
+              {isMotionEnabled && scenes.length > 0 ? (
+                <div className="relative pl-12">
+                  <span
+                    className="pointer-events-none absolute left-5 top-3 bottom-3 w-[2px] rounded-full bg-gradient-to-b from-[color:var(--accent-08)] via-[color:var(--accent-04)] to-transparent"
+                    aria-hidden="true"
+                  />
+                  <div className="flex flex-col gap-10">
+                    {scenes.map((scene, idx) => (
+                      <StorySceneCard
+                        key={idx}
+                        index={idx}
+                        total={scenes.length}
+                        text={scene}
+                        prefersReducedMotion={prefersReducedMotion}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {scenes.length
+                    ? scenes.map((scene, idx) => (
+                        <p key={idx} className="text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                          {scene}
+                        </p>
+                      ))
+                    : (
+                        <p className="text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                          {story.text}
+                        </p>
+                      )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function StorySceneCard({
+  text,
+  index,
+  total,
+  prefersReducedMotion,
+}: {
+  text: string;
+  index: number;
+  total: number;
+  prefersReducedMotion: boolean;
+}) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 80%", "end 45%"],
+  });
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.6 });
+  const opacity = useTransform(progress, [0, 1], [0.35, 1]);
+  const translateY = useTransform(progress, [0, 1], [32, 0]);
+  const indicatorFill = useTransform(progress, [0, 1], [0.15, 1]);
+  const cardStyle: MotionStyle | undefined = prefersReducedMotion ? undefined : { opacity, y: translateY };
+
+  return (
+    <div ref={ref} className="relative grid gap-5 sm:grid-cols-[auto_1fr]">
+      <div className="relative flex items-start justify-center">
+        <div className="relative h-12 w-12">
+          <svg className="absolute inset-0" viewBox="0 0 36 36" role="img" aria-hidden="true">
+            <circle
+              cx="18"
+              cy="18"
+              r="15"
+              stroke="color-mix(in_oklab,var(--accent),transparent 80%)"
+              strokeWidth="2"
+              fill="var(--card)"
+            />
+            <motion.circle
+              cx="18"
+              cy="18"
+              r="15"
+              stroke="var(--accent)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="origin-center -rotate-90"
+              style={prefersReducedMotion ? { pathLength: 1 } : { pathLength: indicatorFill }}
+            />
+          </svg>
+          {index < total - 1 && (
+            <span
+              className="absolute left-1/2 top-12 h-[calc(100%+1.75rem)] w-[1.5px] -translate-x-1/2 bg-gradient-to-b from-[color:var(--accent-08)] via-[color:var(--accent-04)] to-transparent"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+      </div>
+      <motion.div
+        className="relative rounded-[calc(var(--radius)*0.9)] border border-[color:var(--border)] bg-[color:var(--card)]/95 p-5 shadow-sm backdrop-blur-sm"
+        style={cardStyle}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 36 }}
+        whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.4 }}
+      >
+        <p className="text-base leading-relaxed" style={{ color: "var(--textSoft)" }}>
+          {text}
+        </p>
+      </motion.div>
+    </div>
   );
 }
 
