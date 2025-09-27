@@ -44,7 +44,17 @@
         { "type": "directions", "label": "Come arrivare" }
       ],
       "initialMessage": "Ciao! Posso aiutarti con visite, preventivi, igiene, sbiancamento, ortodonzia o implantologia. Vuoi fissare un appuntamento?"
-    }
+    },
+    "primaryCta": {
+      "label": "Prenota su WhatsApp",
+      "url": "https://wa.me/393339876543?text=Buongiorno%2C%20vorrei%20prenotare%20una%20visita%20allo%20Studio%20Aurora.",
+      "description": "Fissa controlli, igiene e trattamenti in pochi minuti."
+    },
+    "heroStats": [
+      { "value": "10+", "label": "Anni di esperienza" },
+      { "value": "3D", "label": "Radiologia digitale", "sublabel": "Scanner intraorale e panoramica" },
+      { "label": "Piani di pagamento rateali disponibili" }
+    ]
   },
   "menu": {
     "specials": [

@@ -54,7 +54,17 @@
     { "type": "directions", "label": "Indicazioni" },
     { "type": "whatsapp", "label": "WhatsApp" }
   ]
-    }
+    },
+    "primaryCta": {
+      "label": "Prenota su WhatsApp",
+      "url": "https://wa.me/393331234567?text=Ciao%20Il%20Pirata%2C%20vorrei%20prenotare%20un%20tavolo.",
+      "description": "Prenotazioni e ordini d'asporto in tempo reale."
+    },
+    "heroStats": [
+      { "value": "Dal 1998", "label": "Tradizione di quartiere" },
+      { "value": "48h", "label": "Lievitazione degli impasti" },
+      { "label": "Brace accesa ogni sera" }
+    ]
   },
   "story": {
     "title": "La storia del Pirata",

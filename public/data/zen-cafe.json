@@ -53,7 +53,17 @@
     { "type": "directions", "label": "Indicazioni" },
     { "type": "whatsapp", "label": "WhatsApp" }
   ]
-}
+},
+    "primaryCta": {
+      "label": "Scrivici su WhatsApp",
+      "url": "https://wa.me/393331112222?text=Ciao%20Zen%20Caf%C3%A8%2C%20vorrei%20prenotare%20un%20aperitivo.",
+      "description": "Prenota aperitivi, pizze gourmet e feste private."
+    },
+    "heroStats": [
+      { "value": "48h", "label": "Lievitazione degli impasti" },
+      { "value": "7:00", "label": "Apertura ogni mattina" },
+      { "label": "Aperitivi personalizzati su prenotazione" }
+    ]
   },
   "story": {
     "title": "Relax & buon gusto",
