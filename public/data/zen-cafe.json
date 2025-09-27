@@ -88,7 +88,15 @@
       {
         "name": "Pizze gourmet",
         "items": [
-          { "name": "Morta & Pistacchio", "desc": "Fior di latte, mortadella, granella di pistacchio", "price": 9.5, "tags": ["G","L"], "fav": true, "img": "/zen/zen-3.jpg" },
+          {
+            "name": "Morta & Pistacchio",
+            "desc": "Fior di latte, mortadella, granella di pistacchio",
+            "price": 9.5,
+            "tags": ["G","L"],
+            "fav": true,
+            "img": "/zen/zen-3.jpg",
+            "accentColor": "#22c55e"
+          },
           { "name": "Ortolana", "desc": "Verdure grigliate, fior di latte", "price": 8.0, "tags": ["G","L","VEG"], "img": "/zen/zen-4.jpg" }
         ]
       },

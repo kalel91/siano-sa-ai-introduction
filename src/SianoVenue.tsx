@@ -27,7 +27,36 @@ import {
   Instagram,
   Facebook,
   Search,
+  AlarmClock,
+  Baby,
+  BarChart3,
+  Car,
+  ClipboardCheck,
+  Diamond,
+  Dumbbell,
+  Egg,
+  FileCheck,
+  Gavel,
+  Gem,
+  Globe2,
+  Layers,
+  Leaf,
+  Milk,
+  MilkOff,
+  Microscope,
+  Network,
+  Package,
+  PlusCircle,
+  Scissors,
+  SlidersHorizontal,
+  Smile,
+  Sprout,
+  UserRound,
+  Waves,
+  Wheat,
+  Flower2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 /** Types */
 type CTAType = "call" | "directions" | "whatsapp" | "link";
@@ -112,10 +141,255 @@ type MenuItem = {
   img?: string;
   fav?: boolean;
   url?: string; // link scheda prodotto/polizza
+  accentColor?: string;
 };
 type Category = { name: string; items: MenuItem[] };
 type Menu = { specials?: { title: string; price: string; badge?: string }[]; categories: Category[] };
 type Story = { title?: string; text?: string } | null;
+
+type TagMeta = {
+  label: string;
+  colors: [string, string];
+  accent: string;
+  icon?: LucideIcon;
+};
+
+const TAG_META_LIBRARY: Record<string, TagMeta> = {
+  g: {
+    label: "Glutine (G)",
+    colors: ["hsl(22 88% 94% / 0.7)", "hsl(18 92% 72% / 0.92)"],
+    accent: "#ea580c",
+    icon: Wheat,
+  },
+  l: {
+    label: "Lattosio (L)",
+    colors: ["hsl(42 94% 93% / 0.68)", "hsl(38 92% 75% / 0.9)"],
+    accent: "#f59e0b",
+    icon: Milk,
+  },
+  u: {
+    label: "Uova (U)",
+    colors: ["hsl(48 95% 94% / 0.7)", "hsl(46 90% 72% / 0.9)"],
+    accent: "#facc15",
+    icon: Egg,
+  },
+  veg: {
+    label: "VEG", // mantenere label sintetica
+    colors: ["hsl(142 72% 93% / 0.68)", "hsl(140 74% 68% / 0.9)"],
+    accent: "#16a34a",
+    icon: Leaf,
+  },
+  "senza lattosio": {
+    label: "Senza lattosio",
+    colors: ["hsl(198 88% 93% / 0.7)", "hsl(198 92% 70% / 0.9)"],
+    accent: "#0ea5e9",
+    icon: MilkOff,
+  },
+  "preventivo incluso": {
+    label: "Preventivo incluso",
+    colors: ["hsl(201 90% 93% / 0.7)", "hsl(204 88% 72% / 0.9)"],
+    accent: "#38bdf8",
+    icon: ClipboardCheck,
+  },
+  "richiamo 6 mesi": {
+    label: "Richiamo 6 mesi",
+    colors: ["hsl(262 92% 94% / 0.7)", "hsl(262 88% 72% / 0.9)"],
+    accent: "#7c3aed",
+    icon: AlarmClock,
+  },
+  estetica: {
+    label: "Estetica",
+    colors: ["hsl(328 85% 94% / 0.7)", "hsl(328 82% 72% / 0.9)"],
+    accent: "#ec4899",
+    icon: Sparkles,
+  },
+  composito: {
+    label: "Composito",
+    colors: ["hsl(215 90% 93% / 0.7)", "hsl(215 88% 72% / 0.9)"],
+    accent: "#3b82f6",
+    icon: Layers,
+  },
+  "cad/cam": {
+    label: "CAD/CAM",
+    colors: ["hsl(238 92% 94% / 0.7)", "hsl(238 86% 72% / 0.9)"],
+    accent: "#6366f1",
+    icon: SlidersHorizontal,
+  },
+  ceramica: {
+    label: "Ceramica",
+    colors: ["hsl(330 88% 94% / 0.7)", "hsl(330 82% 76% / 0.9)"],
+    accent: "#f472b6",
+    icon: Diamond,
+  },
+  "microscopio se necessario": {
+    label: "Microscopio",
+    colors: ["hsl(174 78% 92% / 0.68)", "hsl(172 76% 68% / 0.9)"],
+    accent: "#14b8a6",
+    icon: Microscope,
+  },
+  "protesi provvisoria": {
+    label: "Protesi provvisoria",
+    colors: ["hsl(350 82% 94% / 0.68)", "hsl(348 80% 72% / 0.9)"],
+    accent: "#fb7185",
+    icon: Gem,
+  },
+  retainer: {
+    label: "Retainer",
+    colors: ["hsl(187 88% 93% / 0.7)", "hsl(187 76% 68% / 0.9)"],
+    accent: "#22d3ee",
+    icon: Smile,
+  },
+  adulti: {
+    label: "Adulti",
+    colors: ["hsl(18 88% 94% / 0.7)", "hsl(18 80% 70% / 0.9)"],
+    accent: "#f97316",
+    icon: UserRound,
+  },
+  kid: {
+    label: "Kid",
+    colors: ["hsl(326 88% 94% / 0.7)", "hsl(326 82% 74% / 0.9)"],
+    accent: "#f472b6",
+    icon: Baby,
+  },
+  care: {
+    label: "Care",
+    colors: ["hsl(200 88% 94% / 0.7)", "hsl(200 82% 74% / 0.9)"],
+    accent: "#0ea5e9",
+    icon: Sprout,
+  },
+  classic: {
+    label: "Classic",
+    colors: ["hsl(220 12% 90% / 0.75)", "hsl(220 15% 70% / 0.88)"],
+    accent: "#94a3b8",
+    icon: Scissors,
+  },
+  combo: {
+    label: "Combo",
+    colors: ["hsl(262 86% 94% / 0.7)", "hsl(260 82% 72% / 0.9)"],
+    accent: "#8b5cf6",
+    icon: Layers,
+  },
+  fade: {
+    label: "Fade",
+    colors: ["hsl(215 88% 94% / 0.7)", "hsl(210 82% 72% / 0.9)"],
+    accent: "#38bdf8",
+    icon: Waves,
+  },
+  hair: {
+    label: "Hair",
+    colors: ["hsl(275 82% 94% / 0.7)", "hsl(272 78% 72% / 0.9)"],
+    accent: "#a855f7",
+    icon: Sparkles,
+  },
+  beard: {
+    label: "Beard",
+    colors: ["hsl(24 88% 94% / 0.7)", "hsl(24 82% 74% / 0.9)"],
+    accent: "#fb923c",
+    icon: Scissors,
+  },
+  product: {
+    label: "Product",
+    colors: ["hsl(48 90% 94% / 0.7)", "hsl(46 84% 72% / 0.9)"],
+    accent: "#facc15",
+    icon: Package,
+  },
+  spa: {
+    label: "Spa",
+    colors: ["hsl(156 88% 93% / 0.7)", "hsl(154 82% 70% / 0.9)"],
+    accent: "#4ade80",
+    icon: Flower2,
+  },
+  h24: {
+    label: "H24",
+    colors: ["hsl(210 88% 94% / 0.7)", "hsl(210 82% 70% / 0.9)"],
+    accent: "#0ea5e9",
+    icon: Clock,
+  },
+  "schengen/worldwide": {
+    label: "Schengen/Worldwide",
+    colors: ["hsl(201 88% 94% / 0.7)", "hsl(200 82% 72% / 0.9)"],
+    accent: "#22d3ee",
+    icon: Globe2,
+  },
+  "ademp. obbl.": {
+    label: "Ademp. obbl.",
+    colors: ["hsl(152 78% 93% / 0.7)", "hsl(150 72% 66% / 0.9)"],
+    accent: "#22c55e",
+    icon: FileCheck,
+  },
+  "arbitrato incluso": {
+    label: "Arbitrato incluso",
+    colors: ["hsl(28 88% 94% / 0.7)", "hsl(26 82% 72% / 0.9)"],
+    accent: "#f97316",
+    icon: Gavel,
+  },
+  "bonus-malus": {
+    label: "Bonus-malus",
+    colors: ["hsl(30 88% 94% / 0.7)", "hsl(28 82% 72% / 0.9)"],
+    accent: "#fb923c",
+    icon: BarChart3,
+  },
+  facoltativa: {
+    label: "Facoltativa",
+    colors: ["hsl(158 78% 93% / 0.7)", "hsl(156 72% 66% / 0.9)"],
+    accent: "#22c55e",
+    icon: PlusCircle,
+  },
+  modulare: {
+    label: "Modulare",
+    colors: ["hsl(238 88% 94% / 0.7)", "hsl(236 82% 72% / 0.9)"],
+    accent: "#6366f1",
+    icon: SlidersHorizontal,
+  },
+  "rete convenzionata": {
+    label: "Rete convenzionata",
+    colors: ["hsl(201 90% 93% / 0.7)", "hsl(203 86% 72% / 0.9)"],
+    accent: "#0ea5e9",
+    icon: Network,
+  },
+  "sport inclusi": {
+    label: "Sport inclusi",
+    colors: ["hsl(148 88% 94% / 0.7)", "hsl(146 82% 70% / 0.9)"],
+    accent: "#22c55e",
+    icon: Dumbbell,
+  },
+  "garanzia 5 anni": {
+    label: "Garanzia 5 anni",
+    colors: ["hsl(48 95% 94% / 0.7)", "hsl(46 90% 72% / 0.9)"],
+    accent: "#facc15",
+    icon: ShieldCheck,
+  },
+  detraibile: {
+    label: "Detraibile",
+    colors: ["hsl(150 78% 93% / 0.7)", "hsl(148 72% 66% / 0.9)"],
+    accent: "#22c55e",
+    icon: FileCheck,
+  },
+  "scatola nera": {
+    label: "Scatola nera",
+    colors: ["hsl(220 88% 94% / 0.7)", "hsl(220 82% 72% / 0.9)"],
+    accent: "#60a5fa",
+    icon: Car,
+  },
+};
+
+function stringToGradient(tag: string): TagMeta {
+  const hash = Array.from(tag).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hue = hash % 360;
+  const accent = `hsl(${hue} 78% 56%)`;
+  const from = `hsl(${(hue + 8) % 360} 92% 92% / 0.68)`;
+  const to = `hsl(${(hue + 18) % 360} 88% 68% / 0.92)`;
+  return { label: tag, colors: [from, to], accent, icon: Sparkles };
+}
+
+function getTagMeta(tag: string): TagMeta {
+  const key = tag.toLowerCase();
+  const meta = TAG_META_LIBRARY[key];
+  if (meta) {
+    return { ...meta, label: meta.label ?? tag };
+  }
+  return stringToGradient(tag);
+}
 
 function splitStoryIntoScenes(text?: string): string[] {
   if (!text) return [];
@@ -1354,105 +1628,279 @@ function ServiceCard({ item }: { item: MenuItem }) {
   const hasImage = Boolean(item.img);
   const [imageFailed, setImageFailed] = React.useState(false);
   const showImage = hasImage && !imageFailed;
+  const prefersReducedMotion = useReducedMotion();
+
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+
+  const rotateXRaw = useTransform(pointerY, [-1, 1], [12, -12]);
+  const rotateYRaw = useTransform(pointerX, [-1, 1], [-12, 12]);
+  const rotateX = useSpring(rotateXRaw, { stiffness: 220, damping: 26 });
+  const rotateY = useSpring(rotateYRaw, { stiffness: 220, damping: 26 });
+
+  const hoverStrengthRaw = useTransform([pointerX, pointerY], ([x, y]) => {
+    const safeX = typeof x === "number" ? x : 0;
+    const safeY = typeof y === "number" ? y : 0;
+    return Math.min(1, Math.sqrt(safeX * safeX + safeY * safeY));
+  });
+  const hoverStrength = useSpring(hoverStrengthRaw, { stiffness: 240, damping: 28, mass: 0.6 });
+
+  const glowPercent = useTransform(hoverStrength, (value) => 18 + value * 36);
+  const overlayOpacity = useTransform(hoverStrength, (value) => 0.12 + value * 0.38);
+  const highlightXRaw = useTransform(pointerX, [-1, 1], [82, 18]);
+  const highlightYRaw = useTransform(pointerY, [-1, 1], [18, 82]);
+  const highlightX = useSpring(highlightXRaw, { stiffness: 320, damping: 32 });
+  const highlightY = useSpring(highlightYRaw, { stiffness: 320, damping: 32 });
+  const imageScale = useSpring(useTransform(hoverStrength, [0, 1], [1.02, 1.1]), { stiffness: 220, damping: 28 });
+
+  const tagMetaList = React.useMemo(() => item.tags?.map((tag) => getTagMeta(tag)) ?? [], [item.tags]);
+  const primaryTagMeta = tagMetaList[0];
+  const accentColor = React.useMemo(
+    () => item.accentColor || primaryTagMeta?.accent || "var(--accent)",
+    [item.accentColor, primaryTagMeta?.accent],
+  );
+
+  const cssVars = React.useMemo(
+    () => ({
+      "--card-accent": accentColor,
+      "--card-accent-soft": `color-mix(in_oklab, ${accentColor}, transparent 76%)`,
+      "--card-accent-softer": `color-mix(in_oklab, ${accentColor}, transparent 86%)`,
+    }),
+    [accentColor],
+  );
+
+  const baseShadow = "0 45px 85px -60px rgba(15,23,42,0.55)";
+  const shadowBoost = useMotionTemplate`${baseShadow}, 0 28px 60px -45px rgba(15,23,42,0.4), 0 18px 45px -30px color-mix(in_oklab, ${accentColor}, transparent ${glowPercent}%)`;
+  const overlayGradient = useMotionTemplate`radial-gradient(circle at ${highlightX}% ${highlightY}%, color-mix(in_oklab, ${accentColor}, transparent 60%) 0%, transparent 60%), linear-gradient(135deg, transparent 35%, color-mix(in_oklab, ${accentColor}, transparent 80%) 100%)`;
+
+  const [canTilt, setCanTilt] = React.useState(false);
+  const cardRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (prefersReducedMotion) {
+      setCanTilt(false);
+      return;
+    }
+    const mq = window.matchMedia("(pointer: fine)");
+    const update = () => setCanTilt(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [prefersReducedMotion]);
+
+  const handlePointerMove = React.useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      if (!canTilt) return;
+      const element = cardRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      pointerX.set((x - 0.5) * 2);
+      pointerY.set((y - 0.5) * 2);
+    },
+    [canTilt, pointerX, pointerY],
+  );
+
+  const resetTilt = React.useCallback(() => {
+    pointerX.set(0);
+    pointerY.set(0);
+  }, [pointerX, pointerY]);
+
+  const articleStyle = React.useMemo(() => {
+    const style: MotionStyle = {
+      ...(cssVars as MotionStyle),
+      borderColor: "var(--card-accent-soft)",
+      boxShadow: canTilt ? shadowBoost : baseShadow,
+    };
+    if (canTilt) {
+      style.rotateX = rotateX;
+      style.rotateY = rotateY;
+      style.transformStyle = "preserve-3d";
+    }
+    return style;
+  }, [cssVars, canTilt, shadowBoost, rotateX, rotateY]);
+
+  const staticOverlay =
+    "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--card-accent),transparent 65%) 0%, transparent 55%), linear-gradient(135deg, transparent 35%, color-mix(in_oklab,var(--card-accent),transparent 82%) 100%)";
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -6 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
-      className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
-      style={{
-        borderColor: "color-mix(in_oklab,var(--accent),transparent 82%)",
-        boxShadow: "0 45px 85px -60px rgba(15,23,42,0.55)",
-      }}
-    >
-      <div className="relative overflow-hidden rounded-[calc(var(--radius)*0.9)] border bg-[var(--muted)]"
-        style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}>
-        {showImage ? (
-          <motion.img
-            src={item.img}
-            alt={item.name}
-            className="h-44 w-full object-cover"
-            loading="lazy"
-            initial={{ scale: 1.05 }}
-            whileHover={{ scale: 1.12 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div
-            className="flex h-44 items-center justify-center text-[11px] uppercase tracking-[0.24em]"
-            style={{ color: "var(--textSoft)" }}
-          >
-            Immagine in arrivo
-          </div>
-        )}
-
+    <div className="h-full" style={{ perspective: canTilt ? 1200 : undefined }}>
+      <motion.article
+        ref={(node) => {
+          cardRef.current = node;
+        }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius)] border bg-[var(--card)] p-5 shadow-sm"
+        style={articleStyle}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={resetTilt}
+        onFocus={resetTilt}
+      >
         <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
-          style={{
-            background:
-              "radial-gradient(circle at 20% 20%, color-mix(in_oklab,var(--accent),transparent 65%) 0%, transparent 55%), linear-gradient(135deg, transparent 35%, color-mix(in_oklab,var(--accent),transparent 80%) 100%)",
-          }}
-        />
-
-        <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2 text-xs font-medium">
-          {item.fav && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-[color:var(--accent-08)] px-3 py-1 text-[color:var(--accent)]"
+          className="relative overflow-hidden rounded-[calc(var(--radius)*0.9)] border bg-[var(--muted)]"
+          style={{ borderColor: "var(--card-accent-soft)" }}
+        >
+          {showImage ? (
+            <motion.img
+              src={item.img}
+              alt={item.name}
+              className="h-44 w-full object-cover transition duration-500 group-hover:scale-[1.06]"
+              loading="lazy"
+              style={canTilt ? ({ scale: imageScale } as MotionStyle) : undefined}
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <div
+              className="flex h-44 items-center justify-center text-[11px] uppercase tracking-[0.24em]"
+              style={{ color: "var(--textSoft)" }}
             >
-              <Star className="h-3.5 w-3.5" /> Preferito
-            </span>
+              Immagine in arrivo
+            </div>
           )}
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-[var(--card)] px-3 py-1 text-[color:var(--text)] shadow-sm"
-          >
-            {formatPrice(item.price)} €
-          </span>
-        </div>
-      </div>
 
-      <div className="mt-5 space-y-3">
-        <div>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-            {item.name}
-          </h3>
-          {item.desc && (
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-              {item.desc}
-            </p>
-          )}
-        </div>
+          <motion.div
+            className="pointer-events-none absolute inset-0 transition duration-500 group-hover:opacity-100"
+            style={{
+              background: canTilt ? overlayGradient : staticOverlay,
+              opacity: canTilt ? overlayOpacity : undefined,
+            }}
+            aria-hidden="true"
+          />
 
-        {!!item.tags?.length && (
-          <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: "var(--textSoft)" }}>
-            {item.tags?.map((tag, i) => (
+          <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2 text-xs font-medium">
+            {item.fav && (
               <span
-                key={i}
-                className="rounded-full border px-3 py-1"
-                style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+                className="inline-flex items-center gap-1 rounded-full bg-[color:var(--card-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--card-accent)] shadow-sm"
               >
-                {tag}
+                <Star className="h-3.5 w-3.5" /> Preferito
               </span>
-            ))}
+            )}
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--card)] px-3 py-1 text-[color:var(--text)] shadow-sm"
+            >
+              {formatPrice(item.price)} €
+            </span>
           </div>
-        )}
+        </div>
 
-        {item.url && (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[color:var(--accent)] transition hover:gap-3"
-          >
-            Approfondisci
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
+        <div className="mt-5 flex flex-1 flex-col space-y-3">
+          <div>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+              {item.name}
+            </h3>
+            {item.desc && (
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                {item.desc}
+              </p>
+            )}
+          </div>
+
+          {!!tagMetaList.length && (
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              {tagMetaList.map((meta, i) => {
+                const Icon = meta.icon;
+                return (
+                  <span
+                    key={`${item.name}-tag-${i}-${meta.label}`}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur"
+                    style={{
+                      background: `linear-gradient(120deg, ${meta.colors[0]}, ${meta.colors[1]})`,
+                      color: "rgba(15,23,42,0.8)",
+                      boxShadow: `0 12px 24px -18px ${meta.accent}`,
+                    }}
+                  >
+                    {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+                    <span className="font-semibold tracking-tight">{meta.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {item.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[color:var(--card-accent)] transition hover:gap-3"
+            >
+              Approfondisci
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
+      </motion.article>
+    </div>
+  );
+}
+
+function MobileCategorySlider({ items, categoryName }: { items: MenuItem[]; categoryName: string }) {
+  const prefersReducedMotion = useReducedMotion();
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const trackRef = React.useRef<HTMLDivElement | null>(null);
+  const [constraints, setConstraints] = React.useState<{ left: number; right: number }>({ left: 0, right: 0 });
+
+  React.useEffect(() => {
+    if (prefersReducedMotion) {
+      setConstraints({ left: 0, right: 0 });
+      return;
+    }
+    const updateConstraints = () => {
+      if (!containerRef.current || !trackRef.current) return;
+      const containerWidth = containerRef.current.offsetWidth;
+      const contentWidth = trackRef.current.scrollWidth;
+      const maxDrag = Math.max(0, contentWidth - containerWidth);
+      setConstraints({ left: -maxDrag, right: 0 });
+    };
+    updateConstraints();
+    window.addEventListener("resize", updateConstraints);
+    return () => window.removeEventListener("resize", updateConstraints);
+  }, [items.length, prefersReducedMotion]);
+
+  if (!items.length) return null;
+
+  if (prefersReducedMotion) {
+    return (
+      <div className="flex flex-col gap-4">
+        {items.map((item, idx) => (
+          <ServiceCard key={`${categoryName}-static-${idx}`} item={item} />
+        ))}
       </div>
-    </motion.article>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative -mx-4 overflow-hidden px-4">
+      <motion.div
+        ref={trackRef}
+        className="flex gap-4 py-2"
+        drag="x"
+        dragConstraints={constraints}
+        dragElastic={0.14}
+        dragMomentum={false}
+      >
+        {items.map((item, idx) => (
+          <div
+            key={`${categoryName}-slider-${idx}`}
+            className="min-w-[260px] max-w-[calc(100vw-3rem)] flex-shrink-0"
+          >
+            <ServiceCard item={item} />
+          </div>
+        ))}
+      </motion.div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-[var(--bg)] to-transparent"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[var(--bg)] to-transparent"
+      />
+    </div>
   );
 }
 
@@ -1633,11 +2081,24 @@ function ServicesSection({
                   </span>
                 </div>
                 {category.items.length ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {category.items.map((item, idx) => (
-                      <ServiceCard key={`${category.name}-${idx}`} item={item} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="hidden gap-4 md:grid md:grid-cols-2">
+                      {category.items.map((item, idx) => (
+                        <ServiceCard key={`${category.name}-desktop-${idx}`} item={item} />
+                      ))}
+                    </div>
+                    <div className="md:hidden">
+                      {category.items.length > 2 ? (
+                        <MobileCategorySlider items={category.items} categoryName={category.name} />
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          {category.items.map((item, idx) => (
+                            <ServiceCard key={`${category.name}-mobile-${idx}`} item={item} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-sm" style={{ color: "var(--textSoft)" }}>
                     Al momento non sono presenti servizi in questa categoria.

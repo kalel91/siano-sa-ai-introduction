@@ -72,7 +72,14 @@
       {
         "name": "Prevenzione",
         "items": [
-          { "name": "Visita di controllo", "desc": "Anamnesi, valutazione clinica e piano di cura.", "price": 40, "tags": ["preventivo incluso"], "fav": true },
+          {
+            "name": "Visita di controllo",
+            "desc": "Anamnesi, valutazione clinica e piano di cura.",
+            "price": 40,
+            "tags": ["preventivo incluso"],
+            "fav": true,
+            "accentColor": "#0ea5e9"
+          },
           { "name": "Igiene orale professionale", "desc": "Rimozione tartaro, levigatura e istruzioni domiciliari.", "price": 60, "tags": ["richiamo 6 mesi"] },
           { "name": "Sbiancamento dentale", "desc": "Trattamento in studio con gel professionale e lampada LED.", "price": 180, "tags": ["estetica"] }
         ]
@@ -87,7 +94,14 @@
       {
         "name": "Protesi & Estetica",
         "items": [
-          { "name": "Faccetta in ceramica", "desc": "Restauro estetico minimo-invasivo.", "price": 450, "tags": ["ceramica", "estetica"], "fav": true },
+          {
+            "name": "Faccetta in ceramica",
+            "desc": "Restauro estetico minimo-invasivo.",
+            "price": 450,
+            "tags": ["ceramica", "estetica"],
+            "fav": true,
+            "accentColor": "#f472b6"
+          },
           { "name": "Corona in zirconia", "desc": "Resistenza ed estetica per denti posteriori e anteriori.", "price": 420, "tags": ["CAD/CAM"] }
         ]
       },
@@ -101,7 +115,14 @@
       {
         "name": "Ortodonzia",
         "items": [
-          { "name": "Apparecchio trasparente (allineatori)", "desc": "Trattamento estetico con mascherine su misura.", "price": 1500, "tags": ["estetica", "adulti"], "fav": true },
+          {
+            "name": "Apparecchio trasparente (allineatori)",
+            "desc": "Trattamento estetico con mascherine su misura.",
+            "price": 1500,
+            "tags": ["estetica", "adulti"],
+            "fav": true,
+            "accentColor": "#6366f1"
+          },
           { "name": "Contenzione finale", "desc": "Mantenimento del risultato a fine terapia.", "price": 150, "tags": ["retainer"] }
         ]
       }

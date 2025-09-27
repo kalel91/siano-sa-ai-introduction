@@ -89,7 +89,15 @@
       {
         "name": "Pizze classiche",
         "items": [
-          { "name": "Margherita", "desc": "Pomodoro, fior di latte, basilico", "price": 5.5, "tags": ["G","L"], "fav": true, "img": "/pirata/ilpirata-3.png" },
+          {
+            "name": "Margherita",
+            "desc": "Pomodoro, fior di latte, basilico",
+            "price": 5.5,
+            "tags": ["G","L"],
+            "fav": true,
+            "img": "/pirata/ilpirata-3.png",
+            "accentColor": "#f97316"
+          },
           { "name": "Salsiccia & Friarielli", "desc": "Mozzarella, salsiccia, friarielli", "price": 8.5, "tags": ["G","L"], "img": "/pirata/ilpirata-4.png" },
           { "name": "Bufalina", "desc": "Pomodoro, bufala DOP, basilico", "price": 8.0, "tags": ["G","L"], "img": "/pirata/ilpirata-1.png" }
         ]
