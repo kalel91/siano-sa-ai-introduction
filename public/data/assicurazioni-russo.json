@@ -13,6 +13,12 @@
       "/nellorussohdi/hdi_image_01.png",
       "/nellorussohdi/hdi_image_02.jpg"
     ],
+    "heroVideoUrl": "https://cdn.coverr.co/videos/coverr-modern-office-meeting-5718/1080p.mp4",
+    "heroOverlays": [
+      "/overlays/aurora-veils.svg",
+      "/overlays/particles-dust.svg"
+    ],
+    "heroAuroraColors": ["#0e7490", "#22d3ee", "#0f172a"],
     "lastUpdated": "2025-09-05",
     "footerNote": "Premi indicativi ‘da’: il premio effettivo dipende da profilo, garanzie e condizioni.",
     "assistantLabel": "Chiedi a Assicurazioni Russo",

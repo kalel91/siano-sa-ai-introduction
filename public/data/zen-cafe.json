@@ -11,7 +11,17 @@
     "instagramUrl": "https://instagram.com/tua_pagina",
     "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/zen/zen_logo_transparent.svg",
-    "heroImages": ["/zen/zen-1.jpg", "/zen/zen-2.jpg", "/zen/zen-3.jpg"],
+    "heroImages": [
+      "/zen/zen-1.jpg",
+      "/zen/zen-2.jpg",
+      "/zen/zen-3.jpg"
+    ],
+    "heroVideoUrl": "https://cdn.coverr.co/videos/coverr-pouring-a-cocktail-into-a-glass-9719/1080p.mp4",
+    "heroOverlays": [
+      "/overlays/aurora-veils.svg",
+      "/overlays/particles-dust.svg"
+    ],
+    "heroAuroraColors": ["#6d28d9", "#a855f7", "#6366f1"],
     "assistantLabel": "Chiedi allo Zen Cafè",
     "assistantHeroDescription": "L’assistente dello Zen Cafè ti suggerisce combo colazione, aperitivi e pizze del giorno con info su allergeni e prenotazioni rapide per il tuo tavolo.",
     "footerNote": "Impasti leggeri 48h e caffetteria selezionata.",

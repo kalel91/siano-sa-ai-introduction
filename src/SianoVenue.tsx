@@ -1,5 +1,15 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+  useMotionTemplate,
+  type MotionValue,
+  type MotionStyle,
+} from "framer-motion";
 import ChatWidget from "./ChatWidget";
 import {
   Phone,
@@ -56,6 +66,9 @@ type Config = {
   whatsDefaultMsg?: string;
   logoUrl?: string;
   heroImages?: string[];
+  heroVideoUrl?: string;
+  heroOverlays?: string[];
+  heroAuroraColors?: string[];
   heroStats?: { label?: string; value?: string; sublabel?: string }[];
   primaryCta?: { label?: string; url?: string; description?: string };
   lastUpdated?: string;
@@ -295,8 +308,25 @@ function useVenueData() {
             ? c.assistantHeroDescription.trim()
             : undefined;
 
+        const heroVideoUrl = typeof c.heroVideoUrl === "string" && c.heroVideoUrl.trim()
+          ? c.heroVideoUrl.trim()
+          : undefined;
+        const heroOverlays = Array.isArray(c.heroOverlays)
+          ? c.heroOverlays
+              .map((overlay) => (typeof overlay === "string" ? overlay.trim() : ""))
+              .filter((overlay) => overlay.length > 0)
+          : undefined;
+        const heroAuroraColors = Array.isArray(c.heroAuroraColors)
+          ? c.heroAuroraColors
+              .map((color) => (typeof color === "string" ? color.trim() : ""))
+              .filter((color) => color.length > 0)
+          : undefined;
+
         const sanitizedConfig: Config = {
           ...c,
+          heroVideoUrl,
+          heroOverlays,
+          heroAuroraColors,
           heroStats,
           primaryCta,
           assistantHeroDescription,
@@ -362,6 +392,84 @@ function extractStoryHighlight(story: Story): string | null {
   return text.split(/[.!?]/)[0]?.trim() || null;
 }
 
+type ParallaxLayerProps = {
+  factor: number;
+  pointerX: MotionValue<number>;
+  pointerY: MotionValue<number>;
+  scroll: MotionValue<number>;
+  className?: string;
+  style?: MotionStyle;
+  children?: React.ReactNode;
+  disable?: boolean;
+};
+
+function ParallaxLayer({
+  factor,
+  pointerX,
+  pointerY,
+  scroll,
+  className,
+  style,
+  children,
+  disable,
+}: ParallaxLayerProps) {
+  const strength = disable ? 0 : factor;
+  const offsetX = useTransform(pointerX, (value) => value * strength);
+  const offsetYPointer = useTransform(pointerY, (value) => value * strength);
+  const offsetYScroll = useTransform(scroll, (value) => value * strength * -0.12);
+  const transform = useMotionTemplate`translate3d(${offsetX}px, calc(${offsetYPointer}px + ${offsetYScroll}px), 0)`;
+
+  return (
+    <motion.div
+      aria-hidden="true"
+      className={className}
+      style={{ ...style, transform }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+type AuroraFieldProps = {
+  colors: string[];
+  pointerX: MotionValue<number>;
+  pointerY: MotionValue<number>;
+  scroll: MotionValue<number>;
+  disable?: boolean;
+};
+
+function AuroraField({ colors, pointerX, pointerY, scroll, disable }: AuroraFieldProps) {
+  const palette = React.useMemo(() => {
+    if (!colors.length) {
+      return [
+        "var(--accent)",
+        "color-mix(in_oklab,var(--accent),white 28%)",
+        "color-mix(in_oklab,var(--accent),transparent 42%)",
+      ];
+    }
+    return colors;
+  }, [colors]);
+
+  const background = React.useMemo(() => {
+    const [c1, c2 = c1, c3 = c2] = palette;
+    return `radial-gradient(circle at 18% 20%, color-mix(in_oklab, ${c1}, transparent 55%) 0%, transparent 68%),` +
+      `radial-gradient(circle at 82% 18%, color-mix(in_oklab, ${c2}, transparent 50%) 0%, transparent 70%),` +
+      `radial-gradient(circle at 50% 80%, color-mix(in_oklab, ${c3}, transparent 60%) 0%, transparent 75%)`;
+  }, [palette]);
+
+  return (
+    <ParallaxLayer
+      factor={18}
+      pointerX={pointerX}
+      pointerY={pointerY}
+      scroll={scroll}
+      disable={disable}
+      className="absolute inset-0 blur-3xl"
+      style={{ mixBlendMode: "screen", opacity: 0.65, background }}
+    />
+  );
+}
+
 function SectionTitle({
   eyebrow,
   title,
@@ -413,6 +521,11 @@ function SectionTitle({
 
 function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
   const images = React.useMemo(() => cfg.heroImages?.filter(Boolean) ?? [], [cfg.heroImages]);
+  const heroOverlays = React.useMemo(() => cfg.heroOverlays?.filter(Boolean) ?? [], [cfg.heroOverlays]);
+  const auroraColors = React.useMemo(
+    () => cfg.heroAuroraColors?.filter(Boolean) ?? [],
+    [cfg.heroAuroraColors],
+  );
   const [idx, setIdx] = React.useState(0);
   const heroStats = React.useMemo(() => {
     const fallback: { value?: string; label?: string; sublabel?: string }[] = [
@@ -479,11 +592,61 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
     cfg.assistantHeroDescription ||
     `Risposte immediate su servizi, disponibilità, preventivi e follow-up. L’assistente AI attinge solo dalle informazioni pubblicate da ${cfg.name}, così i tuoi clienti hanno sempre un punto di contatto affidabile, 24/7.`;
 
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+  const scrollProgress = useMotionValue(0);
+  const pointerXSpring = useSpring(pointerX, { stiffness: 120, damping: 24, mass: 0.6 });
+  const pointerYSpring = useSpring(pointerY, { stiffness: 120, damping: 24, mass: 0.6 });
+  const scrollSpring = useSpring(scrollProgress, { stiffness: 80, damping: 22, mass: 0.8 });
+  const reduceMotion = useReducedMotion();
+
+  React.useEffect(() => {
+    if (reduceMotion) {
+      scrollProgress.set(0);
+      return;
+    }
+
+    const handleScroll = () => {
+      scrollProgress.set(window.scrollY || 0);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [scrollProgress, reduceMotion]);
+
+  const handlePointerMove = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (reduceMotion) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const relativeX = (event.clientX - rect.left) / rect.width - 0.5;
+      const relativeY = (event.clientY - rect.top) / rect.height - 0.5;
+      pointerX.set(relativeX * 40);
+      pointerY.set(relativeY * 28);
+    },
+    [pointerX, pointerY, reduceMotion],
+  );
+
+  const resetPointer = React.useCallback(() => {
+    pointerX.set(0);
+    pointerY.set(0);
+  }, [pointerX, pointerY]);
+
+  React.useEffect(() => {
+    if (!reduceMotion) return;
+    resetPointer();
+  }, [reduceMotion, resetPointer]);
+
   React.useEffect(() => {
     if (images.length <= 1) return;
     const id = setInterval(() => setIdx((i) => (i + 1) % images.length), 6000);
     return () => clearInterval(id);
   }, [images.length]);
+
+  const hasVideo = Boolean(cfg.heroVideoUrl);
+  const heroVideoPoster = React.useMemo(() => images[0] || undefined, [images]);
+  const disableParallax = Boolean(reduceMotion);
 
   return (
     <section
@@ -494,8 +657,71 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
           "radial-gradient(circle at 80% 0%, color-mix(in_oklab,var(--accent),white 15%), transparent 60%)," +
           "linear-gradient(140deg, var(--bgFrom), var(--bgTo))",
       }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={resetPointer}
+      onPointerUp={resetPointer}
+      onPointerCancel={resetPointer}
     >
-      <div className="absolute inset-0 bg-[rgba(15,23,42,0.08)] mix-blend-multiply" aria-hidden="true" />
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[rgba(15,23,42,0.08)] mix-blend-multiply" />
+        <AuroraField
+          colors={auroraColors}
+          pointerX={pointerXSpring}
+          pointerY={pointerYSpring}
+          scroll={scrollSpring}
+          disable={disableParallax}
+        />
+        <ParallaxLayer
+          factor={10}
+          pointerX={pointerXSpring}
+          pointerY={pointerYSpring}
+          scroll={scrollSpring}
+          disable={disableParallax}
+          className="absolute -inset-32"
+          style={{
+            mixBlendMode: "screen",
+            opacity: 0.4,
+            backgroundImage:
+              "radial-gradient(circle at 15% 35%, color-mix(in_oklab,var(--accent),transparent 60%) 0%, transparent 68%)," +
+              "radial-gradient(circle at 70% 75%, color-mix(in_oklab,var(--accent),transparent 70%) 0%, transparent 75%)",
+          }}
+        />
+        <ParallaxLayer
+          factor={6}
+          pointerX={pointerXSpring}
+          pointerY={pointerYSpring}
+          scroll={scrollSpring}
+          disable={disableParallax}
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)," +
+              "radial-gradient(circle at 80% 10%, rgba(255,255,255,0.04) 0%, transparent 65%)",
+            backgroundSize: "40% 40%, 35% 35%",
+            backgroundRepeat: "no-repeat",
+            mixBlendMode: "overlay",
+            opacity: 0.6,
+          }}
+        />
+        {heroOverlays.map((overlay, index) => (
+          <ParallaxLayer
+            key={`${overlay}-${index}`}
+            factor={4 + index * 2}
+            pointerX={pointerXSpring}
+            pointerY={pointerYSpring}
+            scroll={scrollSpring}
+            disable={disableParallax}
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${overlay})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              mixBlendMode: index % 2 === 0 ? "screen" : "lighten",
+              opacity: 0.55,
+            }}
+          />
+        ))}
+      </div>
       <div className={`${sectionClass} relative z-10 py-16 lg:py-20`}>
         <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
           <div className="space-y-6">
@@ -743,7 +969,49 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
               className="overflow-hidden rounded-[calc(var(--radius)*1.2)] border shadow-2xl"
               style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)" }}
             >
-              {images.length ? (
+              {hasVideo ? (
+                <div className="relative aspect-[4/5] w-full">
+                  <motion.video
+                    key={cfg.heroVideoUrl}
+                    initial={{ opacity: 0, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="h-full w-full object-cover"
+                    src={cfg.heroVideoUrl}
+                    poster={heroVideoPoster}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    aria-hidden="true"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 mix-blend-screen"
+                    style={{
+                      background:
+                        "radial-gradient(circle at 30% 25%, color-mix(in_oklab,var(--accent),transparent 45%) 0%, transparent 65%)," +
+                        "radial-gradient(circle at 80% 70%, color-mix(in_oklab,var(--accent),transparent 55%) 0%, transparent 75%)",
+                      opacity: 0.7,
+                    }}
+                  />
+                  <ParallaxLayer
+                    factor={8}
+                    pointerX={pointerXSpring}
+                    pointerY={pointerYSpring}
+                    scroll={scrollSpring}
+                    disable={disableParallax}
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      mixBlendMode: "screen",
+                      backgroundImage:
+                        "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.18) 0%, transparent 55%)," +
+                        "radial-gradient(circle at 70% 20%, rgba(255,255,255,0.1) 0%, transparent 65%)",
+                    }}
+                  />
+                </div>
+              ) : images.length ? (
                 <div className="relative aspect-[4/5] w-full">
                   <AnimatePresence mode="wait">
                     <motion.img

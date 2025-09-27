@@ -1,0 +1,14 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="veilA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="white" stop-opacity="0.12" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="veilB" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="white" stop-opacity="0.16" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <path d="M0 180C160 80 320 40 600 120C880 200 1120 120 1200 60V1200H0V180Z" fill="url(#veilA)" />
+  <path d="M0 420C200 560 480 600 700 540C900 484 1120 360 1200 280V1200H0V420Z" fill="url(#veilB)" />
+</svg>

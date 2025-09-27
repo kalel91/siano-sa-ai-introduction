@@ -14,6 +14,12 @@
       "/img/venues/dentista-aurora-2.jpg",
       "/img/venues/dentista-aurora-3.jpg"
     ],
+    "heroVideoUrl": "https://cdn.coverr.co/videos/coverr-dentist-checking-patients-teeth-7349/1080p.mp4",
+    "heroOverlays": [
+      "/overlays/flare-soft.svg",
+      "/overlays/aurora-veils.svg"
+    ],
+    "heroAuroraColors": ["#b91c1c", "#f97316", "#fbcfe8"],
     "lastUpdated": "2025-09-05",
     "footerNote": "Tariffe indicative: il preventivo è sempre personalizzato dopo visita e diagnosi.",
     "assistantLabel": "Chiedi allo Studio Aurora",
