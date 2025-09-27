@@ -78,6 +78,15 @@ type AssistantHighlight = {
   text: string;
 };
 
+type ConversationPhase = "user" | "typing" | "assistant" | "rating";
+
+type ConversationSnippet = {
+  id: string;
+  prompt: string;
+  response: string;
+  highlightIndex: number;
+};
+
 type AssistantContent = {
   eyebrow?: string;
   title?: string;
@@ -2184,6 +2193,157 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
   const title = assistant?.title?.trim() || fallbackTitle;
   const subtitle = assistant?.subtitle?.trim() || fallbackSubtitle;
   const description = assistant?.description?.trim();
+  const prefersReducedMotion = useReducedMotion();
+  const reduceMotion = prefersReducedMotion ?? false;
+  const quickReplies = (cfg.chat?.quickReplies || [])
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item));
+  const conversationFlows: ConversationSnippet[] = (() => {
+    if (!highlights.length) return [];
+    const highlightPayload = highlights.map((item, idx) => ({
+      id: `highlight-${idx}`,
+      response: item.text,
+      highlightIndex: idx,
+      title: item.title?.trim(),
+    }));
+
+    if (quickReplies.length === 0) {
+      return highlightPayload.map((item, idx) => ({
+        id: `fallback-${idx}`,
+        prompt: item.title || `Approfondiamo ${venueName}`,
+        response: item.response,
+        highlightIndex: item.highlightIndex,
+      }));
+    }
+
+    return quickReplies.map((prompt, idx) => {
+      const linkedHighlight = highlightPayload[idx % highlightPayload.length];
+      return {
+        id: `quick-${idx}`,
+        prompt,
+        response: linkedHighlight.response,
+        highlightIndex: linkedHighlight.highlightIndex,
+      };
+    });
+  })();
+  const [activeFlowIdx, setActiveFlowIdx] = React.useState(0);
+  const [phase, setPhase] = React.useState<ConversationPhase>(() => (reduceMotion ? "assistant" : "user"));
+  const liveCardRef = React.useRef<HTMLDivElement | null>(null);
+  const [isLiveVisible, setIsLiveVisible] = React.useState(false);
+  const [shouldRenderLive, setShouldRenderLive] = React.useState(false);
+  const activeFlow = conversationFlows[activeFlowIdx] ?? conversationFlows[0] ?? null;
+  const highlightFlowMap = (() => {
+    const map = new Map<number, number>();
+    conversationFlows.forEach((flow, idx) => {
+      if (!map.has(flow.highlightIndex)) {
+        map.set(flow.highlightIndex, idx);
+      }
+    });
+    return map;
+  })();
+  const activeHighlightIndex = activeFlow?.highlightIndex ?? 0;
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      setIsLiveVisible(true);
+      setShouldRenderLive(true);
+      return;
+    }
+    const node = liveCardRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setIsLiveVisible(true);
+      setShouldRenderLive(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsLiveVisible(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          setShouldRenderLive(true);
+        }
+      },
+      { threshold: 0.45 },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  React.useEffect(() => {
+    if (reduceMotion) {
+      setShouldRenderLive(true);
+      setPhase("assistant");
+    }
+  }, [reduceMotion]);
+
+  React.useEffect(() => {
+    if (!conversationFlows.length) return;
+    setActiveFlowIdx((prev) => (prev < conversationFlows.length ? prev : 0));
+  }, [conversationFlows.length]);
+
+  React.useEffect(() => {
+    setPhase(reduceMotion ? "assistant" : "user");
+    setActiveFlowIdx(0);
+  }, [conversationFlows.length, reduceMotion]);
+
+  React.useEffect(() => {
+    if (reduceMotion || !isLiveVisible || !conversationFlows.length) return;
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    if (phase === "user") {
+      timers.push(
+        setTimeout(() => {
+          setPhase("typing");
+        }, 1600),
+      );
+    } else if (phase === "typing") {
+      timers.push(
+        setTimeout(() => {
+          setPhase("assistant");
+        }, 1100),
+      );
+    } else if (phase === "assistant") {
+      timers.push(
+        setTimeout(() => {
+          setPhase("rating");
+        }, 2200),
+      );
+    } else if (phase === "rating") {
+      timers.push(
+        setTimeout(() => {
+          setActiveFlowIdx((prev) => (conversationFlows.length ? (prev + 1) % conversationFlows.length : 0));
+          setPhase("user");
+        }, 2600),
+      );
+    }
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [phase, reduceMotion, conversationFlows.length, isLiveVisible]);
+
+  const handleHighlightSelect = (index: number) => {
+    const mapped = highlightFlowMap.get(index);
+    if (mapped === undefined) return;
+    setActiveFlowIdx(mapped);
+    setPhase(reduceMotion ? "assistant" : "user");
+  };
+
+  const showTyping = !reduceMotion && phase === "typing";
+  const showAssistant = reduceMotion || phase === "assistant" || phase === "rating";
+  const showRating = reduceMotion || phase === "rating";
+  const ratingText = `Valutazione media 4.9/5`;
+  const statusBadge = !shouldRenderLive
+    ? { key: "idle", label: "Anteprima in standby", icon: Sparkles }
+    : reduceMotion
+      ? { key: "static", label: "Anteprima statica", icon: Sparkles }
+      : phase === "typing"
+        ? { key: "typing", label: "Sta scrivendo…", icon: Bot }
+        : phase === "rating"
+          ? { key: "rating", label: ratingText, icon: Star }
+          : { key: phase, label: "Risposta inviata", icon: MessageCircle };
+  const statusKey = statusBadge.key;
 
   return (
     <section id="assistant" className={`${sectionClass} py-14`}>
@@ -2218,46 +2378,206 @@ function AssistantSection({ cfg, menu, story, assistant }: AssistantSectionProps
                   {description}
                 </p>
               )}
+              {conversationFlows.length > 0 && (
+                <div
+                  ref={liveCardRef}
+                  className="mt-6 flex flex-col gap-4 rounded-[calc(var(--radius)*0.85)] border bg-[var(--card)]/92 p-4 shadow-inner"
+                  style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 72%)" }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      className="text-[0.7rem] font-semibold uppercase tracking-[0.2em]"
+                      style={{ color: "var(--textSoft)" }}
+                    >
+                      Conversazione live
+                    </span>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={statusKey}
+                        className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[0.65rem] font-medium"
+                        style={{
+                          borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)",
+                          color: "var(--textSoft)",
+                          background: "color-mix(in_oklab,var(--accent),transparent 94%)",
+                        }}
+                        initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                        transition={{ duration: 0.24, ease: "easeOut" }}
+                      >
+                        {(() => {
+                          const StatusIcon = statusBadge.icon;
+                          return (
+                            <>
+                              <StatusIcon className="h-3 w-3 text-[color:var(--accent)]" />
+                              <span>{statusBadge.label}</span>
+                            </>
+                          );
+                        })()}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                  <div className="flex flex-col gap-3" aria-live="polite" aria-atomic="false">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {shouldRenderLive && activeFlow && (
+                        <motion.div
+                          key={`user-${activeFlow.id}-${activeFlowIdx}`}
+                          layout
+                          className="max-w-[85%] self-end rounded-[calc(var(--radius)*0.8)] bg-[color:var(--accent-08)] px-3 py-2 text-xs"
+                          style={{ color: "var(--accentText, var(--text))" }}
+                          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                          transition={{ duration: 0.32, ease: "easeOut" }}
+                        >
+                          <span className="block text-[0.6rem] uppercase tracking-[0.12em] opacity-70">Tu</span>
+                          <span className="mt-1 block text-sm leading-relaxed">{activeFlow.prompt}</span>
+                        </motion.div>
+                      )}
+                      {shouldRenderLive && showTyping && activeFlow && (
+                        <motion.div
+                          key={`typing-${activeFlow.id}-${activeFlowIdx}`}
+                          layout
+                          className="max-w-[85%] rounded-[calc(var(--radius)*0.8)] bg-[color:var(--accent-06)] px-3 py-2 text-xs text-[color:var(--textSoft)]"
+                          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        >
+                          <span className="block text-[0.6rem] uppercase tracking-[0.12em] opacity-70">Assistente</span>
+                          <div className="mt-1 flex items-center gap-2">
+                            <TypingDots reduceMotion={reduceMotion} />
+                          </div>
+                        </motion.div>
+                      )}
+                      {shouldRenderLive && showAssistant && activeFlow && (
+                        <motion.div
+                          key={`assistant-${activeFlow.id}-${phase}-${activeFlowIdx}`}
+                          layout
+                          className="max-w-[92%] rounded-[calc(var(--radius)*0.9)] border px-3 py-2 text-xs"
+                          style={{
+                            borderColor: "color-mix(in_oklab,var(--accent),transparent 70%)",
+                            background: "color-mix(in_oklab,var(--accent),transparent 94%)",
+                            color: "var(--text)",
+                          }}
+                          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                          transition={{ duration: 0.32, ease: "easeOut" }}
+                        >
+                          <span className="block text-[0.6rem] uppercase tracking-[0.12em] opacity-70">Assistente</span>
+                          <span className="mt-1 block text-sm leading-relaxed">{activeFlow.response}</span>
+                          <AnimatePresence>
+                            {showRating && (
+                              <motion.div
+                                key="rating"
+                                className="mt-3 inline-flex items-center gap-1 text-[0.65rem] text-[color:var(--textSoft)]"
+                                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                                transition={{ duration: 0.26, ease: "easeOut" }}
+                              >
+                                {[0, 1, 2, 3, 4].map((star) => (
+                                  <Star key={star} className="h-3 w-3 text-[color:var(--accent)]" fill="currentColor" />
+                                ))}
+                                <span>{ratingText}</span>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {!shouldRenderLive && (
+                      <div
+                        className="rounded-[calc(var(--radius)*0.75)] border border-dashed px-3 py-3 text-xs"
+                        style={{
+                          borderColor: "color-mix(in_oklab,var(--accent),transparent 80%)",
+                          color: "var(--textSoft)",
+                        }}
+                      >
+                        La simulazione si attiva quando la sezione è in vista.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
         <div className="grid gap-4">
-          {highlights.map(({ Icon, text, title: bulletTitle }, idx) => (
-            <div
-              key={idx}
-              className="group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)]/95 p-5 shadow-lg"
-              style={{
-                borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)",
-                boxShadow: "0 30px 70px -35px rgba(15,23,42,0.45)",
-              }}
-            >
-              <div
-                className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100"
+          {highlights.map(({ Icon, text, title: bulletTitle }, idx) => {
+            const isActive = idx === activeHighlightIndex;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleHighlightSelect(idx)}
+                onFocus={() => handleHighlightSelect(idx)}
+                className={`group relative overflow-hidden rounded-[var(--radius)] border bg-[var(--card)]/95 p-5 text-left shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                  isActive ? "ring-2 ring-[color:var(--accent)]" : ""
+                }`}
                 style={{
-                  background:
-                    "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 85%) 100%)",
+                  borderColor: isActive
+                    ? "color-mix(in_oklab,var(--accent),transparent 55%)"
+                    : "color-mix(in_oklab,var(--accent),transparent 75%)",
+                  boxShadow: "0 30px 70px -35px rgba(15,23,42,0.45)",
                 }}
-              />
-              <div className="relative flex gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--accent-08)]">
-                  <Icon className="h-5 w-5 text-[color:var(--accent)]" />
-                </span>
-                <div>
-                  {bulletTitle && (
-                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                      {bulletTitle}
+                aria-pressed={isActive}
+              >
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, color-mix(in_oklab,var(--accent),transparent 75%) 0%, transparent 45%, color-mix(in_oklab,var(--accent),transparent 85%) 100%)",
+                  }}
+                  aria-hidden="true"
+                />
+                <div className="relative flex gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--accent-08)]">
+                    <Icon className="h-5 w-5 text-[color:var(--accent)]" />
+                  </span>
+                  <div>
+                    {bulletTitle && (
+                      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                        {bulletTitle}
+                      </p>
+                    )}
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
+                      {text}
                     </p>
-                  )}
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--textSoft)" }}>
-                    {text}
-                  </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
+  );
+}
+
+function TypingDots({ reduceMotion }: { reduceMotion: boolean }) {
+  if (reduceMotion) {
+    return (
+      <span className="flex gap-1" aria-hidden="true">
+        {[0, 1, 2].map((dot) => (
+          <span key={dot} className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)]/60" />
+        ))}
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex gap-1" aria-hidden="true">
+      {[0, 1, 2].map((dot) => (
+        <motion.span
+          key={dot}
+          className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)]/70"
+          animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 0.9, repeat: Infinity, delay: dot * 0.15, ease: "easeInOut" }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -2561,6 +2881,30 @@ export default function SianoVenue() {
     document.body.style.backgroundColor = "var(--bgTo)";
   }, []);
 
+  const showDetailsFooter = React.useMemo(() => {
+    const allergenText = cfg?.allergenNotice?.text?.trim() ?? "";
+    const showAllergen = cfg?.allergenNotice?.enabled !== false && allergenText !== "";
+    return Boolean(cfg?.footerNote || cfg?.lastUpdated || showAllergen);
+  }, [cfg?.allergenNotice?.enabled, cfg?.allergenNotice?.text, cfg?.footerNote, cfg?.lastUpdated]);
+
+  const navSections = React.useMemo(() => {
+    const sections: { id: string; label: string }[] = [];
+    if (story) {
+      sections.push({ id: "story", label: "La nostra storia" });
+    }
+    sections.push({ id: "assistant", label: "Assistente AI" });
+    if (men?.specials?.length) {
+      sections.push({ id: "specials", label: "In evidenza" });
+    }
+    if (men?.categories?.length) {
+      sections.push({ id: "services", label: "Servizi" });
+    }
+    if (showDetailsFooter) {
+      sections.push({ id: "details", label: "Dettagli" });
+    }
+    return sections;
+  }, [men?.categories?.length, men?.specials?.length, showDetailsFooter, story]);
+
   if (err) return <div className="p-6 text-red-600">{err}</div>;
   if (!cfg || !men)
     return (
@@ -2571,28 +2915,6 @@ export default function SianoVenue() {
 
   const computedFab = cfg.assistantLabel || makeAskLabel(cfg.name);
   const badgeLabel = resolveBadgeLabel(cfg.onlineBadgeLabel);
-  const showDetailsFooter = React.useMemo(() => {
-    const allergenText = cfg.allergenNotice?.text?.trim() ?? "";
-    const showAllergen = cfg.allergenNotice?.enabled !== false && allergenText !== "";
-    return Boolean(cfg.footerNote || cfg.lastUpdated || showAllergen);
-  }, [cfg.allergenNotice, cfg.footerNote, cfg.lastUpdated]);
-  const navSections = React.useMemo(() => {
-    const sectionsList: { id: string; label: string }[] = [];
-    if (story) {
-      sectionsList.push({ id: "story", label: "La nostra storia" });
-    }
-    sectionsList.push({ id: "assistant", label: "Assistente AI" });
-    if (men.specials?.length) {
-      sectionsList.push({ id: "specials", label: "In evidenza" });
-    }
-    if (men.categories?.length) {
-      sectionsList.push({ id: "services", label: "Servizi" });
-    }
-    if (showDetailsFooter) {
-      sectionsList.push({ id: "details", label: "Dettagli" });
-    }
-    return sectionsList;
-  }, [men.categories?.length, men.specials?.length, showDetailsFooter, story]);
 
   return (
     <div
