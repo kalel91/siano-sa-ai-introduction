@@ -13,6 +13,7 @@
     "logoUrl": "/pirata/pirate_logo_colored.png",
     "heroImages": ["/pirata/ilpirata-6.jpg", "/pirata/ilpirata-7.jpg", "/pirata/ilpirata-8.jpg"],
     "assistantLabel": "Chiedi al Pirata",
+    "assistantHeroDescription": "L’assistente de Il Pirata ti racconta impasti, cotture e promo del giorno per guidarti tra pizze, brace e fritti senza attese.",
     "footerNote": "Dal 1998 sforniamo pizze a lenta lievitazione. Farine selezionate e ingredienti locali.",
     "lastUpdated": "2025-09-05",
     "searchPlaceholder": "Cerca pizza o ingrediente…",
