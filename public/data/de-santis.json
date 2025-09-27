@@ -63,7 +63,7 @@
     "heroStats": [
       { "value": "1985", "label": "Anno di apertura" },
       { "value": "7/7", "label": "Pane fresco ogni giorno" },
-      { "label": "Ordini personalizzati per eventi e cerimonie" }
+      { "label": "Ordini personalizzati", "sublabel": "Per eventi e cerimonie" }
     ]
   },
   "story": {

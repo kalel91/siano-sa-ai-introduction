@@ -51,7 +51,7 @@
     "heroStats": [
       { "value": "30+", "label": "Compagnie partner" },
       { "value": "24h", "label": "Supporto sinistri", "sublabel": "anche via WhatsApp" },
-      { "label": "Consulenze su misura per famiglie e imprese" }
+      { "label": "Consulenze su misura", "sublabel": "Per famiglie e imprese" }
     ]
   },
   "menu": {

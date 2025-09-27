@@ -423,12 +423,23 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
     if (!cfg.heroStats || cfg.heroStats.length === 0) return fallback;
 
     return cfg.heroStats
-      .map((stat) => ({
-        value: stat.value && stat.value.length > 0 ? stat.value : undefined,
-        label: stat.label && stat.label.length > 0 ? stat.label : undefined,
-        sublabel: stat.sublabel,
-      }))
-      .filter((stat) => stat.value || stat.label);
+      .map((stat) => {
+        const value =
+          typeof stat.value === "string" && stat.value.trim().length > 0
+            ? stat.value.trim()
+            : undefined;
+        const label =
+          typeof stat.label === "string" && stat.label.trim().length > 0
+            ? stat.label.trim()
+            : undefined;
+        const sublabel =
+          typeof stat.sublabel === "string" && stat.sublabel.trim().length > 0
+            ? stat.sublabel.trim()
+            : undefined;
+
+        return { value, label, sublabel };
+      })
+      .filter((stat) => stat.value || stat.label || stat.sublabel);
   }, [cfg.heroStats]);
 
   const primaryCta = React.useMemo((): { label: string; url: string; description?: string } => {
@@ -557,13 +568,22 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {heroStats.map((stat, index) => {
                   const hasValue = Boolean(stat.value);
-                  const hasLabel = Boolean(stat.label);
-                  const value = hasValue ? (stat.value as string) : stat.label || "";
-                  const label = hasValue && hasLabel ? stat.label : undefined;
-                  const sublabel = stat.sublabel;
+                  const hasSublabel = Boolean(stat.sublabel);
+                  const label = hasValue
+                    ? stat.label
+                    : hasSublabel
+                      ? stat.label
+                      : undefined;
+                  const description = hasValue
+                    ? stat.sublabel
+                    : hasSublabel
+                      ? stat.sublabel
+                      : stat.label;
+                  const cardKey =
+                    stat.value || stat.label || stat.sublabel || String(index);
                   return (
                     <motion.div
-                      key={`${value}-${index}`}
+                      key={`${cardKey}-${index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.1 * index }}
@@ -574,16 +594,32 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
                           "linear-gradient(160deg, color-mix(in_oklab,var(--accent),white 92%), color-mix(in_oklab,var(--accent),transparent 92%))",
                       }}
                     >
-                      <span className="block text-xl font-semibold text-[color:var(--text)] sm:text-2xl">
-                        {value}
-                      </span>
+                      {hasValue ? (
+                        <span className="block text-xl font-semibold text-[color:var(--text)] sm:text-2xl">
+                          {stat.value}
+                        </span>
+                      ) : null}
                       {label ? (
-                        <span className="mt-1 block text-sm font-medium uppercase tracking-wide text-[color:var(--accent)]">
+                        <span
+                          className={
+                            hasValue
+                              ? "mt-1 block text-sm font-medium uppercase tracking-wide text-[color:var(--accent)]"
+                              : "block text-sm font-medium text-[color:var(--text)]"
+                          }
+                        >
                           {label}
                         </span>
                       ) : null}
-                      {sublabel ? (
-                        <span className="mt-1 block text-xs text-[color:var(--textSoft)]">{sublabel}</span>
+                      {description ? (
+                        <span
+                          className={`${
+                            hasValue
+                              ? "mt-1 block text-xs"
+                              : `${label ? "mt-2" : ""} block text-sm leading-relaxed`
+                          } text-[color:var(--textSoft)]`}
+                        >
+                          {description}
+                        </span>
                       ) : null}
                     </motion.div>
                   );

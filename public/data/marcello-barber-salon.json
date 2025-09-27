@@ -63,7 +63,7 @@
     "heroStats": [
       { "value": "3", "label": "Barber senior", "sublabel": "Team dedicato allo stile" },
       { "value": "20", "label": "Posti al giorno", "sublabel": "Prenotazione consigliata" },
-      { "label": "Prodotti professionali sempre disponibili" }
+      { "label": "Prodotti professionali", "sublabel": "Disponibili sempre in salone" }
     ]
   },
   "story": {

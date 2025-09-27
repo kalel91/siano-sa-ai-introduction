@@ -63,7 +63,7 @@
     "heroStats": [
       { "value": "48h", "label": "Lievitazione degli impasti" },
       { "value": "7:00", "label": "Apertura ogni mattina" },
-      { "label": "Aperitivi personalizzati su prenotazione" }
+      { "label": "Aperitivi personalizzati", "sublabel": "Disponibili su prenotazione" }
     ]
   },
   "story": {
