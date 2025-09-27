@@ -11,7 +11,16 @@
     "instagramUrl": "https://instagram.com/tua_pagina",
     "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/desantis/desantis_favicon.svg",
-    "heroImages": ["/desantis/de-santis-1.jpg", "/desantis/de-santis-2.jpg"],
+    "heroImages": [
+      "/desantis/de-santis-1.jpg",
+      "/desantis/de-santis-2.jpg"
+    ],
+    "heroVideoUrl": "https://cdn.coverr.co/videos/coverr-confectioner-decorating-cake-0508/1080p.mp4",
+    "heroOverlays": [
+      "/overlays/flare-soft.svg",
+      "/overlays/particles-dust.svg"
+    ],
+    "heroAuroraColors": ["#be123c", "#f97316", "#fde047"],
     "assistantLabel": "Chiedi a De Santis",
     "assistantHeroDescription": "Chiedi disponibilità di pane caldo, rustici e torte su misura: l’assistente di De Santis risponde subito su ingredienti, allergeni e tempi di ritiro.",
     "footerNote": "Pasticceria fresca ogni giorno. Ordini personalizzati per eventi.",

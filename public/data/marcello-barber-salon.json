@@ -11,7 +11,17 @@
     "instagramUrl": "https://instagram.com/tua_pagina",
     "facebookUrl": "https://facebook.com/tua_pagina",
     "logoUrl": "/marcello/logo_1.png",
-    "heroImages": ["/marcello/marcello-1.jpg", "/marcello/marcello-2.jpg", "/marcello/marcello-3.jpg"],
+    "heroImages": [
+      "/marcello/marcello-1.jpg",
+      "/marcello/marcello-2.jpg",
+      "/marcello/marcello-3.jpg"
+    ],
+    "heroVideoUrl": "https://cdn.coverr.co/videos/coverr-barber-shaving-client-9460/1080p.mp4",
+    "heroOverlays": [
+      "/overlays/particles-dust.svg",
+      "/overlays/aurora-veils.svg"
+    ],
+    "heroAuroraColors": ["#c9a227", "#facc15", "#fde68a"],
     "onlineBadgeLabel": "Catalogo Online",
     "searchPlaceholder": "Cerca taglio, barba o prodotto…",
     "allergenNotice": {             
