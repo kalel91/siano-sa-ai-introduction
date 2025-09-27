@@ -41,7 +41,17 @@
         { "type": "directions", "label": "Vieni in agenzia" }
       ],
       "initialMessage": "Ciao! Posso guidarti al miglior preventivo per auto, casa, salute, infortuni o professione. Da dove partiamo?"
-    }
+    },
+    "primaryCta": {
+      "label": "Scrivici su WhatsApp",
+      "url": "https://wa.me/393202224455?text=Ciao%20Assicurazioni%20Russo%2C%20vorrei%20un%20preventivo.",
+      "description": "Preventivi immediati e assistenza sinistri in tempo reale."
+    },
+    "heroStats": [
+      { "value": "30+", "label": "Compagnie partner" },
+      { "value": "24h", "label": "Supporto sinistri", "sublabel": "anche via WhatsApp" },
+      { "label": "Consulenze su misura per famiglie e imprese" }
+    ]
   },
   "menu": {
     "specials": [

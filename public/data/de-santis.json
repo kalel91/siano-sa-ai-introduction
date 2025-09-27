@@ -53,7 +53,17 @@
     { "type": "directions", "label": "Indicazioni" },
     { "type": "whatsapp", "label": "WhatsApp" }
   ]
-}
+},
+    "primaryCta": {
+      "label": "Ordina su WhatsApp",
+      "url": "https://wa.me/393334445555?text=Ciao%20De%20Santis%2C%20vorrei%20ordinare%20una%20torta.",
+      "description": "Prenota dolci personalizzati e ritiri veloci."
+    },
+    "heroStats": [
+      { "value": "1985", "label": "Anno di apertura" },
+      { "value": "7/7", "label": "Pane fresco ogni giorno" },
+      { "label": "Ordini personalizzati per eventi e cerimonie" }
+    ]
   },
   "story": {
     "title": "Dolci di famiglia",

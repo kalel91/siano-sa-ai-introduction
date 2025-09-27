@@ -53,7 +53,17 @@
     { "type": "directions", "label": "Indicazioni" },
     { "type": "whatsapp", "label": "WhatsApp" }
   ]
-}
+},
+    "primaryCta": {
+      "label": "Prenota su WhatsApp",
+      "url": "https://wa.me/393334455667?text=Ciao%20Marcello%2C%20vorrei%20prenotare%20un%20taglio%20o%20barba.",
+      "description": "Scegli giorno e servizio per taglio, barba e grooming."
+    },
+    "heroStats": [
+      { "value": "3", "label": "Barber senior", "sublabel": "Team dedicato allo stile" },
+      { "value": "20", "label": "Posti al giorno", "sublabel": "Prenotazione consigliata" },
+      { "label": "Prodotti professionali sempre disponibili" }
+    ]
   },
   "story": {
     "title": "Lo stile di Marcello",
