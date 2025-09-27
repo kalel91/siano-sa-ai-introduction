@@ -56,6 +56,8 @@ type Config = {
   whatsDefaultMsg?: string;
   logoUrl?: string;
   heroImages?: string[];
+  heroStats?: { label?: string; value?: string; sublabel?: string }[];
+  primaryCta?: { label?: string; url?: string; description?: string };
   lastUpdated?: string;
   footerNote?: string;
   assistantLabel?: string;
@@ -259,6 +261,39 @@ function useVenueData() {
       })
       .then((json) => {
         const c = (json.config || {}) as Config;
+        const heroStats: Config["heroStats"] = Array.isArray(c.heroStats)
+          ? c.heroStats.reduce<NonNullable<Config["heroStats"]>>((acc, stat) => {
+              if (!stat) return acc;
+              const value = typeof stat.value === "string" ? stat.value.trim() : "";
+              const label = typeof stat.label === "string" ? stat.label.trim() : "";
+              const sublabel =
+                typeof stat.sublabel === "string" && stat.sublabel.trim() ? stat.sublabel.trim() : undefined;
+              if (!value && !label) return acc;
+              acc.push({ value: value || undefined, label: label || undefined, sublabel });
+              return acc;
+            }, [])
+          : [];
+        const rawPrimaryCta = c.primaryCta;
+        const primaryCtaCandidate =
+          rawPrimaryCta && typeof rawPrimaryCta === "object"
+            ? {
+                label: typeof rawPrimaryCta.label === "string" ? rawPrimaryCta.label.trim() : "",
+                url: typeof rawPrimaryCta.url === "string" ? rawPrimaryCta.url.trim() : "",
+                description:
+                  typeof rawPrimaryCta.description === "string" && rawPrimaryCta.description.trim()
+                    ? rawPrimaryCta.description.trim()
+                    : undefined,
+              }
+            : undefined;
+        const primaryCta = primaryCtaCandidate && primaryCtaCandidate.label && primaryCtaCandidate.url
+          ? primaryCtaCandidate
+          : undefined;
+
+        const sanitizedConfig: Config = {
+          ...c,
+          heroStats,
+          primaryCta,
+        };
         const m = (json.menu || {}) as Menu;
         m.categories = Array.isArray(m.categories) ? m.categories : [];
         m.categories = m.categories.map((x) => ({
@@ -266,7 +301,7 @@ function useVenueData() {
           items: Array.isArray(x.items) ? x.items : [],
         }));
 
-        setCfg(c);
+        setCfg(sanitizedConfig);
         setMen(m);
         setStory((json.story as Story) ?? null);
         setAssistant((json.assistant as AssistantContent) ?? null);
@@ -372,6 +407,56 @@ function SectionTitle({
 function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
   const images = React.useMemo(() => cfg.heroImages?.filter(Boolean) ?? [], [cfg.heroImages]);
   const [idx, setIdx] = React.useState(0);
+  const heroStats = React.useMemo(() => {
+    const fallback: { value?: string; label?: string; sublabel?: string }[] = [
+      { value: "Risposte in <2 min", label: "Supporto immediato" },
+      { value: "+120", label: "Clienti soddisfatti" },
+    ];
+
+    if (!cfg.heroStats || cfg.heroStats.length === 0) return fallback;
+
+    return cfg.heroStats
+      .map((stat) => ({
+        value: stat.value && stat.value.length > 0 ? stat.value : undefined,
+        label: stat.label && stat.label.length > 0 ? stat.label : undefined,
+        sublabel: stat.sublabel,
+      }))
+      .filter((stat) => stat.value || stat.label);
+  }, [cfg.heroStats]);
+
+  const primaryCta = React.useMemo((): { label: string; url: string; description?: string } => {
+    if (cfg.primaryCta?.label && cfg.primaryCta?.url) {
+      return {
+        label: cfg.primaryCta.label,
+        url: cfg.primaryCta.url,
+        description: cfg.primaryCta.description,
+      };
+    }
+
+    if (cfg.whatsapp) {
+      return {
+        label: "Scrivici ora su WhatsApp",
+        url: waHref(cfg.whatsapp, cfg.whatsDefaultMsg || ""),
+        description: "Ricevi risposte immediate dal nostro assistente o dal team in persona.",
+      };
+    }
+
+    if (cfg.phone) {
+      return {
+        label: "Parla con un consulente",
+        url: telHref(cfg.phone),
+        description: "Prenota subito una chiacchierata senza impegno con lo studio.",
+      };
+    }
+
+    return {
+      label: "Scopri come funziona",
+      url: "#contattaci",
+      description: "Esplora l’assistente AI e scopri perché i clienti lo amano.",
+    };
+  }, [cfg.primaryCta, cfg.whatsapp, cfg.whatsDefaultMsg, cfg.phone]);
+  const primaryCtaUrl = primaryCta.url || "#";
+  const primaryCtaIsExternal = /^https?:/i.test(primaryCtaUrl);
 
   React.useEffect(() => {
     if (images.length <= 1) return;
@@ -433,6 +518,68 @@ function Hero({ cfg, badgeLabel }: { cfg: Config; badgeLabel: string | null }) {
                 )}
               </div>
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="rounded-[var(--radius)] border bg-[color:var(--card)]/70 p-5 shadow-sm backdrop-blur-sm"
+              style={{ borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)" }}
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <a
+                  href={primaryCtaUrl}
+                  className="inline-flex items-center justify-center gap-2 rounded-[calc(var(--radius)-4px)] px-5 py-3 text-sm font-semibold text-[color:var(--accentText)] shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 focus:ring-offset-transparent hover:shadow-lg"
+                  style={{ background: "var(--accent)" }}
+                  target={primaryCtaIsExternal ? "_blank" : undefined}
+                  rel={primaryCtaIsExternal ? "noreferrer" : undefined}
+                >
+                  {primaryCta.label}
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+                {primaryCta.description ? (
+                  <p className="text-sm leading-relaxed text-[color:var(--textSoft)] lg:max-w-sm">
+                    {primaryCta.description}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {heroStats.map((stat, index) => {
+                  const hasValue = Boolean(stat.value);
+                  const hasLabel = Boolean(stat.label);
+                  const value = hasValue ? (stat.value as string) : stat.label || "";
+                  const label = hasValue && hasLabel ? stat.label : undefined;
+                  const sublabel = stat.sublabel;
+                  return (
+                    <motion.div
+                      key={`${value}-${index}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.1 * index }}
+                      className="rounded-[calc(var(--radius)-6px)] border bg-white/60 p-4 shadow-sm dark:bg-white/5"
+                      style={{
+                        borderColor: "color-mix(in_oklab,var(--accent),transparent 75%)",
+                        background:
+                          "linear-gradient(160deg, color-mix(in_oklab,var(--accent),white 92%), color-mix(in_oklab,var(--accent),transparent 92%))",
+                      }}
+                    >
+                      <span className="block text-xl font-semibold text-[color:var(--text)] sm:text-2xl">
+                        {value}
+                      </span>
+                      {label ? (
+                        <span className="mt-1 block text-sm font-medium uppercase tracking-wide text-[color:var(--accent)]">
+                          {label}
+                        </span>
+                      ) : null}
+                      {sublabel ? (
+                        <span className="mt-1 block text-xs text-[color:var(--textSoft)]">{sublabel}</span>
+                      ) : null}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
 
             <div
               className="rounded-[var(--radius)] border p-4 shadow-sm"
